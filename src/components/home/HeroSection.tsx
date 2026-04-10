@@ -21,15 +21,15 @@ export default function HeroSection() {
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // suppress unused warning
+  void inputRef
+
   return (
     <section
       className="relative overflow-hidden py-20 md:py-32"
       style={{ background: 'var(--background)' }}
     >
-      <div
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden
-      >
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full opacity-10 blur-3xl"
           style={{ background: 'radial-gradient(ellipse, var(--accent) 0%, transparent 70%)' }}
@@ -37,7 +37,7 @@ export default function HeroSection() {
       </div>
 
       <div className="container-site relative z-10">
-        <div className="flex justify-center mb-6 animate-fade-up">
+        <div className="flex justify-center mb-6">
           <span
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium border"
             style={{
@@ -53,14 +53,13 @@ export default function HeroSection() {
 
         <div className="text-center max-w-4xl mx-auto mb-10">
           <h1
-            className="font-garamond font-bold leading-tight mb-4 animate-fade-up animate-delay-100"
+            className="font-garamond font-bold leading-tight mb-4"
             style={{ fontSize: 'var(--text-3xl)', color: 'var(--text-primary)' }}
           >
             Find Any Business,
             <span className="gradient-text"> Anywhere in India</span>
           </h1>
           <p
-            className="animate-fade-up animate-delay-200"
             style={{
               fontSize: 'var(--text-lg)',
               color: 'var(--text-secondary)',
@@ -73,7 +72,7 @@ export default function HeroSection() {
           </p>
         </div>
 
-        <div className="max-w-3xl mx-auto mb-8 animate-fade-up animate-delay-300">
+        <div className="max-w-3xl mx-auto mb-8">
           <div
             className="flex items-stretch rounded-2xl overflow-hidden border-2 transition-all duration-300"
             style={{
@@ -84,10 +83,7 @@ export default function HeroSection() {
           >
             <button
               className="flex items-center gap-2 px-4 py-4 border-r text-sm font-medium shrink-0 hover:opacity-80 transition-opacity"
-              style={{
-                color: 'var(--text-secondary)',
-                borderColor: 'var(--border)',
-              }}
+              style={{ color: 'var(--text-secondary)', borderColor: 'var(--border)' }}
             >
               <MapPin size={16} style={{ color: 'var(--accent)' }} />
               <span className="hidden sm:inline max-w-[100px] truncate">{location}</span>
@@ -124,10 +120,7 @@ export default function HeroSection() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 mt-4">
-            <span
-              className="flex items-center gap-1 text-xs"
-              style={{ color: 'var(--text-muted)' }}
-            >
+            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
               <TrendingUp size={12} /> Trending:
             </span>
             {trendingSearches.map((s) => (
@@ -147,7 +140,7 @@ export default function HeroSection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto animate-fade-up animate-delay-400">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
           {heroStats.map(({ icon, value, label }) => (
             <div
               key={label}
@@ -155,10 +148,7 @@ export default function HeroSection() {
               style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
             >
               <span className="text-2xl">{icon}</span>
-              <span
-                className="font-rajdhani font-bold text-lg"
-                style={{ color: 'var(--accent)' }}
-              >
+              <span className="font-rajdhani font-bold text-lg" style={{ color: 'var(--accent)' }}>
                 {value}
               </span>
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</span>
@@ -166,18 +156,14 @@ export default function HeroSection() {
           ))}
         </div>
 
-        <div className="flex flex-wrap justify-center items-center gap-6 mt-10 animate-fade-up animate-delay-500">
+        <div className="flex flex-wrap justify-center items-center gap-6 mt-10">
           {[
-            { icon: <Shield size={14} />, text: 'Verified Businesses' },
+            { icon: <Shield size={14} key="shield" />, text: 'Verified Businesses' },
             { icon: '🇮🇳', text: 'Made in India' },
             { icon: '🆓', text: '100% Free Listings' },
             { icon: '⚡', text: 'Real-time Updates' },
           ].map(({ icon, text }) => (
-            <div
-              key={text}
-              className="flex items-center gap-2 text-xs"
-              style={{ color: 'var(--text-muted)' }}
-            >
+            <div key={text} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
               <span style={{ color: 'var(--accent)' }}>{icon}</span>
               {text}
             </div>

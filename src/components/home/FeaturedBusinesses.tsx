@@ -1,3 +1,5 @@
+'use client'
+
 import { MapPin, Star, Phone, MessageCircle, BadgeCheck } from 'lucide-react'
 import Link from 'next/link'
 
