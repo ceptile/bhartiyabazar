@@ -1,71 +1,56 @@
-const steps = [
-  {
-    step: '01',
-    icon: '🔍',
-    title: 'Search',
-    description: 'Type what you need — a business, product, or service. Our smart search understands intent.',
-  },
-  {
-    step: '02',
-    icon: '🔎',
-    title: 'Discover & Compare',
-    description: 'Browse verified listings, compare prices, ratings, and trust scores side by side.',
-  },
-  {
-    step: '03',
-    icon: '💬',
-    title: 'Contact Directly',
-    description: 'Call, WhatsApp, or email the business directly — no middlemen, no hidden fees.',
-  },
-  {
-    step: '04',
-    icon: '⭐',
-    title: 'Review & Trust',
-    description: 'Share your experience. Your review helps build India\'s most trusted business database.',
-  },
+const STEPS = [
+  { n: '01', icon: '🔍', title: 'Search',           desc: 'Type what you need — a business, product, or service. Our smart search understands your intent.' },
+  { n: '02', icon: '⚖️', title: 'Discover & Compare', desc: 'Browse verified listings, compare prices, ratings, and trust scores side by side.' },
+  { n: '03', icon: '💬', title: 'Contact Directly',  desc: 'Call, WhatsApp, or email the business directly — no middlemen, no hidden fees.' },
+  { n: '04', icon: '⭐', title: 'Review & Trust',    desc: 'Share your experience. Your review helps build India\'s most trusted business database.' },
 ]
 
 export default function HowItWorks() {
   return (
-    <section className="py-20" style={{ background: 'var(--background)' }}>
-      <div className="container-site">
-        <div className="text-center mb-14">
-          <p className="text-sm font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--accent)' }}>Simple Process</p>
-          <h2 className="font-garamond font-bold" style={{ fontSize: 'var(--text-2xl)', color: 'var(--text-primary)' }}>
-            How BhartiyaBazar Works
-          </h2>
+    <section style={{ background: 'var(--bg)', padding: 'clamp(48px,6vw,80px) 0' }}>
+      <div className="site-container">
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <p style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 8 }}>Simple Process</p>
+          <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.02em' }}>How BhartiyaBazar Works</h2>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
-          {/* Connecting line */}
-          <div
-            className="absolute top-10 left-0 right-0 h-px hidden lg:block"
-            style={{ background: 'linear-gradient(90deg, transparent, var(--border), var(--accent), var(--border), transparent)' }}
-            aria-hidden
-          />
-
-          {steps.map(({ step, icon, title, description }) => (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+          {STEPS.map(({ n, icon, title, desc }) => (
             <div
-              key={step}
-              className="relative flex flex-col items-center text-center p-6 rounded-2xl gap-4 card-hover"
-              style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+              key={n}
+              style={{
+                padding: '28px 24px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-xl)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
             >
-              {/* Step badge */}
-              <div
-                className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold z-10"
-                style={{ background: 'var(--accent)', color: '#fff' }}
-              >
-                {step}
-              </div>
+              {/* Step number watermark */}
+              <div style={{
+                position: 'absolute', top: -10, right: 12,
+                fontSize: '72px', fontWeight: 900,
+                color: 'var(--accent)',
+                opacity: 0.06,
+                lineHeight: 1,
+                userSelect: 'none',
+                fontVariantNumeric: 'tabular-nums',
+              }}>{n}</div>
 
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl"
-                style={{ background: 'var(--accent-subtle)', border: '1px solid rgba(249,115,22,0.2)' }}
-              >
-                {icon}
-              </div>
-              <h3 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>{description}</p>
+              <div style={{ fontSize: 36, marginBottom: 16 }}>{icon}</div>
+              <div style={{
+                display: 'inline-block',
+                background: 'var(--accent-subtle)',
+                color: 'var(--accent)',
+                borderRadius: 'var(--radius-full)',
+                padding: '2px 10px',
+                fontSize: '11px', fontWeight: 700,
+                marginBottom: 10,
+                letterSpacing: '0.04em',
+              }}>STEP {n}</div>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-1)', marginBottom: 8 }}>{title}</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6 }}>{desc}</p>
             </div>
           ))}
         </div>

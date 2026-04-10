@@ -1,174 +1,165 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Search, MapPin, ChevronDown, Mic, TrendingUp, Zap, Shield } from 'lucide-react'
+import { useState } from 'react'
+import { Search, MapPin, ChevronDown, Mic, TrendingUp, Zap, Shield, Star } from 'lucide-react'
 
-const trendingSearches = [
-  'AC Repair', 'Mobile Shop', 'Restaurant Near Me',
-  'Plumber', 'Electrician', 'Gym', 'Doctor',
-]
+const TRENDING = ['AC Repair','Mobile Shop','Restaurant','Plumber','Electrician','Gym','Doctor','CA Services']
 
-const heroStats = [
-  { icon: '🏪', value: '50,000+', label: 'Businesses' },
-  { icon: '🌆', value: '500+', label: 'Cities' },
-  { icon: '📦', value: '2 Lakh+', label: 'Products' },
-  { icon: '⭐', value: '4.8/5', label: 'Avg Rating' },
+const STATS = [
+  { v: '50K+', l: 'Businesses' },
+  { v: '500+', l: 'Cities' },
+  { v: '2L+',  l: 'Products' },
+  { v: '4.8',  l: 'Avg Rating' },
 ]
 
 export default function HeroSection() {
-  const [query, setQuery] = useState('')
-  const [location] = useState('New Delhi')
+  const [query, setQuery]   = useState('')
   const [focused, setFocused] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  // suppress unused warning
-  void inputRef
 
   return (
-    <section
-      className="relative overflow-hidden py-20 md:py-32"
-      style={{ background: 'var(--background)' }}
-    >
-      <div className="absolute inset-0 pointer-events-none" aria-hidden>
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full opacity-10 blur-3xl"
-          style={{ background: 'radial-gradient(ellipse, var(--accent) 0%, transparent 70%)' }}
-        />
-      </div>
+    <section style={{ background: 'var(--bg)', paddingTop: 'clamp(48px,8vw,96px)', paddingBottom: 'clamp(48px,8vw,96px)', position: 'relative', overflow: 'hidden' }}>
+      {/* Subtle bg glow */}
+      <div aria-hidden style={{ position: 'absolute', top: '-20%', left: '50%', transform: 'translateX(-50%)', width: '70vw', height: '60vh', background: 'radial-gradient(ellipse, rgba(249,115,22,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-      <div className="container-site relative z-10">
-        <div className="flex justify-center mb-6">
-          <span
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium border"
-            style={{
-              background: 'var(--accent-subtle)',
-              color: 'var(--accent)',
-              borderColor: 'rgba(249,115,22,0.3)',
-            }}
-          >
-            <Zap size={12} />
-            India&apos;s Fastest Growing Business Directory
+      <div className="site-container" style={{ position: 'relative', zIndex: 1 }}>
+
+        {/* Pill Badge */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: 'var(--accent-subtle)',
+            border: '1px solid rgba(249,115,22,0.25)',
+            color: 'var(--accent)',
+            borderRadius: 'var(--radius-full)',
+            padding: '5px 14px',
+            fontSize: '12px', fontWeight: 600,
+          }}>
+            <Zap size={11} /> India&apos;s Fastest Growing Business Directory
           </span>
         </div>
 
-        <div className="text-center max-w-4xl mx-auto mb-10">
-          <h1
-            className="font-garamond font-bold leading-tight mb-4"
-            style={{ fontSize: 'var(--text-3xl)', color: 'var(--text-primary)' }}
-          >
-            Find Any Business,
-            <span className="gradient-text"> Anywhere in India</span>
-          </h1>
-          <p
-            style={{
-              fontSize: 'var(--text-lg)',
-              color: 'var(--text-secondary)',
-              maxWidth: '600px',
-              margin: '0 auto',
-            }}
-          >
-            Search verified businesses, compare prices, read real reviews.
-            Free listings for every Indian business.
-          </p>
-        </div>
+        {/* Headline */}
+        <h1 style={{
+          textAlign: 'center',
+          fontSize: 'var(--text-3xl)',
+          fontWeight: 800,
+          letterSpacing: '-0.03em',
+          lineHeight: 1.1,
+          marginBottom: 16,
+          color: 'var(--text-1)',
+          fontFamily: 'var(--font-eb-garamond), Georgia, serif',
+        }}>
+          Find Any Business,<br />
+          <span className="gradient-text">Anywhere in India</span>
+        </h1>
 
-        <div className="max-w-3xl mx-auto mb-8">
-          <div
-            className="flex items-stretch rounded-2xl overflow-hidden border-2 transition-all duration-300"
-            style={{
-              background: 'var(--surface-2)',
-              borderColor: focused ? 'var(--accent)' : 'var(--border-strong)',
-              boxShadow: focused ? '0 0 0 4px rgba(249,115,22,0.12)' : 'var(--shadow-md)',
-            }}
-          >
-            <button
-              className="flex items-center gap-2 px-4 py-4 border-r text-sm font-medium shrink-0 hover:opacity-80 transition-opacity"
-              style={{ color: 'var(--text-secondary)', borderColor: 'var(--border)' }}
-            >
-              <MapPin size={16} style={{ color: 'var(--accent)' }} />
-              <span className="hidden sm:inline max-w-[100px] truncate">{location}</span>
-              <ChevronDown size={14} />
+        <p style={{ textAlign: 'center', color: 'var(--text-2)', fontSize: 'var(--text-md)', maxWidth: 520, margin: '0 auto 36px', lineHeight: 1.6 }}>
+          Search verified businesses, compare prices &amp; read real reviews.
+          <strong style={{ color: 'var(--accent)' }}> 100% Free</strong> listings for every Indian business.
+        </p>
+
+        {/* Search Box */}
+        <div style={{ maxWidth: 680, margin: '0 auto 20px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'stretch',
+            background: 'var(--bg)',
+            border: `2px solid ${focused ? 'var(--accent)' : 'var(--border-strong)'}`,
+            borderRadius: 'var(--radius-xl)',
+            overflow: 'hidden',
+            boxShadow: focused ? `0 0 0 4px var(--accent-glow), var(--shadow-md)` : 'var(--shadow-md)',
+            transition: 'border-color 0.2s, box-shadow 0.2s',
+          }}>
+            {/* Location picker */}
+            <button style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '0 14px',
+              background: 'none', border: 'none',
+              borderRight: '1px solid var(--border-strong)',
+              color: 'var(--text-2)', fontSize: '13px', fontWeight: 500,
+              cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+            }}>
+              <MapPin size={14} color="var(--accent)" />
+              <span>Delhi</span>
+              <ChevronDown size={12} />
             </button>
 
+            {/* Input */}
             <input
-              ref={inputRef}
               type="text"
-              placeholder="Try: AC repair, mobile shop, restaurant..."
+              placeholder="Try: AC repair, mobile shop, restaurant near me..."
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={e => setQuery(e.target.value)}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              className="flex-1 px-4 py-4 bg-transparent text-base outline-none"
-              style={{ color: 'var(--text-primary)' }}
+              style={{ flex: 1, padding: '16px', background: 'transparent', border: 'none', outline: 'none', fontSize: '15px', color: 'var(--text-1)', minWidth: 0 }}
             />
 
-            <button
-              className="px-3 transition-opacity hover:opacity-70 hidden sm:flex items-center"
-              style={{ color: 'var(--text-muted)' }}
-              aria-label="Voice search"
-            >
-              <Mic size={18} />
+            {/* Mic */}
+            <button style={{ padding: '0 12px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', display: 'flex', alignItems: 'center' }} aria-label="Voice search">
+              <Mic size={17} />
             </button>
 
+            {/* Search Btn */}
             <button
-              className="flex items-center gap-2 px-6 py-4 font-semibold text-sm transition-all hover:opacity-90 active:scale-[0.98]"
-              style={{ background: 'var(--accent)', color: '#fff' }}
+              className="btn btn-primary"
+              style={{ borderRadius: 0, padding: '0 24px', fontSize: '15px', boxShadow: 'none', gap: 8 }}
             >
-              <Search size={18} />
-              <span className="hidden sm:inline">Search</span>
+              <Search size={17} />
+              <span>Search</span>
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 mt-4">
-            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+          {/* Trending tags */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 12 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '12px', color: 'var(--text-3)', flexShrink: 0 }}>
               <TrendingUp size={12} /> Trending:
             </span>
-            {trendingSearches.map((s) => (
+            {TRENDING.map(t => (
               <button
-                key={s}
-                className="px-3 py-1 rounded-full text-xs transition-all hover:opacity-80"
+                key={t}
+                onClick={() => setQuery(t)}
                 style={{
-                  background: 'var(--surface-3)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--border)',
+                  padding: '4px 12px',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-strong)',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '12px', fontWeight: 500,
+                  color: 'var(--text-2)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
                 }}
-                onClick={() => setQuery(s)}
-              >
-                {s}
-              </button>
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-2)'; }}
+              >{t}</button>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
-          {heroStats.map(({ icon, value, label }) => (
-            <div
-              key={label}
-              className="flex flex-col items-center gap-1 py-4 px-3 rounded-xl text-center"
-              style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
-            >
-              <span className="text-2xl">{icon}</span>
-              <span className="font-rajdhani font-bold text-lg" style={{ color: 'var(--accent)' }}>
-                {value}
-              </span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</span>
+        {/* Stats Row */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(16px,4vw,48px)', marginTop: 40, flexWrap: 'wrap' }}>
+          {STATS.map(({ v, l }) => (
+            <div key={l} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--accent)', letterSpacing: '-0.02em', lineHeight: 1 }}>{v}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: 4, fontWeight: 500 }}>{l}</div>
             </div>
           ))}
         </div>
 
-        <div className="flex flex-wrap justify-center items-center gap-6 mt-10">
+        {/* Trust pills */}
+        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 20, marginTop: 28 }}>
           {[
-            { icon: <Shield size={14} key="shield" />, text: 'Verified Businesses' },
-            { icon: '🇮🇳', text: 'Made in India' },
-            { icon: '🆓', text: '100% Free Listings' },
-            { icon: '⚡', text: 'Real-time Updates' },
-          ].map(({ icon, text }) => (
-            <div key={text} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-              <span style={{ color: 'var(--accent)' }}>{icon}</span>
-              {text}
-            </div>
+            { icon: <Shield size={13} />, t: 'Verified Businesses' },
+            { icon: '🇮🇳', t: 'Made in India' },
+            { icon: '🆓', t: '100% Free Listings' },
+            { icon: <Star size={13} />, t: 'Real Reviews' },
+          ].map(({ icon, t }) => (
+            <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '12px', color: 'var(--text-3)', fontWeight: 500 }}>
+              <span style={{ color: 'var(--accent)', display: 'flex', alignItems: 'center' }}>{icon}</span> {t}
+            </span>
           ))}
         </div>
+
       </div>
     </section>
   )

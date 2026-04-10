@@ -1,153 +1,164 @@
 'use client'
 
-import { MapPin, Star, Phone, MessageCircle, BadgeCheck } from 'lucide-react'
+import { MapPin, Star, Phone, MessageCircle, BadgeCheck, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
-const businesses = [
+const BIZ = [
   {
-    id: 1,
-    name: 'Sharma Electronics',
-    category: 'Electronics',
-    location: 'Karol Bagh, Delhi',
-    rating: 4.8,
-    reviews: 324,
-    phone: '+91 98765 43210',
-    tag: 'featured',
-    tagLabel: '⭐ Featured',
-    trustScore: 96,
-    description: 'Authorized dealer for Samsung, Sony & LG. Repair services available.',
-    image: '📱',
-    distance: '1.2 km',
+    id: 1, name: 'Sharma Electronics', category: 'Electronics', location: 'Karol Bagh, Delhi',
+    rating: 4.8, reviews: 324, phone: '+919876543210',
+    tag: 'featured', tagLabel: '⭐ Featured', tagColor: '#f97316',
+    trustScore: 96, desc: 'Authorized dealer for Samsung, Sony & LG. Repair services available.',
+    emoji: '📱', distance: '1.2 km', bgColor: '#3b82f620',
   },
   {
-    id: 2,
-    name: 'Punjabi Dhaba',
-    category: 'Restaurant',
-    location: 'Lajpat Nagar, Delhi',
-    rating: 4.6,
-    reviews: 891,
-    phone: '+91 87654 32109',
-    tag: 'verified',
-    tagLabel: '✅ Verified',
-    trustScore: 92,
-    description: 'Authentic Punjabi food since 1985. Try our Dal Makhani & Butter Chicken.',
-    image: '🍛',
-    distance: '0.8 km',
+    id: 2, name: 'Punjabi Dhaba', category: 'Restaurant', location: 'Lajpat Nagar, Delhi',
+    rating: 4.6, reviews: 891, phone: '+918765432109',
+    tag: 'verified', tagLabel: '✅ Verified', tagColor: '#16a34a',
+    trustScore: 92, desc: 'Authentic Punjabi food since 1985. Dal Makhani & Butter Chicken.',
+    emoji: '🍛', distance: '0.8 km', bgColor: '#f9731620',
   },
   {
-    id: 3,
-    name: 'Dr. Mehta Clinic',
-    category: 'Healthcare',
-    location: 'Saket, Delhi',
-    rating: 4.9,
-    reviews: 567,
-    phone: '+91 76543 21098',
-    tag: 'new',
-    tagLabel: '🆕 New',
-    trustScore: 98,
-    description: 'General physician with 15+ years experience. Open 7 days.',
-    image: '🏥',
-    distance: '2.1 km',
+    id: 3, name: 'Dr. Mehta Clinic', category: 'Healthcare', location: 'Saket, Delhi',
+    rating: 4.9, reviews: 567, phone: '+917654321098',
+    tag: 'new', tagLabel: '🆕 New', tagColor: '#2563eb',
+    trustScore: 98, desc: 'General physician, 15+ years experience. Open 7 days a week.',
+    emoji: '🏥', distance: '2.1 km', bgColor: '#10b98120',
   },
 ]
 
-const tagStyles: Record<string, { bg: string; color: string }> = {
-  featured: { bg: 'rgba(249,115,22,0.15)', color: 'var(--accent)' },
-  verified: { bg: 'rgba(16,185,129,0.15)', color: '#10b981' },
-  new:      { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6' },
-}
-
 export default function FeaturedBusinesses() {
   return (
-    <section className="py-20" style={{ background: 'var(--surface)' }}>
-      <div className="container-site">
-        <div className="flex items-end justify-between mb-10">
+    <section style={{ background: 'var(--surface)', padding: 'clamp(48px,6vw,80px) 0' }}>
+      <div className="site-container">
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 36, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--accent)' }}>Top Picks</p>
-            <h2 className="font-garamond font-bold" style={{ fontSize: 'var(--text-2xl)', color: 'var(--text-primary)' }}>
-              Featured Businesses
-            </h2>
+            <p style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 6 }}>Top Picks</p>
+            <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>Featured Businesses</h2>
           </div>
-          <Link href="/search" className="text-sm font-medium hidden sm:block hover:opacity-80" style={{ color: 'var(--accent)' }}>View All →</Link>
+          <Link href="/search" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4 }}>View All <ChevronRight size={16} /></Link>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {businesses.map((biz) => (
-            <Link
-              key={biz.id}
-              href={`/business/${biz.id}`}
-              className="group flex flex-col rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 card-hover"
-              style={{ background: 'var(--background)', border: '1px solid var(--border)' }}
+        {/* Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+          {BIZ.map(b => (
+            <div
+              key={b.id}
+              style={{
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-xl)',
+                overflow: 'hidden',
+                display: 'flex', flexDirection: 'column',
+                transition: 'transform 0.2s var(--ease), box-shadow 0.2s var(--ease)',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-lg)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}
             >
-              <div
-                className="relative flex items-center justify-center h-40 text-7xl"
-                style={{ background: 'var(--surface-2)' }}
-              >
-                {biz.image}
-                <span
-                  className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold"
-                  style={tagStyles[biz.tag]}
-                >
-                  {biz.tagLabel}
-                </span>
-                <span
-                  className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold"
-                  style={{ background: 'rgba(0,0,0,0.5)', color: '#fff' }}
-                >
-                  <BadgeCheck size={11} /> {biz.trustScore}%
-                </span>
+              {/* Card Top */}
+              <div style={{
+                height: 130,
+                background: b.bgColor,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 56,
+                position: 'relative',
+              }}>
+                {b.emoji}
+                {/* Tag */}
+                <span style={{
+                  position: 'absolute', top: 12, left: 12,
+                  background: `${b.tagColor}20`,
+                  color: b.tagColor,
+                  border: `1px solid ${b.tagColor}40`,
+                  borderRadius: 'var(--radius-full)',
+                  padding: '3px 10px',
+                  fontSize: '11px', fontWeight: 700,
+                }}>{b.tagLabel}</span>
+                {/* Trust score */}
+                <span style={{
+                  position: 'absolute', top: 12, right: 12,
+                  background: 'rgba(0,0,0,0.55)',
+                  backdropFilter: 'blur(4px)',
+                  color: '#fff',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '3px 8px',
+                  fontSize: '11px', fontWeight: 700,
+                  display: 'flex', alignItems: 'center', gap: 3,
+                }}><BadgeCheck size={11} /> {b.trustScore}%</span>
               </div>
 
-              <div className="flex flex-col flex-1 p-5">
-                <div className="mb-2">
-                  <span
-                    className="text-xs font-medium px-2 py-0.5 rounded-full"
-                    style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
-                  >
-                    {biz.category}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-base mb-1 group-hover:text-orange-500 transition-colors" style={{ color: 'var(--text-primary)' }}>
-                  {biz.name}
-                </h3>
-                <p className="text-sm flex-1 mb-3" style={{ color: 'var(--text-muted)' }}>{biz.description}</p>
+              {/* Card Body */}
+              <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <span style={{
+                  display: 'inline-block',
+                  background: 'var(--accent-subtle)',
+                  color: 'var(--accent)',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '2px 10px',
+                  fontSize: '11px', fontWeight: 600,
+                  marginBottom: 8, alignSelf: 'flex-start',
+                }}>{b.category}</span>
 
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                    <MapPin size={12} style={{ color: 'var(--accent)' }} />
-                    {biz.location}
+                <Link href={`/business/${b.id}`} style={{ textDecoration: 'none' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-1)', marginBottom: 4, lineHeight: 1.3 }}>{b.name}</h3>
+                </Link>
+                <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.5, flex: 1, marginBottom: 12 }}>{b.desc}</p>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '12px', color: 'var(--text-3)' }}>
+                    <MapPin size={12} color="var(--accent)" />
+                    {b.location}
                   </div>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>📍 {biz.distance}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>📍 {b.distance}</span>
                 </div>
 
-                <div className="flex items-center gap-1 mb-4">
-                  <Star size={14} fill="#f59e0b" stroke="#f59e0b" />
-                  <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{biz.rating}</span>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>({biz.reviews} reviews)</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 14 }}>
+                  <Star size={13} fill="#f59e0b" stroke="#f59e0b" />
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-1)' }}>{b.rating}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>({b.reviews} reviews)</span>
                 </div>
 
-                <div className="flex gap-2 mt-auto">
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: 8 }}>
                   <a
-                    href={`tel:${biz.phone}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all hover:opacity-90"
-                    style={{ background: 'var(--accent)', color: '#fff' }}
+                    href={`tel:${b.phone}`}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      padding: '9px 0',
+                      background: 'var(--accent)', color: '#fff',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '13px', fontWeight: 600,
+                      textDecoration: 'none',
+                      transition: 'opacity 0.15s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
                   >
                     <Phone size={13} /> Call
                   </a>
                   <a
-                    href={`https://wa.me/${biz.phone.replace(/\D/g, '')}`}
-                    onClick={(e) => e.stopPropagation()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all hover:opacity-90"
-                    style={{ background: '#25D366', color: '#fff' }}
+                    href={`https://wa.me/${b.phone.replace(/\D/g,'')}`}
+                    onClick={e => e.stopPropagation()}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      padding: '9px 0',
+                      background: '#25D366', color: '#fff',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '13px', fontWeight: 600,
+                      textDecoration: 'none',
+                      transition: 'opacity 0.15s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
                   >
                     <MessageCircle size={13} /> WhatsApp
                   </a>
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>

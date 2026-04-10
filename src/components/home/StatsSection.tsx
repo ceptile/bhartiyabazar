@@ -2,67 +2,74 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-const stats = [
-  { value: 50000, suffix: '+', label: 'Businesses Listed', icon: '🏪' },
-  { value: 500, suffix: '+', label: 'Cities Covered', icon: '🌆' },
-  { value: 200000, suffix: '+', label: 'Products Listed', icon: '📦' },
-  { value: 1200000, suffix: '+', label: 'Monthly Searches', icon: '🔍' },
+const STATS = [
+  { target: 50000,   suffix: 'K+', divisor: 1000, label: 'Businesses Listed',  icon: '🏪', desc: 'Across India' },
+  { target: 500,     suffix: '+',  divisor: 1,    label: 'Cities Covered',     icon: '🌆', desc: 'And growing' },
+  { target: 200,     suffix: 'K+', divisor: 1,    label: 'Products Listed',    icon: '📦', desc: 'By sellers' },
+  { target: 12,      suffix: 'L+', divisor: 1,    label: 'Monthly Searches',   icon: '🔍', desc: 'Every month' },
 ]
 
-function useCountUp(target: number, duration = 2000, start = false) {
-  const [count, setCount] = useState(0)
+function useCountUp(target: number, dur = 1800, active = false) {
+  const [n, setN] = useState(0)
   useEffect(() => {
-    if (!start) return
-    let startTime: number | null = null
-    const step = (timestamp: number) => {
-      if (!startTime) startTime = timestamp
-      const progress = Math.min((timestamp - startTime) / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setCount(Math.floor(eased * target))
-      if (progress < 1) requestAnimationFrame(step)
+    if (!active) return
+    let start: number | null = null
+    const tick = (ts: number) => {
+      if (!start) start = ts
+      const p = Math.min((ts - start) / dur, 1)
+      const e = 1 - Math.pow(1 - p, 3)
+      setN(Math.round(e * target))
+      if (p < 1) requestAnimationFrame(tick)
     }
-    requestAnimationFrame(step)
-  }, [target, duration, start])
-  return count
+    requestAnimationFrame(tick)
+  }, [target, dur, active])
+  return n
 }
 
-function StatCard({ value, suffix, label, icon, animate }: { value: number; suffix: string; label: string; icon: string; animate: boolean }) {
-  const count = useCountUp(value, 2000, animate)
-  const display = count >= 1000 ? (count >= 1000000 ? `${(count / 1000000).toFixed(1)}M` : `${(count / 1000).toFixed(0)}K`) : count.toString()
+function StatCard({ target, suffix, divisor, label, icon, desc, active }: { target:number; suffix:string; divisor:number; label:string; icon:string; desc:string; active:boolean }) {
+  const raw = useCountUp(divisor === 1 ? target : Math.round(target / divisor), 1800, active)
   return (
-    <div
-      className="flex flex-col items-center gap-2 py-8 px-4 rounded-2xl text-center card-hover"
-      style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      padding: 'clamp(20px,3vw,32px) clamp(16px,2vw,24px)',
+      background: 'var(--bg)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-xl)',
+      textAlign: 'center',
+      transition: 'transform 0.2s, box-shadow 0.2s',
+    }}
+    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-lg)'; }}
+    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}
     >
-      <span className="text-4xl">{icon}</span>
-      <div className="font-rajdhani font-bold" style={{ fontSize: 'var(--text-2xl)', color: 'var(--accent)' }}>
-        {animate ? display : '0'}{suffix}
+      <div style={{ fontSize: 32, marginBottom: 8 }}>{icon}</div>
+      <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--accent)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+        {active ? raw : 0}{suffix}
       </div>
-      <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</p>
+      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)', marginTop: 6 }}>{label}</div>
+      <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: 2 }}>{desc}</div>
     </div>
   )
 }
 
 export default function StatsSection() {
   const ref = useRef<HTMLDivElement>(null)
-  const [visible, setVisible] = useState(false)
+  const [active, setActive] = useState(false)
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true) },
-      { threshold: 0.3 }
-    )
-    if (ref.current) observer.observe(ref.current)
-    return () => observer.disconnect()
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setActive(true) }, { threshold: 0.2 })
+    if (ref.current) obs.observe(ref.current)
+    return () => obs.disconnect()
   }, [])
 
   return (
-    <section className="py-16" style={{ background: 'var(--surface)' }}>
-      <div className="container-site">
-        <div ref={ref} className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <StatCard key={stat.label} {...stat} animate={visible} />
-          ))}
+    <section style={{ background: 'var(--surface)', padding: 'clamp(48px,6vw,80px) 0' }}>
+      <div className="site-container">
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <p style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 8 }}>By the Numbers</p>
+          <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.02em' }}>Trusted by Thousands</h2>
+        </div>
+        <div ref={ref} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
+          {STATS.map(s => <StatCard key={s.label} {...s} active={active} />)}
         </div>
       </div>
     </section>

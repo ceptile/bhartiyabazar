@@ -3,42 +3,27 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 type Theme = 'light' | 'dark'
-
-interface ThemeContextType {
-  theme: Theme
-  toggleTheme: () => void
-}
-
-const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
+const ThemeCtx = createContext<{ theme: Theme; toggleTheme: () => void }>({
+  theme: 'light',
   toggleTheme: () => {},
 })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark')
-  const [mounted, setMounted] = useState(false)
+  const [theme, setTheme] = useState<Theme>('light')
 
   useEffect(() => {
-    setMounted(true)
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const initial = systemDark ? 'dark' : 'light'
-    setTheme(initial)
-    document.documentElement.classList.toggle('dark', initial === 'dark')
+    const pref = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    setTheme(pref)
+    document.documentElement.setAttribute('data-theme', pref)
   }, [])
 
   const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark'
+    const next: Theme = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
-    document.documentElement.classList.toggle('dark', next === 'dark')
+    document.documentElement.setAttribute('data-theme', next)
   }
 
-  if (!mounted) return <>{children}</>
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  )
+  return <ThemeCtx.Provider value={{ theme, toggleTheme }}>{children}</ThemeCtx.Provider>
 }
 
-export const useTheme = () => useContext(ThemeContext)
+export const useTheme = () => useContext(ThemeCtx)

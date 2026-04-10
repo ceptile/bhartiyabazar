@@ -2,172 +2,161 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useTheme } from '@/components/providers/ThemeProvider'
-import {
-  Search, Menu, X, Sun, Moon, MapPin, ChevronDown,
-  User, PlusCircle
-} from 'lucide-react'
+import { Search, Menu, X, Sun, Moon, MapPin, PlusCircle, ChevronDown } from 'lucide-react'
 
-const categories = [
-  'Restaurants', 'Electronics', 'Clothing', 'Auto Services',
-  'Healthcare', 'Real Estate', 'Education', 'Home Services',
-]
+const NAV_CATS = ['Restaurants','Electronics','Healthcare','Auto Services','Clothing','Home Services','Education','Real Estate']
 
 export default function Header() {
-  const { theme, toggleTheme } = useTheme()
+  const [dark, setDark] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [location] = useState('New Delhi')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    setDark(mq.matches)
+    document.documentElement.setAttribute('data-theme', mq.matches ? 'dark' : 'light')
   }, [])
+
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 10)
+    window.addEventListener('scroll', fn, { passive: true })
+    return () => window.removeEventListener('scroll', fn)
+  }, [])
+
+  const toggleTheme = () => {
+    const next = !dark
+    setDark(next)
+    document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light')
+  }
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-        scrolled ? 'shadow-lg border-b' : 'border-b border-transparent'
-      }`}
+      className="sticky top-0 z-50 w-full"
       style={{
-        backgroundColor: scrolled ? 'var(--surface)' : 'var(--background)',
-        borderColor: scrolled ? 'var(--border)' : 'transparent',
+        background: 'var(--bg)',
+        borderBottom: `1px solid ${scrolled ? 'var(--border-strong)' : 'var(--border)'}`,
+        boxShadow: scrolled ? 'var(--shadow-sm)' : 'none',
+        transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
       }}
     >
-      <div className="container-site">
-        <div className="flex items-center justify-between h-16 gap-4">
+      {/* Main Row */}
+      <div className="site-container">
+        <div style={{ display: 'flex', alignItems: 'center', height: '64px', gap: '16px' }}>
 
-          <Link href="/" className="flex items-center gap-2 shrink-0 group">
-            <div className="flex flex-col leading-none">
-              <span
-                className="font-garamond text-2xl font-bold tracking-tight"
-                style={{ color: 'var(--accent)' }}
-              >
-                bB
-              </span>
-            </div>
-            <div className="hidden sm:flex flex-col leading-none">
-              <span
-                className="font-garamond text-lg font-semibold leading-tight"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                BhartiyaBazar
-              </span>
-              <span
-                className="text-[10px] tracking-widest uppercase"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                India&apos;s Business Hub
-              </span>
+          {/* Logo */}
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, textDecoration: 'none' }}>
+            <div style={{
+              width: 36, height: 36,
+              background: 'linear-gradient(135deg, #f97316, #fbbf24)',
+              borderRadius: '10px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 800, fontSize: '16px', color: '#fff',
+              fontFamily: 'Georgia, serif',
+              flexShrink: 0,
+            }}>bB</div>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+              <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-1)', letterSpacing: '-0.02em' }}>BhartiyaBazar</span>
+              <span style={{ fontSize: '10px', color: 'var(--text-3)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>India&apos;s Business Hub</span>
             </div>
           </Link>
 
-          <div className="flex-1 max-w-2xl hidden md:flex items-center gap-2">
-            <div
-              className="flex flex-1 items-center rounded-xl border overflow-hidden search-focus transition-all"
-              style={{
-                background: 'var(--surface-2)',
-                borderColor: 'var(--border-strong)',
-              }}
-            >
-              <button
-                className="flex items-center gap-1 px-3 py-2 text-sm border-r shrink-0 hover:opacity-80 transition-opacity"
-                style={{
-                  color: 'var(--text-secondary)',
-                  borderColor: 'var(--border)',
-                }}
-              >
-                <MapPin size={14} style={{ color: 'var(--accent)' }} />
-                <span className="max-w-[80px] truncate">{location}</span>
+          {/* Search Bar — Desktop */}
+          <div style={{ flex: 1, maxWidth: 520, display: 'none' }} className="md-search">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'var(--surface)',
+              border: '1.5px solid var(--border-strong)',
+              borderRadius: 'var(--radius-lg)',
+              overflow: 'hidden',
+              height: 42,
+            }}>
+              <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 12px', borderRight: '1px solid var(--border)', color: 'var(--text-3)', fontSize: '13px', flexShrink: 0, height: '100%', background: 'none', border: 'none', borderRight: '1px solid var(--border)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <MapPin size={13} color="var(--accent)" />
+                <span>Delhi</span>
                 <ChevronDown size={12} />
               </button>
-
               <input
                 type="text"
-                placeholder="Search businesses, products, services..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm bg-transparent outline-none"
-                style={{ color: 'var(--text-primary)' }}
+                placeholder="Search businesses, services..."
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                style={{ flex: 1, padding: '0 12px', background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', color: 'var(--text-1)', height: '100%' }}
               />
-
               <button
-                className="px-4 py-2 flex items-center gap-2 text-sm font-medium transition-all"
-                style={{
-                  background: 'var(--accent)',
-                  color: '#fff',
-                }}
+                style={{ padding: '0 16px', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', height: '100%', display: 'flex', alignItems: 'center' }}
+                aria-label="Search"
               >
                 <Search size={16} />
-                <span className="hidden lg:inline">Search</span>
               </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Right Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
             <Link
               href="/register"
-              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-              style={{
-                background: 'var(--accent-subtle)',
-                color: 'var(--accent)',
-                border: '1px solid rgba(249,115,22,0.25)',
-              }}
+              className="btn btn-primary"
+              style={{ fontSize: '13px', padding: '8px 16px', display: 'none' }}
             >
-              <PlusCircle size={15} />
-              <span>List Business</span>
+              <PlusCircle size={14} />
+              List Business
             </Link>
 
             <button
               onClick={toggleTheme}
               aria-label="Toggle theme"
-              className="p-2 rounded-lg transition-all hover:opacity-80"
               style={{
+                width: 36, height: 36,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: 'var(--surface-2)',
-                color: 'var(--text-secondary)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--text-2)',
+                cursor: 'pointer',
+                transition: 'all var(--dur) var(--ease)',
               }}
             >
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              {dark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
 
             <button
-              className="p-2 rounded-lg transition-all hover:opacity-80"
-              style={{
-                background: 'var(--surface-2)',
-                color: 'var(--text-secondary)',
-              }}
-              aria-label="User account"
-            >
-              <User size={18} />
-            </button>
-
-            <button
-              className="md:hidden p-2 rounded-lg transition-all"
-              style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
-              onClick={() => setMobileOpen(!mobileOpen)}
+              onClick={() => setMenuOpen(!menuOpen)}
               aria-label="Toggle menu"
+              style={{
+                width: 36, height: 36,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--text-2)',
+                cursor: 'pointer',
+              }}
             >
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+              {menuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </div>
 
-        <div className="md:hidden pb-3">
-          <div
-            className="flex items-center rounded-xl border overflow-hidden"
-            style={{ background: 'var(--surface-2)', borderColor: 'var(--border-strong)' }}
-          >
+        {/* Mobile Search */}
+        <div className="mobile-search" style={{ paddingBottom: 12 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: 'var(--surface)',
+            border: '1.5px solid var(--border-strong)',
+            borderRadius: 'var(--radius-lg)',
+            overflow: 'hidden',
+            height: 42,
+          }}>
             <input
               type="text"
-              placeholder="Search businesses, products..."
-              className="flex-1 px-4 py-2.5 text-sm bg-transparent outline-none"
-              style={{ color: 'var(--text-primary)' }}
+              placeholder="Search businesses, services..."
+              style={{ flex: 1, padding: '0 14px', background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', color: 'var(--text-1)', height: '100%' }}
             />
             <button
-              className="px-4 py-2.5"
-              style={{ background: 'var(--accent)', color: '#fff' }}
+              style={{ padding: '0 16px', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', height: '100%', display: 'flex', alignItems: 'center' }}
               aria-label="Search"
             >
               <Search size={16} />
@@ -176,56 +165,70 @@ export default function Header() {
         </div>
       </div>
 
-      <div
-        className="border-t hidden md:block"
-        style={{
-          background: 'var(--surface)',
-          borderColor: 'var(--border)',
-        }}
-      >
-        <div className="container-site">
-          <div className="flex items-center gap-1 h-10 overflow-x-auto">
-            {categories.map((cat) => (
+      {/* Categories Bar */}
+      <div style={{
+        borderTop: '1px solid var(--border)',
+        background: 'var(--surface)',
+        overflowX: 'auto',
+      }}>
+        <div className="site-container">
+          <div style={{ display: 'flex', gap: 4, height: 40, alignItems: 'center', overflowX: 'auto' }}>
+            {NAV_CATS.map(cat => (
               <Link
                 key={cat}
-                href={`/search?category=${cat.toLowerCase()}`}
-                className="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all hover:opacity-80"
-                style={{ color: 'var(--text-secondary)' }}
+                href={`/search?cat=${cat.toLowerCase()}`}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '12.5px',
+                  fontWeight: 500,
+                  color: 'var(--text-2)',
+                  whiteSpace: 'nowrap',
+                  transition: 'all var(--dur) var(--ease)',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={e => { (e.target as HTMLElement).style.color = 'var(--accent)'; (e.target as HTMLElement).style.background = 'var(--accent-subtle)'; }}
+                onMouseLeave={e => { (e.target as HTMLElement).style.color = 'var(--text-2)'; (e.target as HTMLElement).style.background = 'transparent'; }}
               >
                 {cat}
               </Link>
             ))}
             <Link
               href="/categories"
-              className="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1"
-              style={{ color: 'var(--accent)' }}
+              style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)', whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3 }}
             >
-              All Categories <ChevronDown size={12} />
+              All <ChevronDown size={11} />
             </Link>
           </div>
         </div>
       </div>
 
-      {mobileOpen && (
-        <div
-          className="md:hidden border-t"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
-        >
-          <div className="container-site py-4 flex flex-col gap-3">
-            <Link
-              href="/register"
-              className="flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm"
-              style={{ background: 'var(--accent)', color: '#fff' }}
-              onClick={() => setMobileOpen(false)}
-            >
-              <PlusCircle size={16} />
-              List Your Business — Free
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <div style={{
+          borderTop: '1px solid var(--border)',
+          background: 'var(--bg)',
+          padding: '16px',
+        }}>
+          <div className="site-container" style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Link href="/register" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }} onClick={() => setMenuOpen(false)}>
+              <PlusCircle size={16} /> List Your Business — Free
             </Link>
-            <Link href="/login" className="text-sm py-2" style={{ color: 'var(--text-secondary)' }} onClick={() => setMobileOpen(false)}>Login</Link>
-            <Link href="/signup" className="text-sm py-2" style={{ color: 'var(--text-secondary)' }} onClick={() => setMobileOpen(false)}>Sign Up</Link>
+            <Link href="/login" style={{ padding: '10px 16px', color: 'var(--text-2)', fontSize: '14px', borderRadius: 'var(--radius-md)' }} onClick={() => setMenuOpen(false)}>Login</Link>
+            <Link href="/signup" style={{ padding: '10px 16px', color: 'var(--text-2)', fontSize: '14px', borderRadius: 'var(--radius-md)' }} onClick={() => setMenuOpen(false)}>Sign Up</Link>
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (min-width: 768px) {
+          .md-search { display: block !important; }
+          .mobile-search { display: none !important; }
+        }
+        @media (min-width: 640px) {
+          .btn-list-biz { display: flex !important; }
+        }
+      `}</style>
     </header>
   )
 }
