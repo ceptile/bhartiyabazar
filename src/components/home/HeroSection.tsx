@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Search, MapPin, ChevronDown, Mic, TrendingUp, Zap, Shield } from 'lucide-react'
-import Link from 'next/link'
 
 const trendingSearches = [
   'AC Repair', 'Mobile Shop', 'Restaurant Near Me',
@@ -18,7 +17,7 @@ const heroStats = [
 
 export default function HeroSection() {
   const [query, setQuery] = useState('')
-  const [location, setLocation] = useState('New Delhi')
+  const [location] = useState('New Delhi')
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -27,7 +26,6 @@ export default function HeroSection() {
       className="relative overflow-hidden py-20 md:py-32"
       style={{ background: 'var(--background)' }}
     >
-      {/* Decorative background glow */}
       <div
         className="absolute inset-0 pointer-events-none"
         aria-hidden
@@ -39,7 +37,6 @@ export default function HeroSection() {
       </div>
 
       <div className="container-site relative z-10">
-        {/* Badge */}
         <div className="flex justify-center mb-6 animate-fade-up">
           <span
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium border"
@@ -54,7 +51,6 @@ export default function HeroSection() {
           </span>
         </div>
 
-        {/* Heading */}
         <div className="text-center max-w-4xl mx-auto mb-10">
           <h1
             className="font-garamond font-bold leading-tight mb-4 animate-fade-up animate-delay-100"
@@ -77,19 +73,15 @@ export default function HeroSection() {
           </p>
         </div>
 
-        {/* Search Box */}
         <div className="max-w-3xl mx-auto mb-8 animate-fade-up animate-delay-300">
           <div
-            className={`flex items-stretch rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
-              focused ? 'border-orange-500 shadow-[0_0_0_4px_rgba(249,115,22,0.15)]' : ''
-            }`}
+            className="flex items-stretch rounded-2xl overflow-hidden border-2 transition-all duration-300"
             style={{
               background: 'var(--surface-2)',
               borderColor: focused ? 'var(--accent)' : 'var(--border-strong)',
               boxShadow: focused ? '0 0 0 4px rgba(249,115,22,0.12)' : 'var(--shadow-md)',
             }}
           >
-            {/* Location */}
             <button
               className="flex items-center gap-2 px-4 py-4 border-r text-sm font-medium shrink-0 hover:opacity-80 transition-opacity"
               style={{
@@ -102,7 +94,6 @@ export default function HeroSection() {
               <ChevronDown size={14} />
             </button>
 
-            {/* Text Input */}
             <input
               ref={inputRef}
               type="text"
@@ -115,7 +106,6 @@ export default function HeroSection() {
               style={{ color: 'var(--text-primary)' }}
             />
 
-            {/* Voice */}
             <button
               className="px-3 transition-opacity hover:opacity-70 hidden sm:flex items-center"
               style={{ color: 'var(--text-muted)' }}
@@ -124,7 +114,6 @@ export default function HeroSection() {
               <Mic size={18} />
             </button>
 
-            {/* Search Button */}
             <button
               className="flex items-center gap-2 px-6 py-4 font-semibold text-sm transition-all hover:opacity-90 active:scale-[0.98]"
               style={{ background: 'var(--accent)', color: '#fff' }}
@@ -134,7 +123,6 @@ export default function HeroSection() {
             </button>
           </div>
 
-          {/* Trending searches */}
           <div className="flex flex-wrap items-center gap-2 mt-4">
             <span
               className="flex items-center gap-1 text-xs"
@@ -159,7 +147,6 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* Hero Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto animate-fade-up animate-delay-400">
           {heroStats.map(({ icon, value, label }) => (
             <div
@@ -179,7 +166,6 @@ export default function HeroSection() {
           ))}
         </div>
 
-        {/* Trust badges */}
         <div className="flex flex-wrap justify-center items-center gap-6 mt-10 animate-fade-up animate-delay-500">
           {[
             { icon: <Shield size={14} />, text: 'Verified Businesses' },

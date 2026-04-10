@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import {
   Search, Menu, X, Sun, Moon, MapPin, ChevronDown,
-  Bell, User, PlusCircle, Building2
+  User, PlusCircle
 } from 'lucide-react'
 
 const categories = [
@@ -18,7 +18,7 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [location, setLocation] = useState('New Delhi')
+  const [location] = useState('New Delhi')
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -29,20 +29,16 @@ export default function Header() {
   return (
     <header
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-        scrolled
-          ? 'shadow-lg border-b'
-          : 'border-b border-transparent'
+        scrolled ? 'shadow-lg border-b' : 'border-b border-transparent'
       }`}
       style={{
         backgroundColor: scrolled ? 'var(--surface)' : 'var(--background)',
         borderColor: scrolled ? 'var(--border)' : 'transparent',
       }}
     >
-      {/* Top Bar */}
       <div className="container-site">
         <div className="flex items-center justify-between h-16 gap-4">
 
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0 group">
             <div className="flex flex-col leading-none">
               <span
@@ -68,7 +64,6 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* Search Bar — center */}
           <div className="flex-1 max-w-2xl hidden md:flex items-center gap-2">
             <div
               className="flex flex-1 items-center rounded-xl border overflow-hidden search-focus transition-all"
@@ -77,7 +72,6 @@ export default function Header() {
                 borderColor: 'var(--border-strong)',
               }}
             >
-              {/* Location */}
               <button
                 className="flex items-center gap-1 px-3 py-2 text-sm border-r shrink-0 hover:opacity-80 transition-opacity"
                 style={{
@@ -90,7 +84,6 @@ export default function Header() {
                 <ChevronDown size={12} />
               </button>
 
-              {/* Input */}
               <input
                 type="text"
                 placeholder="Search businesses, products, services..."
@@ -100,7 +93,6 @@ export default function Header() {
                 style={{ color: 'var(--text-primary)' }}
               />
 
-              {/* Search Button */}
               <button
                 className="px-4 py-2 flex items-center gap-2 text-sm font-medium transition-all"
                 style={{
@@ -114,9 +106,7 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Right Actions */}
           <div className="flex items-center gap-2">
-            {/* List Business CTA */}
             <Link
               href="/register"
               className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
@@ -130,7 +120,6 @@ export default function Header() {
               <span>List Business</span>
             </Link>
 
-            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
               aria-label="Toggle theme"
@@ -143,7 +132,6 @@ export default function Header() {
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
-            {/* User */}
             <button
               className="p-2 rounded-lg transition-all hover:opacity-80"
               style={{
@@ -155,7 +143,6 @@ export default function Header() {
               <User size={18} />
             </button>
 
-            {/* Hamburger */}
             <button
               className="md:hidden p-2 rounded-lg transition-all"
               style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
@@ -167,7 +154,6 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Search */}
         <div className="md:hidden pb-3">
           <div
             className="flex items-center rounded-xl border overflow-hidden"
@@ -190,7 +176,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Category Nav */}
       <div
         className="border-t hidden md:block"
         style={{
@@ -199,15 +184,13 @@ export default function Header() {
         }}
       >
         <div className="container-site">
-          <div className="flex items-center gap-1 h-10 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1 h-10 overflow-x-auto">
             {categories.map((cat) => (
               <Link
                 key={cat}
                 href={`/search?category=${cat.toLowerCase()}`}
                 className="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all hover:opacity-80"
-                style={{
-                  color: 'var(--text-secondary)',
-                }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 {cat}
               </Link>
@@ -223,7 +206,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileOpen && (
         <div
           className="md:hidden border-t"

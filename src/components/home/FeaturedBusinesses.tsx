@@ -1,4 +1,4 @@
-import { MapPin, Star, Phone, MessageCircle, BadgeCheck, TrendingUp, Zap } from 'lucide-react'
+import { MapPin, Star, Phone, MessageCircle, BadgeCheck } from 'lucide-react'
 import Link from 'next/link'
 
 const businesses = [
@@ -59,7 +59,6 @@ export default function FeaturedBusinesses() {
   return (
     <section className="py-20" style={{ background: 'var(--surface)' }}>
       <div className="container-site">
-        {/* Header */}
         <div className="flex items-end justify-between mb-10">
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--accent)' }}>Top Picks</p>
@@ -70,7 +69,6 @@ export default function FeaturedBusinesses() {
           <Link href="/search" className="text-sm font-medium hidden sm:block hover:opacity-80" style={{ color: 'var(--accent)' }}>View All →</Link>
         </div>
 
-        {/* Cards */}
         <div className="grid md:grid-cols-3 gap-6">
           {businesses.map((biz) => (
             <Link
@@ -79,20 +77,17 @@ export default function FeaturedBusinesses() {
               className="group flex flex-col rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 card-hover"
               style={{ background: 'var(--background)', border: '1px solid var(--border)' }}
             >
-              {/* Card top — image + tag */}
               <div
                 className="relative flex items-center justify-center h-40 text-7xl"
                 style={{ background: 'var(--surface-2)' }}
               >
                 {biz.image}
-                {/* Tag */}
                 <span
                   className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold"
                   style={tagStyles[biz.tag]}
                 >
                   {biz.tagLabel}
                 </span>
-                {/* Trust score */}
                 <span
                   className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold"
                   style={{ background: 'rgba(0,0,0,0.5)', color: '#fff' }}
@@ -101,7 +96,6 @@ export default function FeaturedBusinesses() {
                 </span>
               </div>
 
-              {/* Card body */}
               <div className="flex flex-col flex-1 p-5">
                 <div className="mb-2">
                   <span
@@ -116,7 +110,6 @@ export default function FeaturedBusinesses() {
                 </h3>
                 <p className="text-sm flex-1 mb-3" style={{ color: 'var(--text-muted)' }}>{biz.description}</p>
 
-                {/* Location + Distance */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                     <MapPin size={12} style={{ color: 'var(--accent)' }} />
@@ -125,14 +118,12 @@ export default function FeaturedBusinesses() {
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>📍 {biz.distance}</span>
                 </div>
 
-                {/* Rating */}
                 <div className="flex items-center gap-1 mb-4">
                   <Star size={14} fill="#f59e0b" stroke="#f59e0b" />
                   <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{biz.rating}</span>
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>({biz.reviews} reviews)</span>
                 </div>
 
-                {/* Action buttons */}
                 <div className="flex gap-2 mt-auto">
                   <a
                     href={`tel:${biz.phone}`}

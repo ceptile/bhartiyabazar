@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { MapPin, Mail, Phone, Facebook, Twitter, Instagram, Youtube } from 'lucide-react'
+import { Facebook, Twitter, Instagram, Youtube } from 'lucide-react'
 
 const footerLinks = {
   Platform: [
@@ -35,10 +35,7 @@ export default function Footer() {
       style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
     >
       <div className="container-site py-16">
-        {/* Top: Logo + links */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
-
-          {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <span
@@ -61,6 +58,7 @@ export default function Footer() {
                   href="#"
                   className="p-2 rounded-lg transition-all hover:opacity-80"
                   style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}
+                  aria-label={`Social link ${i}`}
                 >
                   <Icon size={16} />
                 </a>
@@ -68,7 +66,6 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Links */}
           {Object.entries(footerLinks).map(([section, links]) => (
             <div key={section}>
               <h3
@@ -94,7 +91,6 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Bottom bar */}
         <div
           className="mt-12 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4"
           style={{ borderColor: 'var(--border)' }}
