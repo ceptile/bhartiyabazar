@@ -1,358 +1,211 @@
-// ============================================================
-// BhartiyaBazar — Master Data Store
-// ============================================================
-
-export type Category = {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-  bg: string;
-  count: number;
-  slug: string;
-};
-
+export type Category = { id: string; name: string; slug: string; icon: string; count: number; color: string; };
 export type Business = {
-  id: string;
-  name: string;
-  slug: string;
-  category: string;
-  categoryId: string;
-  description: string;
-  tagline: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  phone: string;
-  whatsapp: string;
-  email: string;
-  website?: string;
-  rating: number;
-  reviewCount: number;
-  trustScore: number;
-  isVerified: boolean;
-  isFeatured: boolean;
-  isNew: boolean;
-  isTrusted: boolean;
-  established: string;
-  timings: string;
-  tags: string[];
-  products: Product[];
-  reviews: Review[];
-  images: string[];
-  lat?: number;
-  lng?: number;
-  responseTime: string;
-  leadCount: number;
-  viewCount: number;
+  id: string; name: string; slug: string; category: string; categorySlug: string;
+  description: string; shortDesc: string; city: string; area: string; state: string;
+  phone: string; whatsapp: string; email: string; website?: string;
+  rating: number; reviewCount: number; verified: boolean; featured: boolean;
+  trustScore: number; responseTime: string; images: string[];
+  tags: string[]; openNow: boolean; established: number; employees: string;
+  products: Product[]; reviews: Review[]; services: string[];
+  address: string; pincode: string; lat?: number; lng?: number;
+  promoted?: boolean; badge?: string;
 };
+export type Product = { id: string; name: string; price: number; originalPrice?: number; image: string; category: string; inStock: boolean; unit?: string; };
+export type Review = { id: string; author: string; avatar: string; rating: number; text: string; date: string; helpful: number; verified: boolean; };
 
-export type Product = {
-  id: string;
-  name: string;
-  price: number;
-  originalPrice?: number;
-  unit: string;
-  description: string;
-  inStock: boolean;
-  image?: string;
-};
-
-export type Review = {
-  id: string;
-  author: string;
-  avatar: string;
-  rating: number;
-  text: string;
-  date: string;
-  helpful: number;
-};
-
-// ── Categories ──────────────────────────────────────────────
 export const categories: Category[] = [
-  { id:'cat1', name:'Electronics & Repair', icon:'📱', color:'#3b82f6', bg:'rgba(59,130,246,0.1)', count:2840, slug:'electronics' },
-  { id:'cat2', name:'Food & Restaurants',   icon:'🍽️', color:'#ef4444', bg:'rgba(239,68,68,0.1)',  count:5120, slug:'food' },
-  { id:'cat3', name:'Health & Hospitals',   icon:'🏥', color:'#10b981', bg:'rgba(16,185,129,0.1)', count:1960, slug:'health' },
-  { id:'cat4', name:'Education & Coaching', icon:'📚', color:'#8b5cf6', bg:'rgba(139,92,246,0.1)', count:3310, slug:'education' },
-  { id:'cat5', name:'Clothing & Fashion',   icon:'👗', color:'#ec4899', bg:'rgba(236,72,153,0.1)', count:4450, slug:'clothing' },
-  { id:'cat6', name:'Real Estate',          icon:'🏠', color:'#f59e0b', bg:'rgba(245,158,11,0.1)', count:1780, slug:'realestate' },
-  { id:'cat7', name:'Automotive',           icon:'🚗', color:'#6366f1', bg:'rgba(99,102,241,0.1)', count:2230, slug:'automotive' },
-  { id:'cat8', name:'Beauty & Salons',      icon:'💄', color:'#f43f5e', bg:'rgba(244,63,94,0.1)',  count:3670, slug:'beauty' },
-  { id:'cat9', name:'Home Services',        icon:'🔧', color:'#14b8a6', bg:'rgba(20,184,166,0.1)', count:4100, slug:'homeservices' },
-  { id:'cat10',name:'Grocery & Kirana',     icon:'🛒', color:'#84cc16', bg:'rgba(132,204,22,0.1)', count:6200, slug:'grocery' },
-  { id:'cat11',name:'Travel & Transport',   icon:'✈️', color:'#0ea5e9', bg:'rgba(14,165,233,0.1)', count:1540, slug:'travel' },
-  { id:'cat12',name:'Finance & Insurance',  icon:'💰', color:'#22c55e', bg:'rgba(34,197,94,0.1)',  count:890,  slug:'finance' },
+  { id:'1', name:'Restaurants & Food', slug:'restaurants', icon:'🍽️', count:4820, color:'#FF6B35' },
+  { id:'2', name:'Electronics & Repair', slug:'electronics', icon:'📱', count:3240, color:'#4F8EF7' },
+  { id:'3', name:'Health & Doctors', slug:'health', icon:'🏥', count:2980, color:'#00D68F' },
+  { id:'4', name:'Home Services', slug:'home-services', icon:'🔧', count:5610, color:'#FFB800' },
+  { id:'5', name:'Education & Tutors', slug:'education', icon:'📚', count:2140, color:'#8B5CF6' },
+  { id:'6', name:'Salons & Beauty', slug:'salons', icon:'💇', count:3870, color:'#EC4899' },
+  { id:'7', name:'Auto & Vehicles', slug:'auto', icon:'🚗', count:2760, color:'#14B8A6' },
+  { id:'8', name:'Clothing & Fashion', slug:'fashion', icon:'👗', count:4320, color:'#F59E0B' },
+  { id:'9', name:'Grocery & Kirana', slug:'grocery', icon:'🛒', count:6120, color:'#10B981' },
+  { id:'10', name:'Jewellery & Gifts', slug:'jewellery', icon:'💎', count:1890, color:'#EAB308' },
+  { id:'11', name:'Real Estate', slug:'real-estate', icon:'🏠', count:1450, color:'#6366F1' },
+  { id:'12', name:'Events & Catering', slug:'events', icon:'🎉', count:2230, color:'#F43F5E' },
+  { id:'13', name:'Fitness & Gym', slug:'fitness', icon:'💪', count:1780, color:'#84CC16' },
+  { id:'14', name:'Travel & Tours', slug:'travel', icon:'✈️', count:980, color:'#22D3EE' },
+  { id:'15', name:'Photography', slug:'photography', icon:'📷', count:1340, color:'#A78BFA' },
+  { id:'16', name:'Legal & Finance', slug:'legal', icon:'⚖️', count:870, color:'#FB923C' },
 ];
 
-// ── Featured Businesses ──────────────────────────────────────
 export const businesses: Business[] = [
   {
-    id: 'biz1',
-    name: 'Sharma Electronics & Repairs',
-    slug: 'sharma-electronics-repairs',
-    category: 'Electronics & Repair',
-    categoryId: 'cat1',
-    description: 'Trusted electronics repair shop in Bhiwadi. We repair mobile phones, laptops, TVs, and all home appliances with genuine parts and 6-month warranty.',
-    tagline: 'Genuine Parts · 6-Month Warranty · Same Day Repair',
-    address: 'Shop 12, Main Market, Sector 4',
-    city: 'Bhiwadi',
-    state: 'Rajasthan',
-    pincode: '301019',
-    phone: '+91 94140 00001',
-    whatsapp: '9414000001',
-    email: 'sharma.electronics@email.com',
-    rating: 4.8,
-    reviewCount: 312,
-    trustScore: 96,
-    isVerified: true,
-    isFeatured: true,
-    isNew: false,
-    isTrusted: true,
-    established: '2012',
-    timings: 'Mon–Sat 9am–8pm',
-    tags: ['mobile repair','laptop repair','TV repair','AC repair','same day'],
-    responseTime: '< 15 min',
-    leadCount: 1840,
-    viewCount: 24300,
-    images: [],
-    reviews: [
-      { id:'r1', author:'Rahul Verma', avatar:'RV', rating:5, text:'Excellent service! Got my iPhone screen replaced in 2 hours. Very professional.', date:'2 days ago', helpful:24 },
-      { id:'r2', author:'Priya Sharma', avatar:'PS', rating:5, text:'Fixed my laptop motherboard issue. Saved me ₹15,000 vs buying new. Highly recommend!', date:'1 week ago', helpful:18 },
-      { id:'r3', author:'Amit Kumar', avatar:'AK', rating:4, text:'Good service. Repaired my TV quickly. Prices are reasonable.', date:'2 weeks ago', helpful:9 },
+    id:'b1', name:'Sharma Electronics & Repair Hub', slug:'sharma-electronics',
+    category:'Electronics & Repair', categorySlug:'electronics',
+    description:'Trusted electronics repair shop with 15+ years experience. We repair all brands of smartphones, laptops, TVs, ACs, washing machines and more. Genuine spare parts, warranty on all repairs. Home service available.',
+    shortDesc:'15+ years of trusted electronics repair. All brands, genuine parts, warranty.',
+    city:'Delhi', area:'Karol Bagh', state:'Delhi',
+    phone:'+91-98100-12345', whatsapp:'919810012345', email:'sharma.electronics@gmail.com',
+    website:'https://sharmaelectronics.in',
+    rating:4.7, reviewCount:284, verified:true, featured:true, trustScore:94,
+    responseTime:'< 30 min', images:['https://images.unsplash.com/photo-1588702547923-7093a6c3ba33?w=800&q=80','https://images.unsplash.com/photo-1581092921461-eab62e97a780?w=800&q=80'],
+    tags:['Mobile Repair','Laptop Repair','AC Repair','Same Day Service'],
+    openNow:true, established:2009, employees:'5-10',
+    address:'42, Ajmal Khan Road, Karol Bagh', pincode:'110005',
+    badge:'Top Rated',
+    services:['Mobile Screen Replacement','Battery Replacement','Laptop Motherboard Repair','AC Gas Refilling','Washing Machine Repair','Home Service Available'],
+    products:[
+      { id:'p1', name:'Mobile Screen Replacement', price:799, originalPrice:1200, image:'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400&q=80', category:'Repair', inStock:true },
+      { id:'p2', name:'Laptop Battery Replacement', price:1499, originalPrice:2000, image:'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=400&q=80', category:'Repair', inStock:true },
+      { id:'p3', name:'AC Gas Refilling', price:599, image:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80', category:'Service', inStock:true },
     ],
-    products: [
-      { id:'p1', name:'Mobile Screen Replacement', price:799, originalPrice:1200, unit:'per repair', description:'Original quality screens for all brands', inStock:true },
-      { id:'p2', name:'Laptop Service & Cleaning', price:499, unit:'per service', description:'Deep cleaning + performance optimization', inStock:true },
-      { id:'p3', name:'TV Repair (any brand)', price:599, originalPrice:800, unit:'per repair', description:'LED/LCD/Smart TV repair with warranty', inStock:true },
+    reviews:[
+      { id:'r1', author:'Rahul Sharma', avatar:'RS', rating:5, text:'Excellent service! Fixed my phone screen in 1 hour. Price was fair and quality is great.', date:'2 days ago', helpful:12, verified:true },
+      { id:'r2', author:'Priya Singh', avatar:'PS', rating:4, text:'Good repair work on my laptop. Little wait time but result was perfect.', date:'1 week ago', helpful:8, verified:true },
+      { id:'r3', author:'Amit Kumar', avatar:'AK', rating:5, text:'Best electronics shop in Karol Bagh. Honest and professional. Highly recommended!', date:'2 weeks ago', helpful:15, verified:false },
     ],
   },
   {
-    id: 'biz2',
-    name: 'Rajwadi Dhaba & Restaurant',
-    slug: 'rajwadi-dhaba-restaurant',
-    category: 'Food & Restaurants',
-    categoryId: 'cat2',
-    description: 'Authentic Rajasthani cuisine in Bhiwadi. Serving dal baati churma, laal maas, and fresh home-style food since 2008.',
-    tagline: 'Pure Veg · Home Style · Dal Baati Churma',
-    address: 'Near RIICO Chowk, NH-48',
-    city: 'Bhiwadi',
-    state: 'Rajasthan',
-    pincode: '301019',
-    phone: '+91 94140 00002',
-    whatsapp: '9414000002',
-    email: 'rajwadi.dhaba@email.com',
-    rating: 4.6,
-    reviewCount: 528,
-    trustScore: 92,
-    isVerified: true,
-    isFeatured: true,
-    isNew: false,
-    isTrusted: false,
-    established: '2008',
-    timings: 'Daily 7am–11pm',
-    tags: ['dal baati','rajasthani food','pure veg','thali','home delivery'],
-    responseTime: '< 5 min',
-    leadCount: 3200,
-    viewCount: 45100,
-    images: [],
-    reviews: [
-      { id:'r1', author:'Sunita Agarwal', avatar:'SA', rating:5, text:'Best dal baati churma in Bhiwadi! Feels like home food. Amazing taste and very affordable.', date:'3 days ago', helpful:41 },
-      { id:'r2', author:'Vikram Singh', avatar:'VS', rating:5, text:'Wonderful thali experience. The laal maas was outstanding. Will definitely come back!', date:'1 week ago', helpful:28 },
+    id:'b2', name:'Dr. Meera Patel – Family Clinic', slug:'dr-meera-patel',
+    category:'Health & Doctors', categorySlug:'health',
+    description:'Board-certified family physician with 20 years of experience. Specializes in general medicine, diabetes management, hypertension, and preventive healthcare. Evening appointments available. Home visits for senior citizens.',
+    shortDesc:'20 years experienced family doctor. Diabetes, BP specialist. Home visits available.',
+    city:'Mumbai', area:'Andheri West', state:'Maharashtra',
+    phone:'+91-98200-56789', whatsapp:'919820056789', email:'dr.meera.patel@clinic.in',
+    rating:4.9, reviewCount:512, verified:true, featured:true, trustScore:98,
+    responseTime:'< 15 min', images:['https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80','https://images.unsplash.com/photo-1581056771107-24ca5f033842?w=800&q=80'],
+    tags:['General Medicine','Diabetes','Hypertension','Home Visits'],
+    openNow:true, established:2004, employees:'2-5',
+    address:'304, Sunrise Building, Link Road, Andheri West', pincode:'400058',
+    badge:'Most Trusted',
+    services:['General Consultation','Diabetes Management','Blood Pressure Treatment','Preventive Health Check','Vaccination','Home Visits for Senior Citizens'],
+    products:[
+      { id:'p4', name:'General Consultation', price:500, image:'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&q=80', category:'Consultation', inStock:true },
+      { id:'p5', name:'Full Health Checkup Package', price:2499, originalPrice:3500, image:'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400&q=80', category:'Checkup', inStock:true },
     ],
-    products: [
-      { id:'p1', name:'Rajasthani Thali', price:180, unit:'per plate', description:'Complete thali with dal, baati, churma, sabzi, roti', inStock:true },
-      { id:'p2', name:'Dal Baati Churma', price:160, originalPrice:200, unit:'per plate', description:'Traditional Rajasthani specialty', inStock:true },
-      { id:'p3', name:'Special Laal Maas', price:280, unit:'per plate', description:'Authentic spicy mutton curry', inStock:false },
+    reviews:[
+      { id:'r4', author:'Suresh Mehta', avatar:'SM', rating:5, text:'Dr. Meera is incredibly caring and thorough. Best doctor I have visited in years.', date:'3 days ago', helpful:28, verified:true },
+      { id:'r5', author:'Kavita Reddy', avatar:'KR', rating:5, text:'She takes time to explain everything. Very patient and knowledgeable.', date:'1 week ago', helpful:19, verified:true },
     ],
   },
   {
-    id: 'biz3',
-    name: 'Dr. Mehta Multi-Speciality Clinic',
-    slug: 'dr-mehta-clinic',
-    category: 'Health & Hospitals',
-    categoryId: 'cat3',
-    description: 'Complete healthcare facility with experienced doctors. Offering general medicine, pediatrics, gynecology, and diagnostic services.',
-    tagline: 'Expert Doctors · Modern Equipment · Affordable Care',
-    address: 'Plot 7, Central Market, Phase 2',
-    city: 'Bhiwadi',
-    state: 'Rajasthan',
-    pincode: '301019',
-    phone: '+91 94140 00003',
-    whatsapp: '9414000003',
-    email: 'drmehta.clinic@email.com',
-    rating: 4.9,
-    reviewCount: 189,
-    trustScore: 98,
-    isVerified: true,
-    isFeatured: true,
-    isNew: false,
-    isTrusted: true,
-    established: '2015',
-    timings: 'Mon–Sat 9am–7pm | Sun 9am–1pm',
-    tags: ['general medicine','pediatric','gynecology','blood test','ECG','home visit'],
-    responseTime: 'Same day appt',
-    leadCount: 960,
-    viewCount: 18700,
-    images: [],
-    reviews: [
-      { id:'r1', author:'Neha Joshi', avatar:'NJ', rating:5, text:'Dr. Mehta is very knowledgeable and caring. Explained everything clearly. Very satisfied.', date:'1 day ago', helpful:32 },
+    id:'b3', name:'Spice Garden Restaurant', slug:'spice-garden',
+    category:'Restaurants & Food', categorySlug:'restaurants',
+    description:'Authentic North Indian cuisine with secret family recipes passed down for generations. Signature dishes include Dal Makhani, Butter Chicken, Biryani and Tandoori items. Takeaway, dine-in and home delivery available. Party hall for 50 guests.',
+    shortDesc:'Authentic North Indian cuisine. Home delivery available. Party hall for 50.',
+    city:'Bengaluru', area:'Koramangala', state:'Karnataka',
+    phone:'+91-80-4567-8901', whatsapp:'918045678901', email:'spicegarden@gmail.com',
+    rating:4.5, reviewCount:892, verified:true, featured:true, trustScore:88,
+    responseTime:'< 45 min', images:['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80','https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80'],
+    tags:['North Indian','Delivery','Dine-in','Party Hall'],
+    openNow:true, established:2015, employees:'10-20',
+    address:'47, 5th Cross, Koramangala 4th Block', pincode:'560034',
+    badge:'Popular',
+    services:['Dine-In','Home Delivery','Takeaway','Catering','Party Hall Booking','Birthday Packages'],
+    products:[
+      { id:'p6', name:'Butter Chicken + 2 Roti', price:320, image:'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=400&q=80', category:'Main Course', inStock:true },
+      { id:'p7', name:'Special Biryani', price:260, image:'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=80', category:'Rice', inStock:true },
+      { id:'p8', name:'Dal Makhani + Rice', price:180, originalPrice:220, image:'https://images.unsplash.com/photo-1546833998-877b37c2e5c6?w=400&q=80', category:'Main Course', inStock:true },
     ],
-    products: [
-      { id:'p1', name:'General Consultation', price:300, unit:'per visit', description:'With Dr. Mehta or associated doctors', inStock:true },
-      { id:'p2', name:'Complete Blood Count', price:250, originalPrice:400, unit:'per test', description:'Results in 2 hours', inStock:true },
-      { id:'p3', name:'Home Visit', price:600, unit:'per visit', description:'Doctor comes to your home', inStock:true },
+    reviews:[
+      { id:'r6', author:'Deepak Nair', avatar:'DN', rating:5, text:'Best Dal Makhani in Koramangala! Delivery was on time and food was hot.', date:'1 day ago', helpful:22, verified:true },
+      { id:'r7', author:'Anita Krishnan', avatar:'AK', rating:4, text:'Good food, consistent quality. Sunday biryani is a must try!', date:'5 days ago', helpful:14, verified:true },
     ],
   },
   {
-    id: 'biz4',
-    name: 'Smart Tutor Academy',
-    slug: 'smart-tutor-academy',
-    category: 'Education & Coaching',
-    categoryId: 'cat4',
-    description: 'Expert coaching for Class 6–12, JEE, NEET, and competitive exams. Small batches, individual attention, proven results.',
-    tagline: 'Small Batches · IIT/AIIMS Qualified Faculty · Results Guaranteed',
-    address: 'Near Bus Stand, Sector 6',
-    city: 'Bhiwadi',
-    state: 'Rajasthan',
-    pincode: '301019',
-    phone: '+91 94140 00004',
-    whatsapp: '9414000004',
-    email: 'smarttutor@email.com',
-    rating: 4.7,
-    reviewCount: 143,
-    trustScore: 91,
-    isVerified: true,
-    isFeatured: false,
-    isNew: true,
-    isTrusted: false,
-    established: '2019',
-    timings: 'Mon–Sun 7am–9pm',
-    tags: ['JEE coaching','NEET coaching','Class 10','Class 12','home tutor','online classes'],
-    responseTime: '< 30 min',
-    leadCount: 620,
-    viewCount: 9800,
-    images: [],
-    reviews: [
-      { id:'r1', author:'Pooja Yadav', avatar:'PY', rating:5, text:'My daughter improved from 60% to 92% in maths. Excellent teaching methods!', date:'5 days ago', helpful:45 },
+    id:'b4', name:'QuickFix Plumbing & Home Solutions', slug:'quickfix-plumbing',
+    category:'Home Services', categorySlug:'home-services',
+    description:'Professional plumbing and home repair services. Available 24/7 for emergencies. Licensed plumbers with 10+ years experience. Services include pipe repair, bathroom fittings, water tank cleaning, electrical work and painting.',
+    shortDesc:'24/7 emergency plumbing & home repairs. Licensed, insured professionals.',
+    city:'Hyderabad', area:'Banjara Hills', state:'Telangana',
+    phone:'+91-98400-78901', whatsapp:'919840078901', email:'quickfix.hyd@gmail.com',
+    rating:4.6, reviewCount:347, verified:true, featured:false, trustScore:91,
+    responseTime:'< 20 min', images:['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80'],
+    tags:['24/7 Service','Emergency','Licensed','Home Repair'],
+    openNow:true, established:2017, employees:'5-10',
+    address:'Road No. 12, Banjara Hills', pincode:'500034',
+    services:['Pipe Repair & Replacement','Bathroom Fittings','Water Tank Cleaning','Electrical Repair','Painting','Carpentry'],
+    products:[
+      { id:'p9', name:'Basic Plumbing Service', price:349, image:'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=400&q=80', category:'Plumbing', inStock:true },
+      { id:'p10', name:'Bathroom Renovation Package', price:12999, originalPrice:16000, image:'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=400&q=80', category:'Renovation', inStock:true },
     ],
-    products: [
-      { id:'p1', name:'JEE Coaching (Monthly)', price:3500, unit:'per month', description:'Physics, Chemistry, Math — 3 days/week', inStock:true },
-      { id:'p2', name:'NEET Coaching (Monthly)', price:3500, unit:'per month', description:'Physics, Chemistry, Biology', inStock:true },
-      { id:'p3', name:'Home Tuition (1-on-1)', price:800, unit:'per hour', description:'Any subject, any class', inStock:true },
+    reviews:[
+      { id:'r8', author:'Vijay Rao', avatar:'VR', rating:5, text:'Called at midnight for emergency pipe burst. They arrived in 25 min. Lifesaver!', date:'4 days ago', helpful:31, verified:true },
     ],
   },
   {
-    id: 'biz5',
-    name: 'Kapoor Fashion House',
-    slug: 'kapoor-fashion-house',
-    category: 'Clothing & Fashion',
-    categoryId: 'cat5',
-    description: 'Premium clothing store with the latest Indian and western wear. Men, women, and kids sections. Custom tailoring available.',
-    tagline: 'Latest Trends · Custom Stitching · Festival Collections',
-    address: 'Main Market, Sector 3',
-    city: 'Bhiwadi',
-    state: 'Rajasthan',
-    pincode: '301019',
-    phone: '+91 94140 00005',
-    whatsapp: '9414000005',
-    email: 'kapoor.fashion@email.com',
-    rating: 4.5,
-    reviewCount: 267,
-    trustScore: 88,
-    isVerified: true,
-    isFeatured: false,
-    isNew: false,
-    isTrusted: false,
-    established: '2011',
-    timings: 'Mon–Sun 10am–9pm',
-    tags: ['saree','lehenga','suits','shirt','jeans','bridal wear','kids wear'],
-    responseTime: '< 1 hour',
-    leadCount: 1100,
-    viewCount: 15600,
-    images: [],
-    reviews: [
-      { id:'r1', author:'Anita Singh', avatar:'AS', rating:5, text:'Amazing collection! Got my wedding lehenga here. Very cooperative staff.', date:'1 week ago', helpful:21 },
+    id:'b5', name:'Style Studio Unisex Salon', slug:'style-studio',
+    category:'Salons & Beauty', categorySlug:'salons',
+    description:'Premium unisex salon with internationally trained stylists. Services include haircuts, coloring, spa, bridal packages, threading, waxing, and nail art. Using only L\'Oreal and Wella products. Appointment booking available online.',
+    shortDesc:'Premium unisex salon. International stylists. Bridal packages available.',
+    city:'Pune', area:'Wakad', state:'Maharashtra',
+    phone:'+91-98700-34567', whatsapp:'919870034567', email:'stylestudio.pune@gmail.com',
+    rating:4.8, reviewCount:623, verified:true, featured:true, trustScore:95,
+    responseTime:'< 1 hour', images:['https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80','https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80'],
+    tags:['Unisex','Bridal','L\'Oreal Products','Appointment Available'],
+    openNow:false, established:2018, employees:'5-10',
+    address:'Shop 7, Wakad Main Road, near D-Mart', pincode:'411057',
+    badge:'Premium',
+    services:['Haircut & Styling','Hair Coloring','Bridal Makeup','Facial & Spa','Waxing','Nail Art','Keratin Treatment'],
+    products:[
+      { id:'p11', name:'Haircut & Blow Dry', price:499, image:'https://images.unsplash.com/photo-1562322140-8baeebebd7b1?w=400&q=80', category:'Hair', inStock:true },
+      { id:'p12', name:'Full Bridal Package', price:14999, originalPrice:18000, image:'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&q=80', category:'Bridal', inStock:true },
     ],
-    products: [
-      { id:'p1', name:'Bridal Lehenga', price:8500, originalPrice:12000, unit:'per piece', description:'Designer collection with embroidery', inStock:true },
-      { id:'p2', name:'Cotton Sarees', price:650, unit:'per piece', description:'Pure cotton, multiple designs', inStock:true },
-      { id:'p3', name:'Custom Stitching', price:350, unit:'per piece', description:'Salwar, kurti, blouse — 3-day delivery', inStock:true },
+    reviews:[
+      { id:'r9', author:'Sneha Joshi', avatar:'SJ', rating:5, text:'Got my bridal makeup done here. Looked absolutely stunning! Highly recommend!', date:'3 days ago', helpful:41, verified:true },
     ],
   },
   {
-    id: 'biz6',
-    name: 'QuickFix Home Services',
-    slug: 'quickfix-home-services',
-    category: 'Home Services',
-    categoryId: 'cat9',
-    description: 'Professional plumbing, electrical, and AC repair services. Verified technicians, transparent pricing, and on-time service guaranteed.',
-    tagline: 'Verified Technicians · Fixed Pricing · On-Time Guarantee',
-    address: 'Sector 8, Industrial Area',
-    city: 'Bhiwadi',
-    state: 'Rajasthan',
-    pincode: '301019',
-    phone: '+91 94140 00006',
-    whatsapp: '9414000006',
-    email: 'quickfix.services@email.com',
-    rating: 4.7,
-    reviewCount: 398,
-    trustScore: 94,
-    isVerified: true,
-    isFeatured: true,
-    isNew: false,
-    isTrusted: true,
-    established: '2017',
-    timings: 'Daily 8am–10pm | Emergency 24/7',
-    tags: ['plumber','electrician','AC repair','carpenter','painter','pest control'],
-    responseTime: '< 1 hour',
-    leadCount: 2800,
-    viewCount: 38200,
-    images: [],
-    reviews: [
-      { id:'r1', author:'Rajesh Gupta', avatar:'RG', rating:5, text:'AC stopped working at midnight. QuickFix sent a technician in 45 minutes. Lifesaver!', date:'3 days ago', helpful:56 },
+    id:'b6', name:'Bright Minds Tuition Center', slug:'bright-minds',
+    category:'Education & Tutors', categorySlug:'education',
+    description:'Expert coaching for Classes 6-12 (CBSE, ICSE, State Board). Subjects: Math, Science, English, SST. Small batch sizes (max 8 students). Regular tests, doubt sessions, and parent meetings. Online classes available.',
+    shortDesc:'Expert coaching for Class 6-12. Small batches, regular tests, doubt sessions.',
+    city:'Chennai', area:'Anna Nagar', state:'Tamil Nadu',
+    phone:'+91-98490-23456', whatsapp:'919849023456', email:'brightminds.chennai@gmail.com',
+    rating:4.6, reviewCount:198, verified:true, featured:false, trustScore:87,
+    responseTime:'< 2 hours', images:['https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80'],
+    tags:['CBSE','ICSE','Online Classes','Small Batches'],
+    openNow:true, established:2016, employees:'2-5',
+    address:'A-Block, 12th Street, Anna Nagar', pincode:'600040',
+    services:['Math Coaching','Science Coaching','English Grammar','Online Classes','Doubt Sessions','Study Material'],
+    products:[
+      { id:'p13', name:'Monthly Tuition Fee (1 Subject)', price:1800, image:'https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?w=400&q=80', category:'Coaching', inStock:true },
+      { id:'p14', name:'Full Package (3 Subjects)', price:4500, originalPrice:5400, image:'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400&q=80', category:'Coaching', inStock:true },
     ],
-    products: [
-      { id:'p1', name:'AC Service & Gas Refill', price:799, originalPrice:1200, unit:'per service', description:'Complete AC servicing with gas top-up', inStock:true },
-      { id:'p2', name:'Plumbing Repair', price:399, unit:'per visit', description:'Leaks, blockages, tap replacement', inStock:true },
-      { id:'p3', name:'Electrical Work', price:299, unit:'per visit', description:'Wiring, switches, fan installation', inStock:true },
+    reviews:[
+      { id:'r10', author:'Rajesh P', avatar:'RP', rating:5, text:'My daughter\'s grades improved from 65% to 89% in 3 months. Excellent teachers!', date:'1 week ago', helpful:27, verified:true },
     ],
   },
-];
-
-export const stats = [
-  { value: '50,000+', label: 'Businesses Listed', icon: '🏢' },
-  { value: '2,80,000+', label: 'Happy Users',       icon: '😊' },
-  { value: '500+',    label: 'Cities Covered',     icon: '📍' },
-  { value: '4.8★',    label: 'Average Rating',     icon: '⭐' },
 ];
 
 export const testimonials = [
+  { id:'t1', name:'Ramesh Gupta', city:'Delhi', role:'Shop Owner', text:'Listed my hardware shop on BhartiyaBazar and started getting calls within 2 days. Now I get 15-20 enquiries per month completely free!', avatar:'RG', rating:5 },
+  { id:'t2', name:'Sunita Sharma', city:'Mumbai', role:'Customer', text:'Found the best AC repair guy in my area within minutes. He came same day, fixed the AC, and charged a fair price. No middleman, no spam calls!', avatar:'SS', rating:5 },
+  { id:'t3', name:'Arjun Mehta', city:'Bengaluru', role:'Restaurant Owner', text:'The verified badge really helped build trust with new customers. Our orders increased 40% in the first month after getting featured.', avatar:'AM', rating:5 },
+  { id:'t4', name:'Priya Nair', city:'Chennai', role:'Customer', text:'Finally a platform that shows real businesses with real reviews. Compared 3 salons, read genuine reviews, and booked the best one. So easy!', avatar:'PN', rating:5 },
+];
+
+export const pricingPlans = [
   {
-    id: 't1',
-    name: 'Ramesh Agarwal',
-    business: 'Agarwal Hardware Store, Jaipur',
-    avatar: 'RA',
-    rating: 5,
-    text: 'BhartiyaBazar ne meri dukaan ko online la diya! Ab roz 10-15 naye customers aate hain. Bahut behtareen platform hai.',
-    leads: 142,
+    id:'free', name:'Free', price:0, period:'forever',
+    description:'Perfect for getting started',
+    features:['1 Business Profile','5 Product Listings','Basic Search Visibility','Direct Contact (Call/WhatsApp)','Standard Support'],
+    notIncluded:['Featured Listing','Verified Badge','Analytics Dashboard','Priority Support'],
+    cta:'Get Started Free', popular:false,
   },
   {
-    id: 't2',
-    name: 'Sunita Devi',
-    business: 'Sunita Beauty Parlour, Alwar',
-    avatar: 'SD',
-    rating: 5,
-    text: 'Maine free mein apna business list kiya aur 2 hafton mein 50 se zyada inquiries aai. Koi commission nahi, seedha customers!',
-    leads: 89,
+    id:'starter', name:'Starter', price:499, period:'month',
+    description:'Best for growing businesses',
+    features:['1 Business Profile','25 Product Listings','Enhanced Search Visibility','Direct Contact (Call/WhatsApp/Email)','Basic Analytics (Views & Clicks)','Email Support'],
+    notIncluded:['Featured Listing','Verified Badge','Priority Support'],
+    cta:'Start Starter Plan', popular:false,
   },
   {
-    id: 't3',
-    name: 'Vijay Mehta',
-    business: 'Mehta Auto Works, Bhiwadi',
-    avatar: 'VM',
-    rating: 5,
-    text: 'Best business directory for India. Very easy to use and the trust score system is excellent. Customers trust us more now.',
-    leads: 218,
+    id:'pro', name:'Pro', price:1499, period:'month',
+    description:'Most popular for established businesses',
+    features:['1 Business Profile','Unlimited Product Listings','Featured Listing Badge','Verified Badge','Full Analytics Dashboard','Lead Management','Priority Support','Homepage Visibility (Rotating)'],
+    notIncluded:[],
+    cta:'Go Pro', popular:true,
+  },
+  {
+    id:'enterprise', name:'Enterprise', price:4999, period:'month',
+    description:'For chains & multiple branches',
+    features:['5 Business Profiles','Unlimited Products per Profile','Sponsored Top Position','Verified Badge (All Profiles)','Advanced Analytics & Reports','Dedicated Account Manager','API Access','Custom Integrations'],
+    notIncluded:[],
+    cta:'Contact Sales', popular:false,
   },
 ];

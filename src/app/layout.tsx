@@ -1,55 +1,31 @@
-import type { Metadata, Viewport } from 'next';
-import '../app/globals.css';
+import type { Metadata } from 'next';
+import './globals.css';
+import Navbar from '@/components/layout/Navbar';
+import Footer from '@/components/layout/Footer';
+import ToastProvider from '@/components/ui/ToastProvider';
 
 export const metadata: Metadata = {
-  title: {
-    default: 'BhartiyaBazar — India\'s Most Trusted Business Search',
-    template: '%s | BhartiyaBazar',
-  },
-  description: 'Find verified local businesses, compare prices, and connect directly with sellers. India\'s largest business search platform — free for buyers and sellers.',
-  keywords: ['business directory India', 'local business search', 'find businesses near me', 'Justdial alternative', 'IndiaMART alternative', 'free business listing'],
-  authors: [{ name: 'BhartiyaBazar' }],
-  creator: 'BhartiyaBazar',
-  metadataBase: new URL('https://bhartiyabazar.com'),
+  title: 'BhartiyaBazar – India\'s Most Trusted Business Search Platform',
+  description: 'Find verified businesses, compare prices, search products & services near you. Free business listings, direct contact, no spam. India\'s Google for Businesses.',
+  keywords: 'business directory India, find businesses near me, local business search, verified businesses, bhartiya bazar',
   openGraph: {
+    title: 'BhartiyaBazar – India\'s Most Trusted Business Search',
+    description: 'Find verified businesses, compare prices, contact directly. No spam, no middlemen.',
     type: 'website',
     locale: 'en_IN',
-    url: 'https://bhartiyabazar.com',
-    siteName: 'BhartiyaBazar',
-    title: 'BhartiyaBazar — India\'s Most Trusted Business Search',
-    description: 'Find verified local businesses, compare prices, and connect directly with sellers.',
   },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'BhartiyaBazar',
-    description: 'India\'s most trusted business search platform',
-  },
-  robots: { index: true, follow: true },
-};
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  themeColor: [{ media: '(prefers-color-scheme: light)', color: '#FAFAF8' }, { media: '(prefers-color-scheme: dark)', color: '#080C14' }],
+  icons: { icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏪</text></svg>" },
+  robots: 'index, follow',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: `
-          (function(){
-            try {
-              var t = localStorage.getItem('bb-theme');
-              if (t) { document.documentElement.setAttribute('data-theme', t); return; }
-            } catch(e){}
-            var d = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            document.documentElement.setAttribute('data-theme', d ? 'dark' : 'light');
-          })();
-        `}} />
-      </head>
+    <html lang="en">
       <body>
-        {children}
+        <Navbar />
+        <main>{children}</main>
+        <Footer />
+        <ToastProvider />
       </body>
     </html>
   );
