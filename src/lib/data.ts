@@ -13,6 +13,13 @@ export type Business = {
 export type Product = { id: string; name: string; price: number; originalPrice?: number; image: string; category: string; inStock: boolean; unit?: string; };
 export type Review = { id: string; author: string; avatar: string; rating: number; text: string; date: string; helpful: number; verified: boolean; };
 
+export const stats = [
+  { id: 's1', value: 50000, suffix: '+', label: 'Verified Businesses', icon: '🏢', color: 'var(--saffron)' },
+  { id: 's2', value: 280000, suffix: '+', label: 'Happy Users', icon: '😊', color: 'var(--green)' },
+  { id: 's3', value: 500, suffix: '+', label: 'Cities Covered', icon: '📍', color: 'var(--blue)' },
+  { id: 's4', value: 1200000, suffix: '+', label: 'Monthly Searches', icon: '🔍', color: 'var(--gold)' },
+];
+
 export const categories: Category[] = [
   { id:'1', name:'Restaurants & Food', slug:'restaurants', icon:'🍽️', count:4820, color:'#FF6B35' },
   { id:'2', name:'Electronics & Repair', slug:'electronics', icon:'📱', count:3240, color:'#4F8EF7' },
