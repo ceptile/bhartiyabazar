@@ -1,97 +1,68 @@
-import Link from 'next/link'
-import { Facebook, Twitter, Instagram, Youtube } from 'lucide-react'
-
-const LINKS = {
-  Platform: [
-    { l: 'Browse Businesses', h: '/search' },
-    { l: 'List Your Business', h: '/register' },
-    { l: 'Categories', h: '/categories' },
-    { l: 'Cities', h: '/cities' },
-  ],
-  Company: [
-    { l: 'About Us', h: '/about' },
-    { l: 'Careers', h: '/careers' },
-    { l: 'Press', h: '/press' },
-    { l: 'Blog', h: '/blog' },
-  ],
-  Support: [
-    { l: 'Help Center', h: '/help' },
-    { l: 'Contact Us', h: '/contact' },
-    { l: 'Report Issue', h: '/report' },
-    { l: 'Advertise', h: '/advertise' },
-  ],
-  Legal: [
-    { l: 'Privacy Policy', h: '/privacy' },
-    { l: 'Terms of Service', h: '/terms' },
-    { l: 'Cookie Policy', h: '/cookies' },
-    { l: 'Refund Policy', h: '/refund' },
-  ],
-}
+import Link from 'next/link';
 
 export default function Footer() {
+  const year = new Date().getFullYear();
   return (
-    <footer style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', marginTop: 'auto' }}>
-      <div className="site-container" style={{ padding: 'clamp(40px,5vw,72px) clamp(1rem,4vw,2.5rem)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 32 }}>
-          {/* Brand col */}
-          <div style={{ gridColumn: 'span 2' }} className="footer-brand">
-            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, textDecoration: 'none' }}>
-              <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg,#f97316,#fbbf24)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: '#fff', fontFamily: 'Georgia,serif' }}>bB</div>
-              <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-1)' }}>BhartiyaBazar</span>
-            </Link>
-            <p style={{ fontSize: '13px', color: 'var(--text-3)', lineHeight: 1.7, maxWidth: 220, marginBottom: 16 }}>
-              India&apos;s most trusted business search platform. Find, compare, and connect with verified businesses.
+    <footer style={{ background: 'var(--navy-2)', borderTop: '1px solid var(--border)', padding: 'clamp(48px,8vw,80px) 0 32px' }}>
+      <div className="container">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 48, marginBottom: 48 }}>
+          {/* Brand */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{ width:36,height:36,borderRadius:'var(--radius-md)',background:'linear-gradient(135deg,var(--saffron),var(--gold))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18 }}>🏪</div>
+              <div style={{ fontFamily:'var(--font-display)',fontWeight:800,fontSize:18,color:'#fff' }}>Bhartiya<span style={{color:'var(--saffron)'}}>Bazar</span></div>
+            </div>
+            <p style={{ fontSize:14,color:'var(--text-muted)',lineHeight:1.7,maxWidth:260,marginBottom:20 }}>
+              India's most trusted business search platform. Find verified businesses, compare prices, connect directly.
             </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {[Facebook, Twitter, Instagram, Youtube].map((Icon, i) => (
-                <a key={i} href="#" aria-label={`Social ${i}`} style={{
-                  width: 32, height: 32,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'var(--surface-2)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--text-3)',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
-                >
-                  <Icon size={14} />
-                </a>
+            <div style={{ display:'flex',gap:10 }}>
+              {[{icon:'𝕏',label:'Twitter'},{icon:'f',label:'Facebook'},{icon:'in',label:'LinkedIn'},{icon:'▶',label:'YouTube'}].map(s => (
+                <a key={s.label} href="#" aria-label={s.label} style={{ width:34,height:34,borderRadius:'var(--radius-md)',background:'var(--surface-2)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:'var(--text-secondary)',textDecoration:'none',transition:'all var(--transition)' }}
+                  onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor='var(--saffron)';(e.currentTarget as HTMLElement).style.color='var(--saffron)';}}
+                  onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor='var(--border)';(e.currentTarget as HTMLElement).style.color='var(--text-secondary)';}}
+                >{s.icon}</a>
               ))}
             </div>
           </div>
-
-          {/* Link cols */}
-          {Object.entries(LINKS).map(([section, links]) => (
-            <div key={section}>
-              <h3 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-1)', marginBottom: 14 }}>{section}</h3>
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {links.map(({ l, h }) => (
-                  <li key={l}>
-                    <Link href={h} style={{ fontSize: '13px', color: 'var(--text-3)', textDecoration: 'none', transition: 'color 0.15s' }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--accent)'}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'}
-                    >{l}</Link>
-                  </li>
+          {/* Links */}
+          {[
+            { title:'Platform', links:[{label:'Find Businesses',href:'/search'},{label:'List Your Business',href:'/register'},{label:'Pricing Plans',href:'/pricing'},{label:'Dashboard',href:'/dashboard'}] },
+            { title:'Company', links:[{label:'About Us',href:'/about'},{label:'Contact Us',href:'/contact'},{label:'Blog',href:'/blog'},{label:'Careers',href:'/careers'}] },
+            { title:'Support', links:[{label:'Help Center',href:'/help'},{label:'Privacy Policy',href:'/privacy'},{label:'Terms of Service',href:'/terms'},{label:'Report Issue',href:'/contact'}] },
+          ].map(col => (
+            <div key={col.title}>
+              <h4 style={{ fontSize:13,fontWeight:700,color:'var(--text-primary)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:16 }}>{col.title}</h4>
+              <ul style={{ listStyle:'none',display:'flex',flexDirection:'column',gap:10 }}>
+                {col.links.map(l => (
+                  <li key={l.label}><Link href={l.href} style={{ fontSize:14,color:'var(--text-muted)',textDecoration:'none',transition:'color var(--transition)' }}
+                    onMouseEnter={e=>(e.currentTarget as HTMLElement).style.color='var(--text-primary)'}
+                    onMouseLeave={e=>(e.currentTarget as HTMLElement).style.color='var(--text-muted)'}
+                  >{l.label}</Link></li>
                 ))}
               </ul>
             </div>
           ))}
         </div>
 
-        {/* Bottom bar */}
-        <div style={{ borderTop: '1px solid var(--border)', marginTop: 40, paddingTop: 20, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{ fontSize: '12px', color: 'var(--text-3)' }}>© {new Date().getFullYear()} BhartiyaBazar · Made with 🧡 in India</p>
-          <span style={{ fontSize: '12px', background: 'var(--accent-subtle)', color: 'var(--accent)', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontWeight: 600 }}>🇮🇳 Proudly Indian</span>
+        {/* App badges */}
+        <div style={{ padding:'24px 0',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)',marginBottom:24,display:'flex',flexWrap:'wrap',gap:16,alignItems:'center',justifyContent:'space-between' }}>
+          <p style={{ fontSize:14,color:'var(--text-muted)' }}>📱 Download the app <span style={{color:'var(--text-secondary)'}}>— Coming soon on Android & iOS</span></p>
+          <div style={{ display:'flex',gap:10 }}>
+            {['Google Play','App Store'].map(s => (
+              <div key={s} style={{ padding:'8px 16px',background:'var(--surface-2)',border:'1px solid var(--border)',borderRadius:'var(--radius-md)',fontSize:13,color:'var(--text-secondary)',cursor:'pointer' }}>{s} — Coming Soon</div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display:'flex',flexWrap:'wrap',gap:16,alignItems:'center',justifyContent:'space-between' }}>
+          <p style={{ fontSize:13,color:'var(--text-muted)' }}>© {year} BhartiyaBazar. Made with ❤️ in India 🇮🇳</p>
+          <div style={{ display:'flex',gap:20 }}>
+            {['Privacy','Terms','Sitemap'].map(l => (
+              <Link key={l} href={`/${l.toLowerCase()}`} style={{ fontSize:13,color:'var(--text-muted)',textDecoration:'none' }}>{l}</Link>
+            ))}
+          </div>
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 640px) {
-          .footer-brand { grid-column: 1 / -1 !important; }
-        }
-      `}</style>
     </footer>
-  )
+  );
 }
