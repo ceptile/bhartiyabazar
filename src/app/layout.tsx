@@ -1,72 +1,56 @@
-import type { Metadata } from 'next'
-import { Inter, Rajdhani, EB_Garamond } from 'next/font/google'
-import './globals.css'
-import { ThemeProvider } from '@/components/providers/ThemeProvider'
-import Header from '@/components/layout/Header'
-import Footer from '@/components/layout/Footer'
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-})
-
-const rajdhani = Rajdhani({
-  subsets: ['latin', 'devanagari'],
-  weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-rajdhani',
-  display: 'swap',
-})
-
-const ebGaramond = EB_Garamond({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  style: ['normal', 'italic'],
-  variable: '--font-eb-garamond',
-  display: 'swap',
-})
+import type { Metadata, Viewport } from 'next';
+import '../app/globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'BhartiyaBazar — India\'s Business Search Platform',
+    default: 'BhartiyaBazar — India\'s Most Trusted Business Search',
     template: '%s | BhartiyaBazar',
   },
-  description: 'Search businesses, products, and services across India. Free business listings, verified profiles, direct contact — India\'s most trusted business directory.',
-  keywords: ['business directory India', 'local business search', 'buy sell India', 'verified businesses', 'bhartiya bazar'],
+  description: 'Find verified local businesses, compare prices, and connect directly with sellers. India\'s largest business search platform — free for buyers and sellers.',
+  keywords: ['business directory India', 'local business search', 'find businesses near me', 'Justdial alternative', 'IndiaMART alternative', 'free business listing'],
+  authors: [{ name: 'BhartiyaBazar' }],
+  creator: 'BhartiyaBazar',
+  metadataBase: new URL('https://bhartiyabazar.com'),
   openGraph: {
-    title: 'BhartiyaBazar — India\'s Business Search Platform',
-    description: 'Search businesses, products, and services across India.',
+    type: 'website',
+    locale: 'en_IN',
     url: 'https://bhartiyabazar.com',
     siteName: 'BhartiyaBazar',
-    locale: 'en_IN',
-    type: 'website',
+    title: 'BhartiyaBazar — India\'s Most Trusted Business Search',
+    description: 'Find verified local businesses, compare prices, and connect directly with sellers.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'BhartiyaBazar',
     description: 'India\'s most trusted business search platform',
   },
-  metadataBase: new URL('https://bhartiyabazar.com'),
-}
+  robots: { index: true, follow: true },
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: [{ media: '(prefers-color-scheme: light)', color: '#FAFAF8' }, { media: '(prefers-color-scheme: dark)', color: '#080C14' }],
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${rajdhani.variable} ${ebGaramond.variable} font-sans antialiased`}>
-        <ThemeProvider>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </div>
-        </ThemeProvider>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            try {
+              var t = localStorage.getItem('bb-theme');
+              if (t) { document.documentElement.setAttribute('data-theme', t); return; }
+            } catch(e){}
+            var d = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', d ? 'dark' : 'light');
+          })();
+        `}} />
+      </head>
+      <body>
+        {children}
       </body>
     </html>
-  )
+  );
 }
