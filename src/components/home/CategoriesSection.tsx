@@ -8,47 +8,29 @@ export default function CategoriesSection() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.1 }
-    );
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setVisible(true); obs.disconnect(); }
+    }, { threshold: 0.08 });
     if (ref.current) obs.observe(ref.current);
     return () => obs.disconnect();
   }, []);
 
   return (
-    <section ref={ref} className="section" style={{ background: 'var(--bg)' }}>
+    <section ref={ref} className="section" style={{ background: 'var(--bg-2)' }}>
       <div className="container">
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <span style={{
-            display: 'inline-block',
-            padding: '6px 16px',
-            borderRadius: 'var(--radius-full)',
-            background: 'rgba(255,107,0,0.08)',
-            border: '1px solid rgba(255,107,0,0.15)',
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--saffron)',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            marginBottom: 16,
-          }}>All Categories</span>
-          <h2 style={{
-            fontSize: 'clamp(1.6rem,4vw,2.8rem)',
-            fontWeight: 800,
-            color: 'var(--text)',
-            letterSpacing: '-0.03em',
-            marginBottom: 12,
-          }}>Browse by Category</h2>
-          <p style={{ fontSize: 16, color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto' }}>
-            Explore 16+ categories with thousands of verified businesses across India
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 'clamp(36px,6vw,60px)' }}>
+          <span className="section-label">Browse by Category</span>
+          <h2 className="section-title">16 Categories,<br />Thousands of Businesses</h2>
+          <p className="section-sub" style={{ margin: '0 auto' }}>
+            Explore every service vertical with verified listings across India
           </p>
         </div>
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))',
-          gap: 16,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(158px, 1fr))',
+          gap: 14,
         }}>
           {categories.map((cat: Category, i: number) => (
             <Link
@@ -58,59 +40,51 @@ export default function CategoriesSection() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                padding: '28px 16px',
+                padding: '28px 14px 22px',
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
+                borderRadius: 'var(--r-lg)',
                 textDecoration: 'none',
-                transition: 'all 0.25s cubic-bezier(0.16,1,0.3,1)',
+                transition: 'all 0.28s cubic-bezier(0.16,1,0.3,1)',
                 opacity: visible ? 1 : 0,
-                transform: visible ? 'translateY(0)' : 'translateY(24px)',
-                transitionDelay: `${i * 40}ms`,
+                transform: visible ? 'translateY(0)' : 'translateY(20px)',
+                transitionDelay: `${Math.min(i * 35, 400)}ms`,
                 cursor: 'pointer',
               }}
               onMouseEnter={e => {
-                const el = e.currentTarget;
-                el.style.transform = 'translateY(-6px)';
+                const el = e.currentTarget as HTMLElement;
+                el.style.transform = 'translateY(-5px)';
                 el.style.boxShadow = 'var(--shadow-md)';
                 el.style.borderColor = cat.color;
-                el.style.background = cat.bg;
               }}
               onMouseLeave={e => {
-                const el = e.currentTarget;
-                el.style.transform = visible ? 'translateY(0)' : 'translateY(24px)';
+                const el = e.currentTarget as HTMLElement;
+                el.style.transform = visible ? 'translateY(0)' : 'translateY(20px)';
                 el.style.boxShadow = 'none';
                 el.style.borderColor = 'var(--border)';
-                el.style.background = 'var(--surface)';
               }}
             >
+              {/* Icon container */}
               <div style={{
-                width: 56,
-                height: 56,
-                borderRadius: 'var(--radius-lg)',
+                width: 52, height: 52,
+                borderRadius: 'var(--r-lg)',
                 background: cat.bg,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 26,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: 12,
-                border: `1px solid ${cat.color}33`,
+                border: `1px solid ${cat.color}28`,
               }}>
-                {cat.icon}
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                  stroke={cat.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={cat.iconPath} />
+                </svg>
               </div>
-              <span style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'var(--text)',
-                textAlign: 'center',
-                marginBottom: 4,
-                lineHeight: 1.3,
-              }}>{cat.name}</span>
-              <span style={{
-                fontSize: 11,
-                color: 'var(--text-faint)',
-                fontWeight: 500,
-              }}>{cat.count.toLocaleString()} listings</span>
+
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 5, lineHeight: 1.35, fontFamily: 'var(--font-body)' }}>
+                {cat.name}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>
+                {cat.count.toLocaleString()} listings
+              </span>
             </Link>
           ))}
         </div>

@@ -3,11 +3,47 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { categories } from '@/lib/data';
 
-const ROTATING_WORDS = ['Electrician', 'Doctor', 'Restaurant', 'Tutor', 'Mechanic', 'Salon', 'Plumber', 'Gym'];
+const ROTATING = ['Electrician', 'Doctor', 'Restaurant', 'Tutor', 'Mechanic', 'Salon', 'Plumber', 'Gym'];
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+  );
+}
+function MapPinIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  );
+}
+function ChevronDownIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m6 9 6 6 6-6"/>
+    </svg>
+  );
+}
+function ShieldIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  );
+}
+function StarIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>
+  );
+}
 
 export default function HeroSection() {
-  const [query, setQuery] = useState('');
-  const [city, setCity] = useState('');
+  const [query, setQuery]     = useState('');
+  const [city, setCity]       = useState('');
   const [wordIdx, setWordIdx] = useState(0);
   const [visible, setVisible] = useState(true);
   const router = useRouter();
@@ -15,147 +51,207 @@ export default function HeroSection() {
   useEffect(() => {
     const interval = setInterval(() => {
       setVisible(false);
-      setTimeout(() => { setWordIdx(i => (i+1) % ROTATING_WORDS.length); setVisible(true); }, 300);
-    }, 2200);
+      setTimeout(() => { setWordIdx(i => (i + 1) % ROTATING.length); setVisible(true); }, 280);
+    }, 2400);
     return () => clearInterval(interval);
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (query) params.set('q', query);
-    if (city) params.set('city', city);
-    router.push(`/search?${params.toString()}`);
+    const p = new URLSearchParams();
+    if (query) p.set('q', query);
+    if (city)  p.set('city', city);
+    router.push(`/search?${p.toString()}`);
   };
 
   const quickLinks = ['AC Repair', 'Doctor', 'Restaurant', 'Tutor', 'Salon'];
+
+  // Top 6 category SVG icons for the pill chips (using simple inline SVG)
+  const topCats = categories.slice(0, 8);
 
   return (
     <section style={{
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
-      background: 'var(--navy)',
+      background: 'var(--bg)',
       position: 'relative',
       overflow: 'hidden',
       paddingTop: 64,
     }}>
-      {/* Animated background */}
-      <div style={{ position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none' }}>
-        {/* Grid */}
-        <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)', backgroundSize:'60px 60px' }} />
-        {/* Glows */}
-        <div style={{ position:'absolute', top:'-20%', left:'-10%', width:'60%', height:'60%', background:'radial-gradient(circle, rgba(255,107,0,0.12) 0%, transparent 70%)', animation:'float 8s ease-in-out infinite' }} />
-        <div style={{ position:'absolute', bottom:'-20%', right:'-10%', width:'50%', height:'50%', background:'radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)', animation:'float 10s ease-in-out infinite reverse' }} />
-        <div style={{ position:'absolute', top:'30%', right:'20%', width:'30%', height:'30%', background:'radial-gradient(circle, rgba(0,168,107,0.06) 0%, transparent 70%)' }} />
+      {/* Subtle background texture */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: 'radial-gradient(circle at 20% 20%, var(--amber-glow) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(201,127,0,0.06) 0%, transparent 50%)',
+        }} />
+        {/* Fine dot pattern */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: 'radial-gradient(var(--border) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+          opacity: 0.6,
+        }} />
       </div>
 
-      <div className="container" style={{ position:'relative', zIndex:1, padding:'clamp(40px,8vw,80px) clamp(16px,4vw,40px)' }}>
-        <div style={{ maxWidth:760, margin:'0 auto', textAlign:'center' }}>
+      <div className="container" style={{ position: 'relative', zIndex: 1, padding: 'clamp(40px,8vw,96px) clamp(16px,4vw,48px)' }}>
+        <div style={{ maxWidth: 780, margin: '0 auto', textAlign: 'center' }}>
+
           {/* Trust pill */}
-          <div className="animate-fadeUp" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'8px 18px', borderRadius:'var(--radius-full)', background:'rgba(255,107,0,0.1)', border:'1px solid rgba(255,107,0,0.2)', marginBottom:32 }}>
-            <span style={{ fontSize:12 }}>🇮🇳</span>
-            <span style={{ fontSize:13, color:'rgba(255,255,255,0.8)', fontWeight:500 }}>Trusted by 2,80,000+ Indians</span>
-            <span style={{ fontSize:11, background:'var(--saffron)', color:'#fff', padding:'2px 8px', borderRadius:99, fontWeight:700 }}>FREE</span>
+          <div className="anim-fadeUp" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 16px', borderRadius: 'var(--r-full)', background: 'var(--surface)', border: '1px solid var(--border-hover)', marginBottom: 36, boxShadow: 'var(--shadow-sm)' }}>
+            <span style={{ display: 'flex', color: 'var(--success)' }}><ShieldIcon /></span>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Trusted by 2,80,000+ Indians across 500+ cities</span>
+            <span style={{ fontSize: 11, background: 'var(--amber)', color: '#fff', padding: '2px 8px', borderRadius: 'var(--r-full)', fontWeight: 700, letterSpacing: '0.04em' }}>FREE</span>
           </div>
 
           {/* Headline */}
-          <h1 className="animate-fadeUp delay-100" style={{ fontSize:'clamp(2.2rem,6vw,4.5rem)', fontWeight:800, color:'#fff', letterSpacing:'-0.03em', lineHeight:1.1, marginBottom:20 }}>
+          <h1 className="anim-fadeUp d-100" style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(2.6rem, 7vw, 5.2rem)',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.03em',
+            lineHeight: 1.08,
+            marginBottom: 20,
+          }}>
             Find the Best
-            <span style={{ display:'block', position:'relative' }}>
-              <span
-                style={{
-                  color: 'var(--saffron)',
-                  display:'inline-block',
-                  transition:'opacity 0.3s ease, transform 0.3s ease',
-                  opacity: visible ? 1 : 0,
-                  transform: visible ? 'translateY(0)' : 'translateY(-8px)',
-                }}
-              >{ROTATING_WORDS[wordIdx]}</span>
-              <span style={{ color:'rgba(255,255,255,0.4)' }}> Near You</span>
+            <span style={{ display: 'block' }}>
+              <span style={{
+                color: 'var(--amber)',
+                display: 'inline-block',
+                transition: 'opacity 0.28s ease, transform 0.28s ease',
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateY(0)' : 'translateY(-10px)',
+              }}>
+                {ROTATING[wordIdx]}
+              </span>
+              <span style={{ color: 'var(--text-muted)' }}> Near You</span>
             </span>
           </h1>
 
-          <p className="animate-fadeUp delay-200" style={{ fontSize:'clamp(1rem,2vw,1.2rem)', color:'rgba(255,255,255,0.6)', maxWidth:540, margin:'0 auto 40px', lineHeight:1.7 }}>
-            Search 50,000+ verified businesses. Compare prices. Contact directly. <strong style={{ color:'rgba(255,255,255,0.85)' }}>No middlemen, no spam.</strong>
+          <p className="anim-fadeUp d-200" style={{
+            fontSize: 'clamp(1rem, 1.8vw, 1.15rem)',
+            color: 'var(--text-muted)',
+            maxWidth: 520,
+            margin: '0 auto 44px',
+            lineHeight: 1.75,
+          }}>
+            Search 50,000+ verified businesses. Compare prices. Contact directly.{' '}
+            <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>No middlemen, no spam.</strong>
           </p>
 
           {/* Search bar */}
-          <form onSubmit={handleSearch} className="animate-fadeUp delay-300">
+          <form onSubmit={handleSearch} className="anim-fadeUp d-300">
             <div style={{
-              background: 'rgba(255,255,255,0.07)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 'var(--radius-xl)',
-              padding: 8,
+              background: 'var(--surface)',
+              border: '1px solid var(--border-hover)',
+              borderRadius: 'var(--r-xl)',
+              padding: 6,
               display: 'flex',
-              gap: 8,
-              maxWidth: 660,
+              gap: 6,
+              maxWidth: 680,
               margin: '0 auto',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
+              boxShadow: 'var(--shadow-md)',
             }}>
-              {/* Search input */}
-              <div style={{ flex:1, display:'flex', alignItems:'center', gap:12, padding:'8px 16px', borderRadius:'var(--radius-lg)', background:'rgba(255,255,255,0.06)' }}>
-                <svg width="18" height="18" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink:0 }}>
-                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                </svg>
+              {/* Service input */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--text-faint)', display: 'flex', flexShrink: 0 }}><SearchIcon /></span>
                 <input
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="Search businesses, products, services..."
-                  style={{ flex:1, background:'transparent', border:'none', outline:'none', color:'#fff', fontSize:15 }}
+                  placeholder="Search businesses, services..."
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 15 }}
                 />
               </div>
+              {/* Divider */}
+              <div style={{ width: 1, background: 'var(--border)', alignSelf: 'center', height: 24 }} />
               {/* City input */}
-              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 14px', borderRadius:'var(--radius-lg)', background:'rgba(255,255,255,0.06)', minWidth:130 }}>
-                <svg width="15" height="15" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink:0 }}>
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-                </svg>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', minWidth: 140, borderRadius: 'var(--r-lg)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--text-faint)', display: 'flex', flexShrink: 0 }}><MapPinIcon /></span>
                 <input
                   value={city}
                   onChange={e => setCity(e.target.value)}
                   placeholder="City"
-                  style={{ width:80, background:'transparent', border:'none', outline:'none', color:'#fff', fontSize:14 }}
+                  style={{ width: 80, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 14 }}
                 />
               </div>
-              <button type="submit" className="btn-saffron" style={{ padding:'12px 24px', fontSize:14, borderRadius:'var(--radius-lg)', whiteSpace:'nowrap' }}>
+              <button type="submit" className="btn btn-primary" style={{ padding: '11px 24px', fontSize: 14, borderRadius: 'var(--r-lg)', flexShrink: 0 }}>
                 Search
               </button>
             </div>
           </form>
 
           {/* Quick links */}
-          <div className="animate-fadeUp delay-400" style={{ marginTop:24, display:'flex', flexWrap:'wrap', gap:10, justifyContent:'center' }}>
-            <span style={{ fontSize:13, color:'rgba(255,255,255,0.4)', alignSelf:'center' }}>Popular:</span>
+          <div className="anim-fadeUp d-400" style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-faint)', fontWeight: 500 }}>Popular:</span>
             {quickLinks.map(q => (
-              <a key={q} href={`/search?q=${encodeURIComponent(q)}`}
-                style={{ padding:'6px 16px', borderRadius:'var(--radius-full)', border:'1px solid rgba(255,255,255,0.12)', fontSize:13, color:'rgba(255,255,255,0.7)', transition:'all 0.2s', cursor:'pointer' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor='var(--saffron)'; (e.currentTarget as HTMLElement).style.color='var(--saffron)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor='rgba(255,255,255,0.12)'; (e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.7)'; }}
-              >{q}</a>
+              <a key={q} href={`/search?q=${encodeURIComponent(q)}`} className="chip">
+                {q}
+              </a>
             ))}
           </div>
 
-          {/* Category chips */}
-          <div className="animate-fadeUp delay-500" style={{ marginTop:40, display:'flex', flexWrap:'wrap', gap:10, justifyContent:'center' }}>
-            {categories.slice(0,8).map(cat => (
+          {/* Category icon chips */}
+          <div className="anim-fadeUp d-500" style={{ marginTop: 48, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+            {topCats.map(cat => (
               <a key={cat.id} href={`/search?category=${cat.slug}`}
-                style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', borderRadius:'var(--radius-full)', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', fontSize:13, color:'rgba(255,255,255,0.7)', transition:'all 0.25s', cursor:'pointer' }}
-                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background='rgba(255,107,0,0.12)'; el.style.borderColor='rgba(255,107,0,0.3)'; el.style.color='#fff'; }}
-                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background='rgba(255,255,255,0.05)'; el.style.borderColor='rgba(255,255,255,0.08)'; el.style.color='rgba(255,255,255,0.7)'; }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 9,
+                  padding: '9px 16px', borderRadius: 'var(--r-full)',
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500,
+                  transition: 'all var(--t)', cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  el.style.borderColor = cat.color;
+                  el.style.color = cat.color;
+                  el.style.background = cat.bg;
+                  el.style.transform = 'translateY(-2px)';
+                  el.style.boxShadow = 'var(--shadow-md)';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  el.style.borderColor = 'var(--border)';
+                  el.style.color = 'var(--text-secondary)';
+                  el.style.background = 'var(--surface)';
+                  el.style.transform = 'translateY(0)';
+                  el.style.boxShadow = 'var(--shadow-sm)';
+                }}
               >
-                <span>{cat.icon}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cat.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={cat.iconPath} />
+                </svg>
                 {cat.name.split(' ')[0]}
               </a>
+            ))}
+          </div>
+
+          {/* Stats strip */}
+          <div className="anim-fadeUp d-500" style={{ marginTop: 56, display: 'flex', flexWrap: 'wrap', gap: 0, justifyContent: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', maxWidth: 600, marginLeft: 'auto', marginRight: 'auto' }}>
+            {[
+              { n: '50K+', l: 'Businesses' },
+              { n: '2.8L+', l: 'Users' },
+              { n: '500+', l: 'Cities' },
+              { n: '12L+', l: 'Searches/mo' },
+            ].map((s, i, arr) => (
+              <div key={s.l} style={{
+                flex: 1, padding: '20px 12px', textAlign: 'center',
+                borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+              }}>
+                <div style={{ fontSize: 'clamp(1.1rem, 2vw, 1.4rem)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>{s.n}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'var(--font-body)' }}>{s.l}</div>
+              </div>
             ))}
           </div>
         </div>
       </div>
 
       {/* Scroll indicator */}
-      <div style={{ position:'absolute', bottom:32, left:'50%', transform:'translateX(-50%)', display:'flex', flexDirection:'column', alignItems:'center', gap:8, animation:'float 2s ease-in-out infinite' }}>
-        <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)', letterSpacing:'0.1em', textTransform:'uppercase' }}>Scroll</span>
-        <svg width="20" height="20" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, animation: 'float 2.5s ease-in-out infinite', color: 'var(--text-faint)' }}>
+        <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Scroll</span>
+        <ChevronDownIcon />
       </div>
     </section>
   );
