@@ -1,15 +1,20 @@
 'use client';
 
 import Link from 'next/link';
+import Logo from '@/components/ui/Logo';
+import {
+  Twitter, Facebook, Linkedin, Youtube,
+  MapPin, Phone, Mail, Shield, ArrowUpRight
+} from 'lucide-react';
 
 const SOCIAL = [
-  { icon: '𝕏', label: 'Twitter' },
-  { icon: 'f', label: 'Facebook' },
-  { icon: 'in', label: 'LinkedIn' },
-  { icon: '▶', label: 'YouTube' },
+  { icon: <Twitter size={15} />, label: 'Twitter',  href: '#' },
+  { icon: <Facebook size={15} />, label: 'Facebook', href: '#' },
+  { icon: <Linkedin size={15} />, label: 'LinkedIn', href: '#' },
+  { icon: <Youtube size={15} />,  label: 'YouTube',  href: '#' },
 ];
 
-const FOOTER_COLS = [
+const COLS = [
   {
     title: 'Platform',
     links: [
@@ -29,7 +34,7 @@ const FOOTER_COLS = [
     ],
   },
   {
-    title: 'Support',
+    title: 'Legal & Support',
     links: [
       { label: 'Help Center', href: '/help' },
       { label: 'Privacy Policy', href: '/privacy' },
@@ -41,47 +46,49 @@ const FOOTER_COLS = [
 
 export default function Footer() {
   const year = new Date().getFullYear();
-
   return (
-    <footer style={{ background: 'var(--navy-2)', borderTop: '1px solid var(--border)', padding: 'clamp(48px,8vw,80px) 0 32px' }}>
+    <footer style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-2)', padding: 'clamp(56px,8vw,96px) 0 32px' }}>
       <div className="container">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 48, marginBottom: 48 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 48, marginBottom: 56 }}>
 
-          {/* Brand */}
+          {/* Brand column */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg,var(--saffron),var(--gold))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🏪</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: '#fff' }}>
-                Bhartiya<span style={{ color: 'var(--saffron)' }}>Bazar</span>
-              </div>
+            <div style={{ marginBottom: 16 }}>
+              <Logo size="md" variant="full" />
             </div>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.7, maxWidth: 260, marginBottom: 20 }}>
-              India&apos;s most trusted business search platform. Find verified businesses, compare prices, connect directly.
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.75, maxWidth: 260, marginBottom: 24 }}>
+              India&apos;s trusted business discovery platform. Find, compare, and connect with verified businesses across the country.
             </p>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
               {SOCIAL.map(s => (
                 <a
                   key={s.label}
-                  href="#"
+                  href={s.href}
                   aria-label={s.label}
-                  className="footer-social-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-social-btn"
                 >
                   {s.icon}
                 </a>
               ))}
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+              <Shield size={13} style={{ color: 'var(--success)' }} />
+              <span>SSL Secured &amp; Verified</span>
+            </div>
           </div>
 
-          {/* Link Columns */}
-          {FOOTER_COLS.map(col => (
+          {/* Link columns */}
+          {COLS.map(col => (
             <div key={col.title}>
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
+              <h4 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--amber)', marginBottom: 16, fontFamily: 'var(--font-body)' }}>
                 {col.title}
               </h4>
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {col.links.map(l => (
                   <li key={l.label}>
-                    <Link href={l.href} className="footer-link">
+                    <Link href={l.href} className="footer-nav-link">
                       {l.label}
                     </Link>
                   </li>
@@ -89,29 +96,39 @@ export default function Footer() {
               </ul>
             </div>
           ))}
-        </div>
 
-        {/* App badges */}
-        <div style={{ padding: '24px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-            📱 Download the app <span style={{ color: 'var(--text-secondary)' }}>— Coming soon on Android &amp; iOS</span>
-          </p>
-          <div style={{ display: 'flex', gap: 10 }}>
-            {['Google Play', 'App Store'].map(s => (
-              <div key={s} style={{ padding: '8px 16px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                {s} — Coming Soon
-              </div>
-            ))}
+          {/* Contact */}
+          <div>
+            <h4 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--amber)', marginBottom: 16, fontFamily: 'var(--font-body)' }}>
+              Contact
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { icon: <MapPin size={14} />, text: 'India' },
+                { icon: <Phone size={14} />, text: '+91 Contact via website' },
+                { icon: <Mail  size={14} />, text: 'support@bhartiyabazar.in' },
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--text-muted)' }}>
+                  <span style={{ color: 'var(--amber)', flexShrink: 0 }}>{item.icon}</span>
+                  {item.text}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Bottom bar */}
+        <div className="divider" style={{ marginBottom: 24 }} />
+
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>© {year} BhartiyaBazar. Made with ❤️ in India 🇮🇳</p>
-          <div style={{ display: 'flex', gap: 20 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+            &copy; {year} BhartiyaBazar. Made with care in India.
+          </p>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
             {['Privacy', 'Terms', 'Sitemap'].map(l => (
-              <Link key={l} href={`/${l.toLowerCase()}`} className="footer-link" style={{ fontSize: 13 }}>
-                {l}
+              <Link key={l} href={`/${l.toLowerCase()}`} className="footer-nav-link" style={{ fontSize: 13 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {l} <ArrowUpRight size={11} />
+                </span>
               </Link>
             ))}
           </div>
@@ -119,29 +136,22 @@ export default function Footer() {
       </div>
 
       <style>{`
-        .footer-link {
-          font-size: 14px;
-          color: var(--text-muted);
-          text-decoration: none;
-          transition: color var(--transition);
+        .footer-nav-link {
+          font-size: 14px; color: var(--text-muted);
+          text-decoration: none; transition: color var(--t);
+          font-family: var(--font-body);
+          display: inline-flex; align-items: center; gap: 4px;
         }
-        .footer-link:hover { color: var(--text-primary); }
+        .footer-nav-link:hover { color: var(--amber); }
 
-        .footer-social-link {
-          width: 34px; height: 34px;
-          border-radius: var(--radius-md);
-          background: var(--surface-2);
-          border: 1px solid var(--border);
+        .footer-social-btn {
+          width: 34px; height: 34px; border-radius: var(--r-md);
+          background: var(--surface-2); border: 1px solid var(--border);
           display: flex; align-items: center; justify-content: center;
-          font-size: 13px;
-          color: var(--text-secondary);
-          text-decoration: none;
-          transition: border-color var(--transition), color var(--transition);
+          color: var(--text-secondary); text-decoration: none;
+          transition: all var(--t);
         }
-        .footer-social-link:hover {
-          border-color: var(--saffron);
-          color: var(--saffron);
-        }
+        .footer-social-btn:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-subtle); transform: translateY(-1px); }
       `}</style>
     </footer>
   );
