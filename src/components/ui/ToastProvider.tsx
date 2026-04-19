@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import { useState, createContext, useContext, useCallback } from 'react';
 
 type Toast = { id: string; message: string; type: 'success'|'error'|'info'; };
 type ToastCtx = { showToast: (msg: string, type?: Toast['type']) => void; };
@@ -20,16 +20,19 @@ export default function ToastProvider() {
   const classes = { success: 'toast toast-success', error: 'toast toast-error', info: 'toast toast-info' };
 
   return (
-    <>
+    <ToastContext.Provider value={{ showToast }}>
       <div className="toast-container">
         {toasts.map(t => (
           <div key={t.id} className={classes[t.type]}>
             <span>{icons[t.type]}</span>
-            <span style={{ flex:1,fontSize:14 }}>{t.message}</span>
-            <button onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:16,padding:0 }}>×</button>
+            <span style={{ flex:1, fontSize:14 }}>{t.message}</span>
+            <button
+              onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))}
+              style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', fontSize:16, padding:0 }}
+            >×</button>
           </div>
         ))}
       </div>
-    </>
+    </ToastContext.Provider>
   );
 }

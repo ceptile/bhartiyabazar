@@ -30,7 +30,7 @@ export default function Navbar() {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem('bb-theme', next); } catch(e){}
+    try { localStorage.setItem('bb-theme', next); } catch(_e){}
   };
 
   const openSearch = () => { setSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 50); };
@@ -156,7 +156,6 @@ export default function Navbar() {
                 <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
               )}
             </button>
-            {/* Mobile menu */}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               style={{ width:36, height:36, borderRadius:'var(--radius-full)', background:'var(--surface-2)', border:'1px solid var(--border)', display:'none', alignItems:'center', justifyContent:'center', color:'var(--text)', transition:'all 0.2s' }}

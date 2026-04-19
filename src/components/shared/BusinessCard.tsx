@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Business } from '@/lib/data';
-import { formatPrice } from '@/lib/utils';
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -33,7 +32,6 @@ export default function BusinessCard({ biz, compact = false }: { biz: Business; 
   };
 
   return (
-    // ✅ div instead of Link — no nested <a> issue
     <div
       onClick={handleCardClick}
       role="link"
@@ -147,7 +145,7 @@ export default function BusinessCard({ biz, compact = false }: { biz: Business; 
         </div>
       </div>
 
-      {/* Action buttons — ✅ all are <button> or <Link> directly, NOT inside another <Link> */}
+      {/* Action buttons */}
       <div style={{ padding: '0 16px 16px', display: 'flex', gap: 8 }}>
         <button
           onClick={handleCall}
@@ -181,7 +179,6 @@ export default function BusinessCard({ biz, compact = false }: { biz: Business; 
           WhatsApp
         </button>
 
-        {/* ✅ This is now a direct <Link>, NOT nested inside another <Link> */}
         <Link
           href={`/business/${biz.slug}`}
           onClick={(e) => e.stopPropagation()}

@@ -43,7 +43,7 @@ export default function Navbar() {
           }}>🏪</div>
           <div>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17, color: '#fff', lineHeight: 1.1 }}>Bhartiya<span style={{ color: 'var(--saffron)' }}>Bazar</span></div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.08em' }}>INDIA'S BUSINESS HUB</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.08em' }}>INDIA&apos;S BUSINESS HUB</div>
           </div>
         </Link>
 
