@@ -23,21 +23,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <Navbar />
-        <main>{children}</main>
-        <Footer />
-        <ToastProvider />
-      </body>
-    </html>
-  );
-}
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
         <AuthProvider>
-          {children}
+          <Navbar />
+          <main>{children}</main>
+          <Footer />
+          <ToastProvider />
         </AuthProvider>
       </body>
     </html>
