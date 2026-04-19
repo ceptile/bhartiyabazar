@@ -1,22 +1,12 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { AuthProvider } from '@/lib/auth-context';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import ToastProvider from '@/components/ui/ToastProvider';
-import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'BhartiyaBazar – India\'s Most Trusted Business Search Platform',
-  description: 'Find verified businesses, compare prices, search products & services near you. Free business listings, direct contact, no spam. India\'s Google for Businesses.',
-  keywords: 'business directory India, find businesses near me, local business search, verified businesses, bhartiya bazar',
-  openGraph: {
-    title: 'BhartiyaBazar – India\'s Most Trusted Business Search',
-    description: 'Find verified businesses, compare prices, contact directly. No spam, no middlemen.',
-    type: 'website',
-    locale: 'en_IN',
-  },
-  icons: { icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏪</text></svg>" },
-  robots: 'index, follow',
+  title: 'BhartiyaBazar — India\'s Business Hub',
+  description: 'Find verified local businesses across India',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -27,7 +17,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Navbar />
           <main>{children}</main>
           <Footer />
-          <ToastProvider />
         </AuthProvider>
       </body>
     </html>
