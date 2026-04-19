@@ -1,4 +1,13 @@
-export type Category = { id: string; name: string; slug: string; icon: string; count: number; color: string; };
+export type Category = {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+  count: number;
+  color: string;
+  bg: string;
+};
+
 export type Business = {
   id: string; name: string; slug: string; category: string; categorySlug: string;
   description: string; shortDesc: string; city: string; area: string; state: string;
@@ -10,8 +19,28 @@ export type Business = {
   address: string; pincode: string; lat?: number; lng?: number;
   promoted?: boolean; badge?: string;
 };
-export type Product = { id: string; name: string; price: number; originalPrice?: number; image: string; category: string; inStock: boolean; unit?: string; };
-export type Review = { id: string; author: string; avatar: string; rating: number; text: string; date: string; helpful: number; verified: boolean; };
+
+export type Product = {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  image: string;
+  category: string;
+  inStock: boolean;
+  unit?: string;
+};
+
+export type Review = {
+  id: string;
+  author: string;
+  avatar: string;
+  rating: number;
+  text: string;
+  date: string;
+  helpful: number;
+  verified: boolean;
+};
 
 export const stats = [
   { id: 's1', value: 50000, suffix: '+', label: 'Verified Businesses', icon: '🏢', color: 'var(--saffron)' },
@@ -21,22 +50,22 @@ export const stats = [
 ];
 
 export const categories: Category[] = [
-  { id:'1', name:'Restaurants & Food', slug:'restaurants', icon:'🍽️', count:4820, color:'#FF6B35' },
-  { id:'2', name:'Electronics & Repair', slug:'electronics', icon:'📱', count:3240, color:'#4F8EF7' },
-  { id:'3', name:'Health & Doctors', slug:'health', icon:'🏥', count:2980, color:'#00D68F' },
-  { id:'4', name:'Home Services', slug:'home-services', icon:'🔧', count:5610, color:'#FFB800' },
-  { id:'5', name:'Education & Tutors', slug:'education', icon:'📚', count:2140, color:'#8B5CF6' },
-  { id:'6', name:'Salons & Beauty', slug:'salons', icon:'💇', count:3870, color:'#EC4899' },
-  { id:'7', name:'Auto & Vehicles', slug:'auto', icon:'🚗', count:2760, color:'#14B8A6' },
-  { id:'8', name:'Clothing & Fashion', slug:'fashion', icon:'👗', count:4320, color:'#F59E0B' },
-  { id:'9', name:'Grocery & Kirana', slug:'grocery', icon:'🛒', count:6120, color:'#10B981' },
-  { id:'10', name:'Jewellery & Gifts', slug:'jewellery', icon:'💎', count:1890, color:'#EAB308' },
-  { id:'11', name:'Real Estate', slug:'real-estate', icon:'🏠', count:1450, color:'#6366F1' },
-  { id:'12', name:'Events & Catering', slug:'events', icon:'🎉', count:2230, color:'#F43F5E' },
-  { id:'13', name:'Fitness & Gym', slug:'fitness', icon:'💪', count:1780, color:'#84CC16' },
-  { id:'14', name:'Travel & Tours', slug:'travel', icon:'✈️', count:980, color:'#22D3EE' },
-  { id:'15', name:'Photography', slug:'photography', icon:'📷', count:1340, color:'#A78BFA' },
-  { id:'16', name:'Legal & Finance', slug:'legal', icon:'⚖️', count:870, color:'#FB923C' },
+  { id:'1',  name:'Restaurants & Food',   slug:'restaurants',   icon:'🍽️', count:4820, color:'#FF6B35', bg:'rgba(255,107,53,0.08)' },
+  { id:'2',  name:'Electronics & Repair', slug:'electronics',   icon:'📱',  count:3240, color:'#4F8EF7', bg:'rgba(79,142,247,0.08)' },
+  { id:'3',  name:'Health & Doctors',     slug:'health',        icon:'🏥',  count:2980, color:'#00D68F', bg:'rgba(0,214,143,0.08)' },
+  { id:'4',  name:'Home Services',        slug:'home-services', icon:'🔧',  count:5610, color:'#FFB800', bg:'rgba(255,184,0,0.08)' },
+  { id:'5',  name:'Education & Tutors',   slug:'education',     icon:'📚',  count:2140, color:'#8B5CF6', bg:'rgba(139,92,246,0.08)' },
+  { id:'6',  name:'Salons & Beauty',      slug:'salons',        icon:'💇',  count:3870, color:'#EC4899', bg:'rgba(236,72,153,0.08)' },
+  { id:'7',  name:'Auto & Vehicles',      slug:'auto',          icon:'🚗',  count:2760, color:'#14B8A6', bg:'rgba(20,184,166,0.08)' },
+  { id:'8',  name:'Clothing & Fashion',   slug:'fashion',       icon:'👗',  count:4320, color:'#F59E0B', bg:'rgba(245,158,11,0.08)' },
+  { id:'9',  name:'Grocery & Kirana',     slug:'grocery',       icon:'🛒',  count:6120, color:'#10B981', bg:'rgba(16,185,129,0.08)' },
+  { id:'10', name:'Jewellery & Gifts',    slug:'jewellery',     icon:'💎',  count:1890, color:'#EAB308', bg:'rgba(234,179,8,0.08)' },
+  { id:'11', name:'Real Estate',          slug:'real-estate',   icon:'🏠',  count:1450, color:'#6366F1', bg:'rgba(99,102,241,0.08)' },
+  { id:'12', name:'Events & Catering',    slug:'events',        icon:'🎉',  count:2230, color:'#F43F5E', bg:'rgba(244,63,94,0.08)' },
+  { id:'13', name:'Fitness & Gym',        slug:'fitness',       icon:'💪',  count:1780, color:'#84CC16', bg:'rgba(132,204,22,0.08)' },
+  { id:'14', name:'Travel & Tours',       slug:'travel',        icon:'✈️', count:980,  color:'#22D3EE', bg:'rgba(34,211,238,0.08)' },
+  { id:'15', name:'Photography',          slug:'photography',   icon:'📷',  count:1340, color:'#A78BFA', bg:'rgba(167,139,250,0.08)' },
+  { id:'16', name:'Legal & Finance',      slug:'legal',         icon:'⚖️', count:870,  color:'#FB923C', bg:'rgba(251,146,60,0.08)' },
 ];
 
 export const businesses: Business[] = [
@@ -49,7 +78,11 @@ export const businesses: Business[] = [
     phone:'+91-98100-12345', whatsapp:'919810012345', email:'sharma.electronics@gmail.com',
     website:'https://sharmaelectronics.in',
     rating:4.7, reviewCount:284, verified:true, featured:true, trustScore:94,
-    responseTime:'< 30 min', images:['https://images.unsplash.com/photo-1588702547923-7093a6c3ba33?w=800&q=80','https://images.unsplash.com/photo-1581092921461-eab62e97a780?w=800&q=80'],
+    responseTime:'< 30 min',
+    images:[
+      'https://images.unsplash.com/photo-1588702547923-7093a6c3ba33?w=800&q=80',
+      'https://images.unsplash.com/photo-1581092921461-eab62e97a780?w=800&q=80',
+    ],
     tags:['Mobile Repair','Laptop Repair','AC Repair','Same Day Service'],
     openNow:true, established:2009, employees:'5-10',
     address:'42, Ajmal Khan Road, Karol Bagh', pincode:'110005',
@@ -74,7 +107,11 @@ export const businesses: Business[] = [
     city:'Mumbai', area:'Andheri West', state:'Maharashtra',
     phone:'+91-98200-56789', whatsapp:'919820056789', email:'dr.meera.patel@clinic.in',
     rating:4.9, reviewCount:512, verified:true, featured:true, trustScore:98,
-    responseTime:'< 15 min', images:['https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80','https://images.unsplash.com/photo-1581056771107-24ca5f033842?w=800&q=80'],
+    responseTime:'< 15 min',
+    images:[
+      'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80',
+      'https://images.unsplash.com/photo-1581056771107-24ca5f033842?w=800&q=80',
+    ],
     tags:['General Medicine','Diabetes','Hypertension','Home Visits'],
     openNow:true, established:2004, employees:'2-5',
     address:'304, Sunrise Building, Link Road, Andheri West', pincode:'400058',
@@ -97,7 +134,11 @@ export const businesses: Business[] = [
     city:'Bengaluru', area:'Koramangala', state:'Karnataka',
     phone:'+91-80-4567-8901', whatsapp:'918045678901', email:'spicegarden@gmail.com',
     rating:4.5, reviewCount:892, verified:true, featured:true, trustScore:88,
-    responseTime:'< 45 min', images:['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80','https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80'],
+    responseTime:'< 45 min',
+    images:[
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
+      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80',
+    ],
     tags:['North Indian','Delivery','Dine-in','Party Hall'],
     openNow:true, established:2015, employees:'10-20',
     address:'47, 5th Cross, Koramangala 4th Block', pincode:'560034',
@@ -121,7 +162,10 @@ export const businesses: Business[] = [
     city:'Hyderabad', area:'Banjara Hills', state:'Telangana',
     phone:'+91-98400-78901', whatsapp:'919840078901', email:'quickfix.hyd@gmail.com',
     rating:4.6, reviewCount:347, verified:true, featured:false, trustScore:91,
-    responseTime:'< 20 min', images:['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80'],
+    responseTime:'< 20 min',
+    images:[
+      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+    ],
     tags:['24/7 Service','Emergency','Licensed','Home Repair'],
     openNow:true, established:2017, employees:'5-10',
     address:'Road No. 12, Banjara Hills', pincode:'500034',
@@ -137,13 +181,17 @@ export const businesses: Business[] = [
   {
     id:'b5', name:'Style Studio Unisex Salon', slug:'style-studio',
     category:'Salons & Beauty', categorySlug:'salons',
-    description:'Premium unisex salon with internationally trained stylists. Services include haircuts, coloring, spa, bridal packages, threading, waxing, and nail art. Using only L\'Oreal and Wella products. Appointment booking available online.',
-    shortDesc:'Premium unisex salon. International stylists. Bridal packages available.',
+    description:"Premium unisex salon with internationally trained stylists. Services include haircuts, coloring, spa, bridal packages, threading, waxing, and nail art. Using only L'Oreal and Wella products. Appointment booking available online.",
+    shortDesc:"Premium unisex salon. International stylists. Bridal packages available.",
     city:'Pune', area:'Wakad', state:'Maharashtra',
     phone:'+91-98700-34567', whatsapp:'919870034567', email:'stylestudio.pune@gmail.com',
     rating:4.8, reviewCount:623, verified:true, featured:true, trustScore:95,
-    responseTime:'< 1 hour', images:['https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80','https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80'],
-    tags:['Unisex','Bridal','L\'Oreal Products','Appointment Available'],
+    responseTime:'< 1 hour',
+    images:[
+      'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80',
+      'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80',
+    ],
+    tags:["Unisex","Bridal","L'Oreal Products","Appointment Available"],
     openNow:false, established:2018, employees:'5-10',
     address:'Shop 7, Wakad Main Road, near D-Mart', pincode:'411057',
     badge:'Premium',
@@ -164,7 +212,10 @@ export const businesses: Business[] = [
     city:'Chennai', area:'Anna Nagar', state:'Tamil Nadu',
     phone:'+91-98490-23456', whatsapp:'919849023456', email:'brightminds.chennai@gmail.com',
     rating:4.6, reviewCount:198, verified:true, featured:false, trustScore:87,
-    responseTime:'< 2 hours', images:['https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80'],
+    responseTime:'< 2 hours',
+    images:[
+      'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80',
+    ],
     tags:['CBSE','ICSE','Online Classes','Small Batches'],
     openNow:true, established:2016, employees:'2-5',
     address:'A-Block, 12th Street, Anna Nagar', pincode:'600040',
@@ -174,7 +225,7 @@ export const businesses: Business[] = [
       { id:'p14', name:'Full Package (3 Subjects)', price:4500, originalPrice:5400, image:'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400&q=80', category:'Coaching', inStock:true },
     ],
     reviews:[
-      { id:'r10', author:'Rajesh P', avatar:'RP', rating:5, text:'My daughter\'s grades improved from 65% to 89% in 3 months. Excellent teachers!', date:'1 week ago', helpful:27, verified:true },
+      { id:'r10', author:'Rajesh P', avatar:'RP', rating:5, text:"My daughter's grades improved from 65% to 89% in 3 months. Excellent teachers!", date:'1 week ago', helpful:27, verified:true },
     ],
   },
 ];
