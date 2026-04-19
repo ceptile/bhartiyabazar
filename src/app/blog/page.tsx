@@ -1,3 +1,5 @@
+'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 
 function Icon({ d, size = 16, sw = 1.75 }: { d: string | string[]; size?: number; sw?: number }) {
@@ -67,8 +69,9 @@ const BADGE_COLORS: Record<string, string> = {
 };
 
 export default function BlogPage() {
+  const [activeCategory, setActiveCategory] = useState('All');
   const featured = POSTS.find(p => p.featured)!;
-  const rest = POSTS.filter(p => !p.featured);
+  const rest = POSTS.filter(p => !p.featured && (activeCategory === 'All' || p.category === activeCategory));
 
   return (
     <div style={{ background: 'var(--bg)', paddingTop: 64 }}>
@@ -94,8 +97,8 @@ export default function BlogPage() {
         {/* Categories */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 36 }}>
           {CATEGORIES.map(c => (
-            <button key={c}
-              style={{ padding: '6px 16px', borderRadius: 'var(--r-full)', border: '1px solid var(--border)', background: c === 'All' ? 'var(--amber)' : 'var(--surface)', color: c === 'All' ? '#fff' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all var(--t)' }}>
+            <button key={c} onClick={() => setActiveCategory(c)}
+              style={{ padding: '6px 16px', borderRadius: 'var(--r-full)', border: '1px solid var(--border)', background: activeCategory === c ? 'var(--amber)' : 'var(--surface)', color: activeCategory === c ? '#fff' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all var(--t)' }}>
               {c}
             </button>
           ))}
@@ -103,10 +106,8 @@ export default function BlogPage() {
 
         {/* Featured post */}
         <div style={{ marginBottom: 40 }}>
-          <Link href={`/blog/${featured.slug}`}
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 0, borderRadius: 'var(--r-xl)', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)', textDecoration: 'none', transition: 'box-shadow var(--t)' }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
+          <Link href={`/blog/${featured.slug}`} className="blog-featured-card"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 0, borderRadius: 'var(--r-xl)', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)', textDecoration: 'none' }}>
             <div style={{ background: 'linear-gradient(135deg, var(--navy-2) 0%, color-mix(in oklch, var(--amber) 15%, var(--navy-2)) 100%)', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ width: 64, height: 64, borderRadius: 'var(--r-xl)', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)' }}>
                 <Icon d="M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" size={28} />
@@ -144,10 +145,8 @@ export default function BlogPage() {
         {/* Post grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 18 }}>
           {rest.map(post => (
-            <Link key={post.slug} href={`/blog/${post.slug}`}
-              style={{ borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', background: 'var(--surface)', textDecoration: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'box-shadow var(--t), border-color var(--t)' }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+            <Link key={post.slug} href={`/blog/${post.slug}`} className="blog-card"
+              style={{ borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', background: 'var(--surface)', textDecoration: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ background: 'var(--surface-2)', height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)' }}>
                 <Icon d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z" size={32} />
               </div>
@@ -171,6 +170,22 @@ export default function BlogPage() {
           ))}
         </div>
       </div>
+
+      <style>{`
+        .blog-featured-card {
+          transition: box-shadow var(--t);
+        }
+        .blog-featured-card:hover {
+          box-shadow: var(--shadow-md);
+        }
+        .blog-card {
+          transition: box-shadow var(--t), border-color var(--t);
+        }
+        .blog-card:hover {
+          box-shadow: var(--shadow-md);
+          border-color: var(--border-hover);
+        }
+      `}</style>
     </div>
   );
 }
