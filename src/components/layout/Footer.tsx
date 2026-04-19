@@ -54,7 +54,7 @@ export default function Footer() {
           {/* Brand column */}
           <div>
             <div style={{ marginBottom: 16 }}>
-              <Logo size="md" variant="full" />
+              <Logo size="md" />
             </div>
             <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.75, maxWidth: 260, marginBottom: 24 }}>
               India&apos;s trusted business discovery platform. Find, compare, and connect with verified businesses across the country.
