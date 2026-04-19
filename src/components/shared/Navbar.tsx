@@ -30,7 +30,7 @@ export default function Navbar() {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem('bb-theme', next); } catch(_e){}
+    try { localStorage.setItem('bb-theme', next); } catch{}
   };
 
   const openSearch = () => { setSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 50); };
