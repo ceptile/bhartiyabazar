@@ -69,16 +69,36 @@ const STATIC_BUSINESSES = [
   { id: 's12', name: 'Pune Travel Experts', category: 'Travel & Tours', city: 'Pune', area: 'FC Road', rating: 4.3, reviewCount: 57, description: 'Domestic and international tour packages, visa assistance, and corporate travel.', phone: '+91 98600 13131', verified: true, slug: 'pune-travel-experts', joinedAt: '2022-02-14' },
 ];
 
+type RegisteredUser = {
+  id: string;
+  role: string;
+  businessName?: string;
+  businessCategory?: string;
+  city?: string;
+  area?: string;
+  businessSlug?: string;
+  phone?: string;
+  joinedAt?: string;
+};
+
 function getRegisteredBusinesses() {
   try {
-    const users = JSON.parse(localStorage.getItem('bb_users_db') || '[]');
+    const users: RegisteredUser[] = JSON.parse(localStorage.getItem('bb_users_db') || '[]');
     return users
-      .filter((u: { role: string }) => u.role === 'business' && u.businessName)
-      .map((u: { id: string; businessName: string; businessCategory: string; city: string; area?: string; businessSlug: string; phone?: string; joinedAt: string }) => ({
-        id: u.id, name: u.businessName, category: u.businessCategory || 'Other',
-        city: u.city || 'India', area: u.area || '', rating: 0, reviewCount: 0,
-        description: `A verified business on BhartiyaBazar.`, phone: u.phone || '',
-        verified: false, slug: u.businessSlug || u.id, joinedAt: u.joinedAt,
+      .filter(u => u.role === 'business' && u.businessName)
+      .map(u => ({
+        id: u.id,
+        name: u.businessName!,
+        category: u.businessCategory || 'Other',
+        city: u.city || 'India',
+        area: u.area || '',
+        rating: 0,
+        reviewCount: 0,
+        description: 'A verified business on BhartiyaBazar.',
+        phone: u.phone || '',
+        verified: false,
+        slug: u.businessSlug || u.id,
+        joinedAt: u.joinedAt || new Date().toISOString(),
       }));
   } catch { return []; }
 }
