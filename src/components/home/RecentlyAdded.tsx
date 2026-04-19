@@ -25,6 +25,7 @@ function VerifiedIcon() {
     </svg>
   );
 }
+
 function PhoneIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -32,6 +33,7 @@ function PhoneIcon() {
     </svg>
   );
 }
+
 function ArrowRightIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -39,6 +41,7 @@ function ArrowRightIcon() {
     </svg>
   );
 }
+
 function MapPinIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -47,7 +50,6 @@ function MapPinIcon() {
   );
 }
 
-// Use real data from data.ts — no hardcoded fake businesses
 const recentSlice = businesses.slice(0, 6);
 
 export default function RecentlyAdded() {
@@ -73,33 +75,33 @@ export default function RecentlyAdded() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
           {recentSlice.map(biz => (
             <Link key={biz.id} href={`/business/${biz.slug}`} style={{ textDecoration: 'none' }}>
-              <article style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--r-lg)',
-                padding: '20px',
-                transition: 'all var(--t)',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
-              }}
-              onMouseEnter={e => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.borderColor = 'var(--border-hover)';
-                el.style.boxShadow = 'var(--shadow-md)';
-                el.style.transform = 'translateY(-3px)';
-              }}
-              onMouseLeave={e => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.borderColor = 'var(--border)';
-                el.style.boxShadow = 'none';
-                el.style.transform = 'translateY(0)';
-              }}
+              <article
+                style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--r-lg)',
+                  padding: '20px',
+                  transition: 'all var(--t)',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = 'var(--border-hover)';
+                  el.style.boxShadow = 'var(--shadow-md)';
+                  el.style.transform = 'translateY(-3px)';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = 'var(--border)';
+                  el.style.boxShadow = 'none';
+                  el.style.transform = 'translateY(0)';
+                }}
               >
                 {/* Top row */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                  {/* Avatar initial */}
                   <div style={{
                     width: 44, height: 44, borderRadius: 'var(--r-md)',
                     background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)',
@@ -109,8 +111,6 @@ export default function RecentlyAdded() {
                   }}>
                     {biz.name.charAt(0)}
                   </div>
-
-                  {/* Badge */}
                   {biz.badge && (
                     <span className="badge badge-amber">{biz.badge}</span>
                   )}
@@ -136,9 +136,9 @@ export default function RecentlyAdded() {
                   {biz.shortDesc}
                 </p>
 
-                {/* Rating + location */}
+                {/* Rating + location — FIXED: align → alignItems */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 'auto' }}>
-                  <div style={{ display: 'flex', align: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <StarRow rating={biz.rating} />
                     <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>({biz.reviewCount})</span>
                   </div>
@@ -149,11 +149,20 @@ export default function RecentlyAdded() {
 
                 {/* Open status + phone */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: biz.openNow ? 'var(--success)' : 'var(--text-muted)', background: biz.openNow ? 'var(--success-bg)' : 'var(--surface-2)', padding: '3px 10px', borderRadius: 'var(--r-full)', border: `1px solid ${biz.openNow ? 'rgba(45,122,58,0.15)' : 'var(--border)'}` }}>
+                  <span style={{
+                    fontSize: 12, fontWeight: 600,
+                    color: biz.openNow ? 'var(--success)' : 'var(--text-muted)',
+                    background: biz.openNow ? 'var(--success-bg)' : 'var(--surface-2)',
+                    padding: '3px 10px', borderRadius: 'var(--r-full)',
+                    border: `1px solid ${biz.openNow ? 'rgba(45,122,58,0.15)' : 'var(--border)'}`,
+                  }}>
                     {biz.openNow ? 'Open Now' : 'Closed'}
                   </span>
-                  <a href={`tel:${biz.phone}`} onClick={e => e.stopPropagation()}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--amber)', fontWeight: 500 }}>
+                  <a
+                    href={`tel:${biz.phone}`}
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--amber)', fontWeight: 500 }}
+                  >
                     <PhoneIcon />{biz.phone}
                   </a>
                 </div>
