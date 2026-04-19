@@ -72,7 +72,24 @@ export default function Header() {
               overflow: 'hidden',
               height: 42,
             }}>
-              <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 12px', borderRight: '1px solid var(--border)', color: 'var(--text-3)', fontSize: '13px', flexShrink: 0, height: '100%', background: 'none', border: 'none', borderRight: '1px solid var(--border)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {/* ✅ FIX: split border shorthand into borderStyle + borderWidth + borderColor, then override borderRight only */}
+              <button style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '0 12px',
+                borderStyle: 'none',
+                borderRightStyle: 'solid',
+                borderRightWidth: '1px',
+                borderRightColor: 'var(--border)',
+                color: 'var(--text-3)',
+                fontSize: '13px',
+                flexShrink: 0,
+                height: '100%',
+                background: 'none',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}>
                 <MapPin size={13} color="var(--accent)" />
                 <span>Delhi</span>
                 <ChevronDown size={12} />
@@ -82,10 +99,28 @@ export default function Header() {
                 placeholder="Search businesses, services..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                style={{ flex: 1, padding: '0 12px', background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', color: 'var(--text-1)', height: '100%' }}
+                style={{
+                  flex: 1,
+                  padding: '0 12px',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '14px',
+                  color: 'var(--text-1)',
+                  height: '100%',
+                }}
               />
               <button
-                style={{ padding: '0 16px', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', height: '100%', display: 'flex', alignItems: 'center' }}
+                style={{
+                  padding: '0 16px',
+                  background: 'var(--accent)',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
                 aria-label="Search"
               >
                 <Search size={16} />
@@ -97,7 +132,7 @@ export default function Header() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
             <Link
               href="/register"
-              className="btn btn-primary"
+              className="btn btn-primary btn-list-biz"
               style={{ fontSize: '13px', padding: '8px 16px', display: 'none' }}
             >
               <PlusCircle size={14} />
@@ -153,10 +188,28 @@ export default function Header() {
             <input
               type="text"
               placeholder="Search businesses, services..."
-              style={{ flex: 1, padding: '0 14px', background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', color: 'var(--text-1)', height: '100%' }}
+              style={{
+                flex: 1,
+                padding: '0 14px',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontSize: '14px',
+                color: 'var(--text-1)',
+                height: '100%',
+              }}
             />
             <button
-              style={{ padding: '0 16px', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', height: '100%', display: 'flex', alignItems: 'center' }}
+              style={{
+                padding: '0 16px',
+                background: 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+              }}
               aria-label="Search"
             >
               <Search size={16} />
@@ -187,15 +240,32 @@ export default function Header() {
                   transition: 'all var(--dur) var(--ease)',
                   flexShrink: 0,
                 }}
-                onMouseEnter={e => { (e.target as HTMLElement).style.color = 'var(--accent)'; (e.target as HTMLElement).style.background = 'var(--accent-subtle)'; }}
-                onMouseLeave={e => { (e.target as HTMLElement).style.color = 'var(--text-2)'; (e.target as HTMLElement).style.background = 'transparent'; }}
+                onMouseEnter={e => {
+                  (e.target as HTMLElement).style.color = 'var(--accent)'
+                  ;(e.target as HTMLElement).style.background = 'var(--accent-subtle)'
+                }}
+                onMouseLeave={e => {
+                  (e.target as HTMLElement).style.color = 'var(--text-2)'
+                  ;(e.target as HTMLElement).style.background = 'transparent'
+                }}
               >
                 {cat}
               </Link>
             ))}
             <Link
               href="/categories"
-              style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)', whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3 }}
+              style={{
+                padding: '4px 12px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                color: 'var(--accent)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+              }}
             >
               All <ChevronDown size={11} />
             </Link>
@@ -211,11 +281,28 @@ export default function Header() {
           padding: '16px',
         }}>
           <div className="site-container" style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Link href="/register" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }} onClick={() => setMenuOpen(false)}>
+            <Link
+              href="/register"
+              className="btn btn-primary"
+              style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
+              onClick={() => setMenuOpen(false)}
+            >
               <PlusCircle size={16} /> List Your Business — Free
             </Link>
-            <Link href="/login" style={{ padding: '10px 16px', color: 'var(--text-2)', fontSize: '14px', borderRadius: 'var(--radius-md)' }} onClick={() => setMenuOpen(false)}>Login</Link>
-            <Link href="/signup" style={{ padding: '10px 16px', color: 'var(--text-2)', fontSize: '14px', borderRadius: 'var(--radius-md)' }} onClick={() => setMenuOpen(false)}>Sign Up</Link>
+            <Link
+              href="/login"
+              style={{ padding: '10px 16px', color: 'var(--text-2)', fontSize: '14px', borderRadius: 'var(--radius-md)' }}
+              onClick={() => setMenuOpen(false)}
+            >
+              Login
+            </Link>
+            <Link
+              href="/signup"
+              style={{ padding: '10px 16px', color: 'var(--text-2)', fontSize: '14px', borderRadius: 'var(--radius-md)' }}
+              onClick={() => setMenuOpen(false)}
+            >
+              Sign Up
+            </Link>
           </div>
         </div>
       )}
