@@ -11,14 +11,13 @@ export default function ThemeToggle() {
 
   useEffect(() => {
     setMounted(true);
-    const stored = (typeof window !== 'undefined' ? window.__bbTheme : undefined) as Theme | undefined;
-    setTheme(stored ?? 'system');
+    // Read current theme from html data-theme attribute (set by apply or system default)
+    const current = document.documentElement.getAttribute('data-theme') as Theme | null;
+    setTheme(current ?? 'system');
   }, []);
 
   const apply = (t: Theme) => {
     setTheme(t);
-    if (typeof window === 'undefined') return;
-    (window as unknown as Record<string, unknown>).__bbTheme = t;
     const root = document.documentElement;
     if (t === 'system') {
       root.removeAttribute('data-theme');
@@ -30,15 +29,15 @@ export default function ThemeToggle() {
   if (!mounted) return null;
 
   const options: { value: Theme; icon: React.ReactNode; label: string }[] = [
-    { value: 'light',  icon: <Sun  size={14} />, label: 'Light'  },
-    { value: 'dark',   icon: <Moon size={14} />, label: 'Dark'   },
+    { value: 'light',  icon: <Sun     size={14} />, label: 'Light'  },
+    { value: 'dark',   icon: <Moon    size={14} />, label: 'Dark'   },
     { value: 'system', icon: <Monitor size={14} />, label: 'System' },
   ];
 
   return (
     <div
       role="radiogroup"
-      aria-label="Select theme"
+      aria-label="Select colour theme"
       style={{
         display: 'flex',
         alignItems: 'center',
