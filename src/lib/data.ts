@@ -42,6 +42,18 @@ export type Review = {
   verified: boolean;
 };
 
+export type Testimonial = {
+  id: string;
+  name: string;
+  city: string;
+  role: string;
+  business: string;
+  leads: number;
+  text: string;
+  avatar: string;
+  rating: number;
+};
+
 export const stats = [
   { id: 's1', value: 50000, suffix: '+', label: 'Verified Businesses', icon: '🏢', color: 'var(--saffron)' },
   { id: 's2', value: 280000, suffix: '+', label: 'Happy Users', icon: '😊', color: 'var(--green)' },
@@ -230,11 +242,11 @@ export const businesses: Business[] = [
   },
 ];
 
-export const testimonials = [
-  { id:'t1', name:'Ramesh Gupta', city:'Delhi', role:'Shop Owner', text:'Listed my hardware shop on BhartiyaBazar and started getting calls within 2 days. Now I get 15-20 enquiries per month completely free!', avatar:'RG', rating:5 },
-  { id:'t2', name:'Sunita Sharma', city:'Mumbai', role:'Customer', text:'Found the best AC repair guy in my area within minutes. He came same day, fixed the AC, and charged a fair price. No middleman, no spam calls!', avatar:'SS', rating:5 },
-  { id:'t3', name:'Arjun Mehta', city:'Bengaluru', role:'Restaurant Owner', text:'The verified badge really helped build trust with new customers. Our orders increased 40% in the first month after getting featured.', avatar:'AM', rating:5 },
-  { id:'t4', name:'Priya Nair', city:'Chennai', role:'Customer', text:'Finally a platform that shows real businesses with real reviews. Compared 3 salons, read genuine reviews, and booked the best one. So easy!', avatar:'PN', rating:5 },
+export const testimonials: Testimonial[] = [
+  { id:'t1', name:'Ramesh Gupta', city:'Delhi', role:'Shop Owner', business:'Gupta Hardware Store', leads:42, text:'Listed my hardware shop on BhartiyaBazar and started getting calls within 2 days. Now I get 15-20 enquiries per month completely free!', avatar:'RG', rating:5 },
+  { id:'t2', name:'Sunita Sharma', city:'Mumbai', role:'Customer', business:'Home User', leads:0, text:'Found the best AC repair guy in my area within minutes. He came same day, fixed the AC, and charged a fair price. No middleman, no spam calls!', avatar:'SS', rating:5 },
+  { id:'t3', name:'Arjun Mehta', city:'Bengaluru', role:'Restaurant Owner', business:'Spice Corner Restaurant', leads:78, text:'The verified badge really helped build trust with new customers. Our orders increased 40% in the first month after getting featured.', avatar:'AM', rating:5 },
+  { id:'t4', name:'Priya Nair', city:'Chennai', role:'Customer', business:'Home User', leads:0, text:'Finally a platform that shows real businesses with real reviews. Compared 3 salons, read genuine reviews, and booked the best one. So easy!', avatar:'PN', rating:5 },
 ];
 
 export const pricingPlans = [
