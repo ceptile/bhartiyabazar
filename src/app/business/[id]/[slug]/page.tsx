@@ -50,7 +50,21 @@ export default function BusinessPage() {
     </div>
   );
 
-  const allReviews = [...(business.reviews || []).map(r => ({ ...r, businessId: business.id, businessSlug: business.slug, userId: r.id, userName: r.author, userAvatar: r.avatar, title: '', helpful: r.helpful, verified: r.verified })), ...reviews];
+  const allReviews: Review[] = [
+    ...(business.reviews || []).map(r => ({
+      ...r,
+      businessId: business.id,
+      businessSlug: business.slug,
+      userId: r.id,
+      userName: r.author,
+      userAvatar: r.avatar,
+      title: '',
+      helpful: r.helpful,
+      verified: r.verified,
+      ownerReply: undefined,
+    })),
+    ...reviews,
+  ];
   const avgRating = allReviews.length ? (allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length).toFixed(1) : business.rating.toFixed(1);
 
   return (
