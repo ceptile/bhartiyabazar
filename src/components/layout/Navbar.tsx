@@ -14,20 +14,6 @@ function Icon({ d, size = 18, sw = 1.75 }: { d: string | string[]; size?: number
   );
 }
 
-// EB Garamond "bB" logo — lowercase b + uppercase B
-function LogoMark({ size = 36 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" aria-label="BhartiyaBazar logo">
-      <rect width="40" height="40" rx="10" fill="var(--amber)" />
-      <text x="4" y="29"
-        fontFamily="'EB Garamond', Georgia, serif"
-        fontWeight="700" fontSize="22" fill="white" letterSpacing="-1">
-        bB
-      </text>
-    </svg>
-  );
-}
-
 const NAV_LINKS = [
   { href: '/',        label: 'Home' },
   { href: '/search',  label: 'Find Business' },
@@ -40,16 +26,9 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
-  const [theme, setTheme]       = useState<'light'|'dark'>('light');
   const pathname = usePathname();
   const router   = useRouter();
   const { user, logout } = useAuth();
-
-  useEffect(() => {
-    const mq   = window.matchMedia('(prefers-color-scheme: dark)');
-    const saved = document.documentElement.getAttribute('data-theme');
-    setTheme((saved || (mq.matches ? 'dark' : 'light')) as 'light'|'dark');
-  }, []);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 16);
@@ -59,14 +38,8 @@ export default function Navbar() {
 
   useEffect(() => { setMenuOpen(false); setDropOpen(false); }, [pathname]);
 
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    document.documentElement.setAttribute('data-theme', next);
-  };
-
   const isActive = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href);
-  const initials = user?.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '';
+  const initials = user?.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '';
 
   return (
     <>
@@ -81,16 +54,16 @@ export default function Navbar() {
       }}>
         <div className="container" style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 
-          {/* Logo */}
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            <LogoMark size={36} />
-            <div>
-              <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontWeight: 700, fontSize: 18, color: 'var(--text-primary)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-                Bhartiya<span style={{ color: 'var(--amber)' }}>Bazar</span>
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.08em', fontFamily: 'var(--font-body)', textTransform: 'uppercase' }}>
-                India&apos;s Business Hub
-              </div>
+          {/* Text-only logo, no subtitle, enlarged */}
+          <Link href="/" style={{ flexShrink: 0, lineHeight: 1 }}>
+            <div style={{
+              fontFamily: "'EB Garamond', Georgia, serif",
+              fontWeight: 700,
+              fontSize: 22,
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.02em',
+            }}>
+              Bhartiya<span style={{ color: 'var(--amber)' }}>Bazar</span>
             </div>
           </Link>
 
@@ -107,20 +80,8 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Actions */}
+          {/* Actions — no theme toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <button onClick={toggleTheme} aria-label="Toggle theme" style={{
-              width: 36, height: 36, borderRadius: 'var(--r-md)',
-              border: '1px solid var(--border-hover)', background: 'transparent',
-              color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', transition: 'all var(--t)',
-            }}>
-              <Icon d={theme === 'dark'
-                ? 'M12 3v1m0 16v1m8.66-13l-.87.5M4.21 17.5l-.87.5M20.66 17l-.87-.5M4.21 6.5l-.87-.5M21 12h-1M4 12H3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'
-                : 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'
-              } size={16} />
-            </button>
-
             {user ? (
               <div style={{ position: 'relative' }}>
                 <button onClick={() => setDropOpen(p => !p)} style={{
@@ -144,7 +105,8 @@ export default function Navbar() {
                     </div>
                     {[
                       { href: '/dashboard', label: 'Dashboard', icon: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z' },
-                      { href: '/profile', label: 'My Profile', icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
+                      { href: '/profile',   label: 'My Profile', icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
+                      { href: '/settings',  label: 'Settings',   icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z' },
                     ].map(item => (
                       <Link key={item.href} href={item.href} onClick={() => setDropOpen(false)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', fontSize: 13, color: 'var(--text-secondary)' }}
@@ -188,6 +150,7 @@ export default function Navbar() {
               <Link href="/register" style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--text-primary)', fontWeight: 500 }}>Create Account</Link>
             </> : <>
               <Link href="/dashboard" style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--text-primary)', fontWeight: 500 }}>Dashboard</Link>
+              <Link href="/settings" style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--text-primary)', fontWeight: 500 }}>Settings</Link>
               <button onClick={() => { logout(); router.push('/'); }} style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--crimson)', fontWeight: 500, textAlign: 'left' }}>Sign Out</button>
             </>}
           </div>
