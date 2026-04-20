@@ -3,8 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
@@ -30,16 +29,6 @@ export interface AuthUser {
   joinedAt: string;
 }
 
-interface AuthContextType {
-  user: AuthUser | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  loginWithGoogle: () => Promise<{ ok: boolean; error?: string }>;
-  register: (data: RegisterData) => Promise<{ ok: boolean; error?: string }>;
-  logout: () => Promise<void>;
-  updateProfile: (data: Partial<AuthUser>) => Promise<void>;
-}
-
 export interface RegisterData {
   name: string;
   email: string;
@@ -51,18 +40,36 @@ export interface RegisterData {
   businessCategory?: string;
 }
 
+interface AuthContextType {
+  user: AuthUser | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ ok: boolean; error?: string }>;
+  register: (data: RegisterData) => Promise<{ ok: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  updateProfile: (data: Partial<AuthUser>) => Promise<void>;
+}
+
 const AuthContext = createContext<AuthContextType | null>(null);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
 
-// ── Firestore profile helpers ─────────────────────────────────────────────
+// ── Firestore helpers ─────────────────────────────────────────────────────
 async function fetchOrCreateProfile(fbUser: FirebaseUser): Promise<AuthUser> {
   const ref = doc(db, 'users', fbUser.uid);
   try {
     const snap = await getDoc(ref);
-    if (snap.exists()) return snap.data() as AuthUser;
-  } catch { /* network error — fall through to create */ }
+    if (snap.exists()) {
+      const data = snap.data() as AuthUser;
+      // Always keep email/name fresh from Firebase Auth
+      return {
+        ...data,
+        name: fbUser.displayName || data.name || fbUser.email?.split('@')[0] || 'User',
+        email: fbUser.email || data.email || '',
+      };
+    }
+  } catch { /* network error — fall through */ }
 
   const newUser: AuthUser = {
     id: fbUser.uid,
@@ -74,42 +81,31 @@ async function fetchOrCreateProfile(fbUser: FirebaseUser): Promise<AuthUser> {
   };
   try {
     await setDoc(ref, { ...newUser, createdAt: serverTimestamp() });
-  } catch { /* silent — still return the user object */ }
+  } catch { /* silent */ }
   return newUser;
 }
 
 function friendlyError(code: string, context: 'login' | 'register' | 'google'): string {
-  switch (code) {
-    case 'auth/user-not-found':
-    case 'auth/invalid-credential':
-    case 'auth/invalid-email':
-      return context === 'register'
-        ? 'Invalid email address.'
-        : 'No account found with this email.';
-    case 'auth/wrong-password':
-      return 'Incorrect password. Please try again.';
-    case 'auth/email-already-in-use':
-      return 'An account with this email already exists. Try signing in.';
-    case 'auth/weak-password':
-      return 'Password must be at least 6 characters.';
-    case 'auth/too-many-requests':
-      return 'Too many attempts. Please wait a few minutes and try again.';
-    case 'auth/network-request-failed':
-      return 'Network error. Check your internet connection.';
-    case 'auth/popup-closed-by-user':
-    case 'auth/cancelled-popup-request':
-      return 'Sign-in was cancelled.';
-    case 'auth/popup-blocked':
-      return 'Popup was blocked by your browser. Please allow popups and try again.';
-    case 'auth/operation-not-allowed':
-      return 'This sign-in method is not enabled. Please contact support.';
-    case 'auth/configuration-not-found':
-      return 'Auth configuration missing. Please contact support.';
-    default:
-      if (context === 'google') return 'Google sign-in failed. Please try again.';
-      if (context === 'register') return 'Registration failed. Please try again.';
-      return 'Sign-in failed. Please try again.';
-  }
+  const map: Record<string, string> = {
+    'auth/user-not-found': 'No account found with this email.',
+    'auth/invalid-credential': 'No account found with this email or password is wrong.',
+    'auth/wrong-password': 'Incorrect password. Please try again.',
+    'auth/email-already-in-use': 'An account with this email already exists. Try signing in.',
+    'auth/weak-password': 'Password must be at least 6 characters.',
+    'auth/too-many-requests': 'Too many attempts. Please wait a few minutes.',
+    'auth/network-request-failed': 'Network error. Check your internet connection.',
+    'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
+    'auth/cancelled-popup-request': 'Google sign-in was cancelled.',
+    'auth/popup-blocked': 'Popup was blocked. Please allow popups for this site and try again.',
+    'auth/operation-not-allowed': 'This sign-in method is not enabled. Contact support.',
+    'auth/configuration-not-found': 'Firebase configuration missing. Contact support.',
+    'auth/invalid-email': context === 'register' ? 'Invalid email address.' : 'Invalid email address.',
+    'auth/missing-password': 'Password is required.',
+  };
+  if (map[code]) return map[code];
+  if (context === 'google') return `Google sign-in failed. (${code || 'unknown error'})`;
+  if (context === 'register') return `Registration failed. (${code || 'unknown error'})`;
+  return `Sign-in failed. (${code || 'unknown error'})`;
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────
@@ -118,54 +114,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle Google redirect result first (fires after page reloads from signInWithRedirect)
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result?.user) {
-          const profile = await fetchOrCreateProfile(result.user);
-          setUser(profile);
-        }
-      })
-      .catch(() => { /* ignore redirect errors silently */ });
-
-    // Main auth state listener
+    // onAuthStateChanged is the single source of truth
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
-        const profile = await fetchOrCreateProfile(fbUser);
-        setUser(profile);
+        try {
+          const profile = await fetchOrCreateProfile(fbUser);
+          setUser(profile);
+        } catch {
+          // Even if Firestore fails, populate from Firebase Auth
+          setUser({
+            id: fbUser.uid,
+            name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
+            email: fbUser.email || '',
+            role: 'user',
+            verified: fbUser.emailVerified,
+            joinedAt: new Date().toISOString(),
+          });
+        }
       } else {
         setUser(null);
       }
       setLoading(false);
     });
-
     return () => unsub();
   }, []);
 
-  // ── Email / Password Login ──────────────────────────────────────────────
+  // ── Email / Password Login ────────────────────────────────────────────
   const login = async (email: string, password: string) => {
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
+      // onAuthStateChanged will fire and setUser automatically
       return { ok: true };
     } catch (err: unknown) {
-      const code = (err as { code?: string }).code || '';
-      return { ok: false, error: friendlyError(code, 'login') };
+      return { ok: false, error: friendlyError((err as {code?:string}).code || '', 'login') };
     }
   };
 
-  // ── Google Login (redirect — works on all browsers/devices) ─────────────
+  // ── Google Login (POPUP — works reliably on Vercel/Next.js) ───────────
   const loginWithGoogle = async () => {
     try {
-      // signInWithRedirect navigates away then back — result handled in useEffect above
-      await signInWithRedirect(auth, googleProvider);
-      return { ok: true }; // page will redirect, this line rarely reached
+      await signInWithPopup(auth, googleProvider);
+      // onAuthStateChanged fires → setUser automatically
+      return { ok: true };
     } catch (err: unknown) {
-      const code = (err as { code?: string }).code || '';
+      const code = (err as {code?:string}).code || '';
+      // User simply closed the popup — not really an error
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        return { ok: false, error: '' };
+      }
       return { ok: false, error: friendlyError(code, 'google') };
     }
   };
 
-  // ── Register ──────────────────────────────────────────────────────────────
+  // ── Register ──────────────────────────────────────────────────────────
   const register = async (data: RegisterData) => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
@@ -193,24 +194,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         createdAt: serverTimestamp(),
       });
 
+      // onAuthStateChanged will fire and setUser automatically
       return { ok: true };
     } catch (err: unknown) {
-      const code = (err as { code?: string }).code || '';
-      return { ok: false, error: friendlyError(code, 'register') };
+      return { ok: false, error: friendlyError((err as {code?:string}).code || '', 'register') };
     }
   };
 
-  // ── Logout ────────────────────────────────────────────────────────────────
+  // ── Logout ────────────────────────────────────────────────────────────
   const logout = async () => {
     await signOut(auth);
     setUser(null);
   };
 
-  // ── Update Profile ────────────────────────────────────────────────────────
+  // ── Update Profile ────────────────────────────────────────────────────
   const updateProfile = async (data: Partial<AuthUser>) => {
     if (!user) return;
-    const updated = { ...user, ...data };
-    setUser(updated);
+    setUser(prev => prev ? { ...prev, ...data } : prev);
     try {
       await updateDoc(doc(db, 'users', user.id), { ...data });
     } catch { /* silent */ }
