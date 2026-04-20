@@ -5,6 +5,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
+  EmailAuthProvider,
   signOut,
   onAuthStateChanged,
   updateProfile as fbUpdateProfile,
@@ -51,9 +54,12 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
 const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
+// Force account picker every time so user can choose the right Google account
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // ── Firestore helpers ─────────────────────────────────────────────────────
 async function fetchOrCreateProfile(fbUser: FirebaseUser): Promise<AuthUser> {
@@ -62,14 +68,13 @@ async function fetchOrCreateProfile(fbUser: FirebaseUser): Promise<AuthUser> {
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const data = snap.data() as AuthUser;
-      // Always keep email/name fresh from Firebase Auth
       return {
         ...data,
         name: fbUser.displayName || data.name || fbUser.email?.split('@')[0] || 'User',
         email: fbUser.email || data.email || '',
       };
     }
-  } catch { /* network error — fall through */ }
+  } catch { /* network error — fall through to create */ }
 
   const newUser: AuthUser = {
     id: fbUser.uid,
@@ -87,25 +92,28 @@ async function fetchOrCreateProfile(fbUser: FirebaseUser): Promise<AuthUser> {
 
 function friendlyError(code: string, context: 'login' | 'register' | 'google'): string {
   const map: Record<string, string> = {
-    'auth/user-not-found': 'No account found with this email.',
-    'auth/invalid-credential': 'No account found with this email or password is wrong.',
-    'auth/wrong-password': 'Incorrect password. Please try again.',
-    'auth/email-already-in-use': 'An account with this email already exists. Try signing in.',
-    'auth/weak-password': 'Password must be at least 6 characters.',
-    'auth/too-many-requests': 'Too many attempts. Please wait a few minutes.',
-    'auth/network-request-failed': 'Network error. Check your internet connection.',
-    'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
-    'auth/cancelled-popup-request': 'Google sign-in was cancelled.',
-    'auth/popup-blocked': 'Popup was blocked. Please allow popups for this site and try again.',
-    'auth/operation-not-allowed': 'This sign-in method is not enabled. Contact support.',
-    'auth/configuration-not-found': 'Firebase configuration missing. Contact support.',
-    'auth/invalid-email': context === 'register' ? 'Invalid email address.' : 'Invalid email address.',
-    'auth/missing-password': 'Password is required.',
+    'auth/user-not-found':        'No account found with this email. Please sign up first.',
+    'auth/invalid-credential':    'Incorrect email or password. Please try again.',
+    'auth/wrong-password':        'Incorrect password. Please try again.',
+    'auth/email-already-in-use':  'An account with this email already exists. Please sign in instead.',
+    'auth/weak-password':         'Password must be at least 6 characters.',
+    'auth/too-many-requests':     'Too many attempts. Please wait a few minutes and try again.',
+    'auth/network-request-failed':'Network error. Please check your internet connection.',
+    'auth/popup-closed-by-user':  '',
+    'auth/cancelled-popup-request': '',
+    'auth/popup-blocked':         'Popup was blocked. Please allow popups for this site and try again.',
+    'auth/operation-not-allowed': 'This sign-in method is not enabled in Firebase. Please enable Google sign-in in the Firebase Console.',
+    'auth/configuration-not-found': 'Firebase configuration error. Please check your Firebase project settings.',
+    'auth/invalid-email':         'Invalid email address.',
+    'auth/missing-password':      'Password is required.',
+    'auth/internal-error':        'Firebase returned an internal error. This usually means your Firebase project has not enabled Google sign-in, or the authorised domain is missing. Please check the Firebase Console → Authentication → Sign-in methods → Google, and add your Vercel domain to Authorised domains.',
+    'auth/unauthorized-domain':   'This domain is not authorised in Firebase. Go to Firebase Console → Authentication → Settings → Authorised domains and add your Vercel deployment URL.',
+    'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method. Please sign in with email/password instead.',
   };
-  if (map[code]) return map[code];
-  if (context === 'google') return `Google sign-in failed. (${code || 'unknown error'})`;
-  if (context === 'register') return `Registration failed. (${code || 'unknown error'})`;
-  return `Sign-in failed. (${code || 'unknown error'})`;
+  if (map[code] !== undefined) return map[code];
+  if (context === 'google')   return `Google sign-in failed. (${code})`;
+  if (context === 'register') return `Registration failed. (${code})`;
+  return `Sign-in failed. (${code})`;
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────
@@ -114,14 +122,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // onAuthStateChanged is the single source of truth
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         try {
           const profile = await fetchOrCreateProfile(fbUser);
           setUser(profile);
         } catch {
-          // Even if Firestore fails, populate from Firebase Auth
           setUser({
             id: fbUser.uid,
             name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
@@ -142,25 +148,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Email / Password Login ────────────────────────────────────────────
   const login = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-      // onAuthStateChanged will fire and setUser automatically
+      await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
       return { ok: true };
     } catch (err: unknown) {
-      return { ok: false, error: friendlyError((err as {code?:string}).code || '', 'login') };
+      const code = (err as { code?: string }).code || '';
+      // If the account was created via Google, tell the user clearly
+      if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, email.trim().toLowerCase());
+          if (methods.includes('google.com') && !methods.includes('password')) {
+            return { ok: false, error: 'This email was registered with Google. Please use the "Sign in with Google" button.' };
+          }
+          if (methods.length === 0) {
+            return { ok: false, error: 'No account found with this email. Please sign up first.' };
+          }
+        } catch { /* ignore secondary check errors */ }
+      }
+      return { ok: false, error: friendlyError(code, 'login') };
     }
   };
 
-  // ── Google Login (POPUP — works reliably on Vercel/Next.js) ───────────
+  // ── Google Login ──────────────────────────────────────────────────────
   const loginWithGoogle = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-      // onAuthStateChanged fires → setUser automatically
       return { ok: true };
     } catch (err: unknown) {
-      const code = (err as {code?:string}).code || '';
-      // User simply closed the popup — not really an error
+      const code = (err as { code?: string }).code || '';
       if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
         return { ok: false, error: '' };
+      }
+      // Account exists with email/password — offer to link
+      if (code === 'auth/account-exists-with-different-credential') {
+        return { ok: false, error: 'An account already exists with this email. Please sign in with your email and password.' };
       }
       return { ok: false, error: friendlyError(code, 'google') };
     }
@@ -169,7 +189,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Register ──────────────────────────────────────────────────────────
   const register = async (data: RegisterData) => {
     try {
-      const cred = await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
+      // Check if email was previously used with Google only
+      try {
+        const methods = await fetchSignInMethodsForEmail(auth, data.email.trim().toLowerCase());
+        if (methods.includes('google.com') && !methods.includes('password')) {
+          return { ok: false, error: 'This email is already linked to a Google account. Please sign in with Google instead.' };
+        }
+        if (methods.includes('password')) {
+          return { ok: false, error: 'An account with this email already exists. Please sign in.' };
+        }
+      } catch { /* ignore pre-check errors */ }
+
+      const cred = await createUserWithEmailAndPassword(auth, data.email.trim().toLowerCase(), data.password);
       await fbUpdateProfile(cred.user, { displayName: data.name.trim() });
 
       const slug = (data.businessName || '')
@@ -178,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const newUser: AuthUser = {
         id: cred.user.uid,
         name: data.name.trim(),
-        email: data.email.trim(),
+        email: data.email.trim().toLowerCase(),
         role: data.role,
         phone: data.phone?.trim() || '',
         city: data.city?.trim() || '',
@@ -194,10 +225,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         createdAt: serverTimestamp(),
       });
 
-      // onAuthStateChanged will fire and setUser automatically
       return { ok: true };
     } catch (err: unknown) {
-      return { ok: false, error: friendlyError((err as {code?:string}).code || '', 'register') };
+      return { ok: false, error: friendlyError((err as { code?: string }).code || '', 'register') };
     }
   };
 
@@ -228,3 +258,6 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
+// suppress unused import warning for linkWithCredential / EmailAuthProvider — kept for future account linking
+void linkWithCredential;
+void EmailAuthProvider;

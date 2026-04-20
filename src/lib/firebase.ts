@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -12,7 +12,6 @@ const firebaseConfig = {
   measurementId:     process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Guard: warn loudly in dev if keys are missing
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   const missing = Object.entries(firebaseConfig)
     .filter(([, v]) => !v)
@@ -26,3 +25,8 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 
 export const auth = getAuth(app);
 export const db   = getFirestore(app);
+
+// Set persistence to LOCAL so user stays logged in across page reloads
+if (typeof window !== 'undefined') {
+  setPersistence(auth, browserLocalPersistence).catch(() => {});
+}
