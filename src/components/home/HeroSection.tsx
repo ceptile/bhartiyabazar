@@ -33,13 +33,6 @@ function ShieldIcon() {
     </svg>
   );
 }
-function StarIcon({ filled }: { filled: boolean }) {
-  return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-    </svg>
-  );
-}
 
 export default function HeroSection() {
   const [query, setQuery]     = useState('');
@@ -65,8 +58,6 @@ export default function HeroSection() {
   };
 
   const quickLinks = ['AC Repair', 'Doctor', 'Restaurant', 'Tutor', 'Salon'];
-
-  // Top 6 category SVG icons for the pill chips (using simple inline SVG)
   const topCats = categories.slice(0, 8);
 
   return (
@@ -85,7 +76,6 @@ export default function HeroSection() {
           position: 'absolute', inset: 0,
           backgroundImage: 'radial-gradient(circle at 20% 20%, var(--amber-glow) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(201,127,0,0.06) 0%, transparent 50%)',
         }} />
-        {/* Fine dot pattern */}
         <div style={{
           position: 'absolute', inset: 0,
           backgroundImage: 'radial-gradient(var(--border) 1px, transparent 1px)',
@@ -100,7 +90,7 @@ export default function HeroSection() {
           {/* Trust pill */}
           <div className="anim-fadeUp" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 16px', borderRadius: 'var(--r-full)', background: 'var(--surface)', border: '1px solid var(--border-hover)', marginBottom: 36, boxShadow: 'var(--shadow-sm)' }}>
             <span style={{ display: 'flex', color: 'var(--success)' }}><ShieldIcon /></span>
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Trusted by 2,80,000+ Indians across 500+ cities</span>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>India&apos;s free business discovery platform</span>
             <span style={{ fontSize: 11, background: 'var(--amber)', color: '#fff', padding: '2px 8px', borderRadius: 'var(--r-full)', fontWeight: 700, letterSpacing: '0.04em' }}>FREE</span>
           </div>
 
@@ -136,7 +126,7 @@ export default function HeroSection() {
             margin: '0 auto 44px',
             lineHeight: 1.75,
           }}>
-            Search 50,000+ verified businesses. Compare prices. Contact directly.{' '}
+            Search verified businesses across India. Compare, contact directly.{' '}
             <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>No middlemen, no spam.</strong>
           </p>
 
@@ -153,7 +143,6 @@ export default function HeroSection() {
               margin: '0 auto',
               boxShadow: 'var(--shadow-md)',
             }}>
-              {/* Service input */}
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--text-faint)', display: 'flex', flexShrink: 0 }}><SearchIcon /></span>
                 <input
@@ -163,9 +152,7 @@ export default function HeroSection() {
                   style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 15 }}
                 />
               </div>
-              {/* Divider */}
               <div style={{ width: 1, background: 'var(--border)', alignSelf: 'center', height: 24 }} />
-              {/* City input */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', minWidth: 140, borderRadius: 'var(--r-lg)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--text-faint)', display: 'flex', flexShrink: 0 }}><MapPinIcon /></span>
                 <input
@@ -228,23 +215,6 @@ export default function HeroSection() {
             ))}
           </div>
 
-          {/* Stats strip */}
-          <div className="anim-fadeUp d-500" style={{ marginTop: 56, display: 'flex', flexWrap: 'wrap', gap: 0, justifyContent: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', maxWidth: 600, marginLeft: 'auto', marginRight: 'auto' }}>
-            {[
-              { n: '50K+', l: 'Businesses' },
-              { n: '2.8L+', l: 'Users' },
-              { n: '500+', l: 'Cities' },
-              { n: '12L+', l: 'Searches/mo' },
-            ].map((s, i, arr) => (
-              <div key={s.l} style={{
-                flex: 1, padding: '20px 12px', textAlign: 'center',
-                borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
-              }}>
-                <div style={{ fontSize: 'clamp(1.1rem, 2vw, 1.4rem)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>{s.n}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'var(--font-body)' }}>{s.l}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 

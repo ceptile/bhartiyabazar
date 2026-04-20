@@ -18,10 +18,9 @@ export default function CategoriesSection() {
   return (
     <section ref={ref} className="section" style={{ background: 'var(--bg-2)' }}>
       <div className="container">
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 'clamp(36px,6vw,60px)' }}>
           <span className="section-label">Browse by Category</span>
-          <h2 className="section-title">16 Categories,<br />Thousands of Businesses</h2>
+          <h2 className="section-title">16 Categories,<br />Every Business Type</h2>
           <p className="section-sub" style={{ margin: '0 auto' }}>
             Explore every service vertical with verified listings across India
           </p>
@@ -64,7 +63,6 @@ export default function CategoriesSection() {
                 el.style.borderColor = 'var(--border)';
               }}
             >
-              {/* Icon container */}
               <div style={{
                 width: 52, height: 52,
                 borderRadius: 'var(--r-lg)',
@@ -79,11 +77,8 @@ export default function CategoriesSection() {
                 </svg>
               </div>
 
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 5, lineHeight: 1.35, fontFamily: 'var(--font-body)' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', lineHeight: 1.35, fontFamily: 'var(--font-body)' }}>
                 {cat.name}
-              </span>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>
-                {cat.count.toLocaleString()} listings
               </span>
             </Link>
           ))}
