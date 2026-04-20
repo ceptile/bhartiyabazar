@@ -12,7 +12,6 @@ function EyeIcon() {
     </svg>
   );
 }
-
 function EyeOffIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -21,7 +20,6 @@ function EyeOffIcon() {
     </svg>
   );
 }
-
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -34,13 +32,14 @@ function GoogleIcon() {
 }
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const router = useRouter();
-  const [email, setEmail]     = useState('');
-  const [password, setPass]   = useState('');
-  const [showPw, setShowPw]   = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [email, setEmail]       = useState('');
+  const [password, setPass]     = useState('');
+  const [showPw, setShowPw]     = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [gLoading, setGLoading] = useState(false);
+  const [error, setError]       = useState('');
 
   const inp: React.CSSProperties = {
     width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)',
@@ -49,7 +48,8 @@ export default function LoginPage() {
   };
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault(); setError('');
+    e.preventDefault();
+    setError('');
     if (!email || !password) { setError('Please fill in all fields.'); return; }
     setLoading(true);
     const res = await login(email, password);
@@ -58,23 +58,25 @@ export default function LoginPage() {
     router.push('/dashboard');
   };
 
-  const handleGoogleLogin = () => {
-    // TODO: wire up Google OAuth (NextAuth / Firebase Auth)
-    alert('Google login coming soon. Configure your OAuth provider.');
+  const handleGoogle = async () => {
+    setError('');
+    setGLoading(true);
+    const res = await loginWithGoogle();
+    setGLoading(false);
+    if (!res.ok) { setError(res.error || 'Google sign-in failed.'); return; }
+    router.push('/dashboard');
   };
 
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 16px 40px', background: 'var(--bg)' }}>
       <div style={{ width: '100%', maxWidth: 440 }}>
+
+        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="10" fill="var(--amber)" />
-              <text x="4" y="29" fontFamily="'EB Garamond',Georgia,serif" fontWeight="700" fontSize="22" fill="white" letterSpacing="-1">bB</text>
-            </svg>
-            <span style={{ fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 700, fontSize: 20, color: 'var(--text-primary)' }}>
+          <Link href="/" style={{ display: 'inline-block', marginBottom: 20 }}>
+            <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontWeight: 700, fontSize: 24, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               Bhartiya<span style={{ color: 'var(--amber)' }}>Bazar</span>
-            </span>
+            </div>
           </Link>
           <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontFamily: "'EB Garamond',serif", color: 'var(--text-primary)', marginBottom: 6 }}>Welcome back</h1>
           <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Sign in to your account</p>
@@ -82,22 +84,31 @@ export default function LoginPage() {
 
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 32, boxShadow: 'var(--shadow-md)' }}>
 
-          {/* Google Login */}
+          {/* Error banner */}
+          {error && (
+            <div style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'var(--error-bg)', border: '1px solid var(--crimson-glow)', color: 'var(--crimson)', fontSize: 13, marginBottom: 16 }}>
+              {error}
+            </div>
+          )}
+
+          {/* Google */}
           <button
             type="button"
-            onClick={handleGoogleLogin}
+            onClick={handleGoogle}
+            disabled={gLoading || loading}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
               padding: '11px 16px', borderRadius: 'var(--r-md)',
               border: '1px solid var(--border-hover)', background: 'var(--bg)',
               color: 'var(--text-primary)', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', transition: 'all var(--t)', marginBottom: 20,
+              cursor: gLoading ? 'wait' : 'pointer', transition: 'all var(--t)', marginBottom: 20,
+              opacity: gLoading ? 0.7 : 1,
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--amber)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = 'var(--shadow-sm)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-hover)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none'; }}
+            onMouseEnter={e => { (e.currentTarget).style.borderColor = 'var(--amber)'; (e.currentTarget).style.boxShadow = 'var(--shadow-sm)'; }}
+            onMouseLeave={e => { (e.currentTarget).style.borderColor = 'var(--border-hover)'; (e.currentTarget).style.boxShadow = 'none'; }}
           >
             <GoogleIcon />
-            Continue with Google
+            {gLoading ? 'Signing in…' : 'Continue with Google'}
           </button>
 
           {/* Divider */}
@@ -107,43 +118,39 @@ export default function LoginPage() {
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
           </div>
 
+          {/* Email / password form */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {error && (
-              <div style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'var(--error-bg)', border: '1px solid var(--crimson-glow)', color: 'var(--crimson)', fontSize: 13 }}>
-                {error}
-              </div>
-            )}
-
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>Email Address</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={inp}
+              <input
+                type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com" style={inp}
                 onFocus={e => (e.target.style.borderColor = 'var(--amber)')}
-                onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
+                onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')}
+              />
             </div>
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Password</label>
-                <Link href="#" style={{ fontSize: 12, color: 'var(--amber)' }}>Forgot password?</Link>
+                <Link href="/forgot-password" style={{ fontSize: 12, color: 'var(--amber)' }}>Forgot password?</Link>
               </div>
               <div style={{ position: 'relative' }}>
-                <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPass(e.target.value)} placeholder="Your password"
-                  style={{ ...inp, paddingRight: 42 }}
+                <input
+                  type={showPw ? 'text' : 'password'} value={password} onChange={e => setPass(e.target.value)}
+                  placeholder="Your password" style={{ ...inp, paddingRight: 42 }}
                   onFocus={e => (e.target.style.borderColor = 'var(--amber)')}
-                  onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(p => !p)}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 4 }}
-                  aria-label={showPw ? 'Hide password' : 'Show password'}
-                >
+                  onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')}
+                />
+                <button type="button" onClick={() => setShowPw(p => !p)} aria-label={showPw ? 'Hide password' : 'Show password'}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
                   {showPw ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" disabled={loading}
-              style={{ width: '100%', padding: 12, borderRadius: 'var(--r-md)', background: loading ? 'var(--amber-dark)' : 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}>
+            <button type="submit" disabled={loading || gLoading}
+              style={{ width: '100%', padding: 12, borderRadius: 'var(--r-md)', background: loading ? 'var(--amber-dark)' : 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.8 : 1 }}>
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
