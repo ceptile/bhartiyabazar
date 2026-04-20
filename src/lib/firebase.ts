@@ -1,7 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,13 +12,17 @@ const firebaseConfig = {
   measurementId:     process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Prevent duplicate initialization in Next.js hot reload
+// Guard: warn loudly in dev if keys are missing
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  const missing = Object.entries(firebaseConfig)
+    .filter(([, v]) => !v)
+    .map(([k]) => k);
+  if (missing.length > 0) {
+    console.error('[Firebase] Missing env vars:', missing.join(', '));
+  }
+}
+
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 export const auth = getAuth(app);
 export const db   = getFirestore(app);
-
-// Analytics only runs in browser (not SSR)
-export const analytics = typeof window !== 'undefined'
-  ? isSupported().then(yes => yes ? getAnalytics(app) : null)
-  : null;

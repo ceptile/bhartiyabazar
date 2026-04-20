@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
@@ -52,90 +53,135 @@ export interface RegisterData {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
 
-// Read full profile from Firestore
-async function fetchProfile(fbUser: FirebaseUser): Promise<AuthUser | null> {
+// ── Firestore profile helpers ─────────────────────────────────────────────
+async function fetchOrCreateProfile(fbUser: FirebaseUser): Promise<AuthUser> {
+  const ref = doc(db, 'users', fbUser.uid);
   try {
-    const snap = await getDoc(doc(db, 'users', fbUser.uid));
+    const snap = await getDoc(ref);
     if (snap.exists()) return snap.data() as AuthUser;
-    // First-time Google sign-in — create a minimal profile
-    const newUser: AuthUser = {
-      id: fbUser.uid,
-      name: fbUser.displayName || 'User',
-      email: fbUser.email || '',
-      role: 'user',
-      verified: false,
-      joinedAt: new Date().toISOString(),
-    };
-    await setDoc(doc(db, 'users', fbUser.uid), { ...newUser, createdAt: serverTimestamp() });
-    return newUser;
-  } catch { return null; }
+  } catch { /* network error — fall through to create */ }
+
+  const newUser: AuthUser = {
+    id: fbUser.uid,
+    name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
+    email: fbUser.email || '',
+    role: 'user',
+    verified: fbUser.emailVerified,
+    joinedAt: new Date().toISOString(),
+  };
+  try {
+    await setDoc(ref, { ...newUser, createdAt: serverTimestamp() });
+  } catch { /* silent — still return the user object */ }
+  return newUser;
 }
 
+function friendlyError(code: string, context: 'login' | 'register' | 'google'): string {
+  switch (code) {
+    case 'auth/user-not-found':
+    case 'auth/invalid-credential':
+    case 'auth/invalid-email':
+      return context === 'register'
+        ? 'Invalid email address.'
+        : 'No account found with this email.';
+    case 'auth/wrong-password':
+      return 'Incorrect password. Please try again.';
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists. Try signing in.';
+    case 'auth/weak-password':
+      return 'Password must be at least 6 characters.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please wait a few minutes and try again.';
+    case 'auth/network-request-failed':
+      return 'Network error. Check your internet connection.';
+    case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
+      return 'Sign-in was cancelled.';
+    case 'auth/popup-blocked':
+      return 'Popup was blocked by your browser. Please allow popups and try again.';
+    case 'auth/operation-not-allowed':
+      return 'This sign-in method is not enabled. Please contact support.';
+    case 'auth/configuration-not-found':
+      return 'Auth configuration missing. Please contact support.';
+    default:
+      if (context === 'google') return 'Google sign-in failed. Please try again.';
+      if (context === 'register') return 'Registration failed. Please try again.';
+      return 'Sign-in failed. Please try again.';
+  }
+}
+
+// ── Provider ──────────────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser]       = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Handle Google redirect result first (fires after page reloads from signInWithRedirect)
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          const profile = await fetchOrCreateProfile(result.user);
+          setUser(profile);
+        }
+      })
+      .catch(() => { /* ignore redirect errors silently */ });
+
+    // Main auth state listener
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
-        const profile = await fetchProfile(fbUser);
+        const profile = await fetchOrCreateProfile(fbUser);
         setUser(profile);
       } else {
         setUser(null);
       }
       setLoading(false);
     });
+
     return () => unsub();
   }, []);
 
   // ── Email / Password Login ──────────────────────────────────────────────
   const login = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       return { ok: true };
     } catch (err: unknown) {
       const code = (err as { code?: string }).code || '';
-      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential')
-        return { ok: false, error: 'No account found with this email.' };
-      if (code === 'auth/wrong-password')
-        return { ok: false, error: 'Incorrect password.' };
-      if (code === 'auth/too-many-requests')
-        return { ok: false, error: 'Too many attempts. Try again later.' };
-      return { ok: false, error: 'Login failed. Please try again.' };
+      return { ok: false, error: friendlyError(code, 'login') };
     }
   };
 
-  // ── Google Login ────────────────────────────────────────────────────────
+  // ── Google Login (redirect — works on all browsers/devices) ─────────────
   const loginWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
-      return { ok: true };
+      // signInWithRedirect navigates away then back — result handled in useEffect above
+      await signInWithRedirect(auth, googleProvider);
+      return { ok: true }; // page will redirect, this line rarely reached
     } catch (err: unknown) {
       const code = (err as { code?: string }).code || '';
-      if (code === 'auth/popup-closed-by-user')
-        return { ok: false, error: 'Sign-in popup was closed.' };
-      return { ok: false, error: 'Google sign-in failed. Please try again.' };
+      return { ok: false, error: friendlyError(code, 'google') };
     }
   };
 
-  // ── Register ─────────────────────────────────────────────────────────────
+  // ── Register ──────────────────────────────────────────────────────────────
   const register = async (data: RegisterData) => {
     try {
-      const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      await fbUpdateProfile(cred.user, { displayName: data.name });
+      const cred = await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
+      await fbUpdateProfile(cred.user, { displayName: data.name.trim() });
 
-      const slug = data.businessName
-        ?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || '';
+      const slug = (data.businessName || '')
+        .toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
       const newUser: AuthUser = {
         id: cred.user.uid,
-        name: data.name,
-        email: data.email,
+        name: data.name.trim(),
+        email: data.email.trim(),
         role: data.role,
-        phone: data.phone || '',
-        city: data.city || '',
-        businessName: data.businessName || '',
+        phone: data.phone?.trim() || '',
+        city: data.city?.trim() || '',
+        businessName: data.businessName?.trim() || '',
         businessCategory: data.businessCategory || '',
         businessSlug: slug,
         verified: false,
@@ -150,30 +196,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: true };
     } catch (err: unknown) {
       const code = (err as { code?: string }).code || '';
-      if (code === 'auth/email-already-in-use')
-        return { ok: false, error: 'An account with this email already exists.' };
-      if (code === 'auth/weak-password')
-        return { ok: false, error: 'Password must be at least 6 characters.' };
-      if (code === 'auth/invalid-email')
-        return { ok: false, error: 'Invalid email address.' };
-      return { ok: false, error: 'Registration failed. Please try again.' };
+      return { ok: false, error: friendlyError(code, 'register') };
     }
   };
 
-  // ── Logout ──────────────────────────────────────────────────────────────
+  // ── Logout ────────────────────────────────────────────────────────────────
   const logout = async () => {
     await signOut(auth);
     setUser(null);
   };
 
-  // ── Update Profile ──────────────────────────────────────────────────────
+  // ── Update Profile ────────────────────────────────────────────────────────
   const updateProfile = async (data: Partial<AuthUser>) => {
     if (!user) return;
     const updated = { ...user, ...data };
     setUser(updated);
     try {
       await updateDoc(doc(db, 'users', user.id), { ...data });
-    } catch { /* silent fail */ }
+    } catch { /* silent */ }
   };
 
   return (

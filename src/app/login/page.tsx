@@ -1,10 +1,9 @@
 'use client';
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
-/* ── Icons ─────────────────────────────────────────────────────────────── */
 function EyeIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -32,107 +31,108 @@ function GoogleIcon() {
   );
 }
 
-/* ── Shared input style helper ──────────────────────────────────────────── */
 const baseInp: React.CSSProperties = {
   width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)',
   border: '1px solid var(--border-hover)', background: 'var(--bg)',
-  color: 'var(--text-primary)', fontSize: 14, outline: 'none',
-  fontFamily: 'inherit',
+  color: 'var(--text-primary)', fontSize: 14, outline: 'none', fontFamily: 'inherit',
 };
 
-/* ── PasswordInput ──────────────────────────────────────────────────────── */
-function PasswordInput({
-  value, onChange, placeholder = 'Min 6 characters',
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
+function PasswordInput({ value, onChange, placeholder = 'Min 6 characters' }: {
+  value: string; onChange: (v: string) => void; placeholder?: string;
 }) {
   const [show, setShow] = useState(false);
   return (
     <div style={{ position: 'relative' }}>
       <input
-        type={show ? 'text' : 'password'}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
+        type={show ? 'text' : 'password'} value={value}
+        onChange={e => onChange(e.target.value)} placeholder={placeholder}
         style={{ ...baseInp, paddingRight: 44 }}
         onFocus={e => (e.target.style.borderColor = 'var(--amber)')}
         onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')}
       />
-      <button
-        type="button"
-        onClick={() => setShow(s => !s)}
+      <button type="button" onClick={() => setShow(s => !s)}
         aria-label={show ? 'Hide password' : 'Show password'}
-        style={{
-          position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-          color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
-          padding: 4, background: 'none', border: 'none', cursor: 'pointer',
-        }}
-      >
+        style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
         {show ? <EyeOffIcon /> : <EyeIcon />}
       </button>
     </div>
   );
 }
 
-/* ── Main Page ──────────────────────────────────────────────────────────── */
 export default function AuthPage() {
-  // 'signup' is the default tab
-  const [tab, setTab] = useState<'signup' | 'signin'>('signup');
-  const { login, loginWithGoogle, register } = useAuth();
+  const [tab, setTab]           = useState<'signup' | 'signin'>('signup');
+  const { login, loginWithGoogle, register, user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [gLoading, setGLoading] = useState(false);
+  const [su, setSu]             = useState({ name: '', email: '', phone: '', city: '', password: '', confirm: '' });
+  const [si, setSi]             = useState({ email: '', password: '' });
 
-  // Sign-up fields
-  const [su, setSu] = useState({ name: '', email: '', phone: '', city: '', password: '', confirm: '' });
-  const setSuF = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setSu(p => ({ ...p, [k]: e.target.value }));
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) router.replace('/dashboard');
+  }, [user, authLoading, router]);
 
-  // Sign-in fields
-  const [si, setSi] = useState({ email: '', password: '' });
+  const setSuF = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setSu(p => ({ ...p, [k]: e.target.value }));
 
   const handleGoogle = async () => {
     setError('');
     setGLoading(true);
+    // signInWithRedirect: navigates to Google then comes back
+    // If it returns an error synchronously, show it; otherwise page redirects
     const res = await loginWithGoogle();
-    setGLoading(false);
-    if (!res.ok) { setError(res.error || 'Google sign-in failed.'); return; }
-    router.push('/dashboard');
+    // Only reaches here if there was an immediate error (e.g. config missing)
+    if (!res.ok) {
+      setGLoading(false);
+      setError(res.error || 'Google sign-in failed.');
+    }
+    // On success the page will be navigated away — keep spinner showing
   };
 
   const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!su.name || !su.email || !su.password) { setError('Please fill all required fields.'); return; }
-    if (su.password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (!su.name.trim())         { setError('Full name is required.'); return; }
+    if (!su.email.trim())        { setError('Email is required.'); return; }
+    if (!su.password)            { setError('Password is required.'); return; }
+    if (su.password.length < 6)  { setError('Password must be at least 6 characters.'); return; }
     if (su.password !== su.confirm) { setError('Passwords do not match.'); return; }
     setLoading(true);
-    const res = await register({ name: su.name, email: su.email, phone: su.phone, city: su.city, password: su.password, role: 'user' });
+    const res = await register({
+      name: su.name, email: su.email, phone: su.phone,
+      city: su.city, password: su.password, role: 'user',
+    });
     setLoading(false);
     if (!res.ok) { setError(res.error || 'Registration failed.'); return; }
-    router.push('/dashboard');
+    router.replace('/dashboard');
   };
 
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!si.email || !si.password) { setError('Please fill in all fields.'); return; }
+    if (!si.email.trim()) { setError('Email is required.'); return; }
+    if (!si.password)     { setError('Password is required.'); return; }
     setLoading(true);
     const res = await login(si.email, si.password);
     setLoading(false);
-    if (!res.ok) { setError(res.error || 'Login failed.'); return; }
-    router.push('/dashboard');
+    if (!res.ok) { setError(res.error || 'Sign-in failed.'); return; }
+    router.replace('/dashboard');
   };
 
   const switchTab = (t: 'signup' | 'signin') => {
-    setTab(t);
-    setError('');
-    setLoading(false);
-    setGLoading(false);
+    setTab(t); setError(''); setLoading(false); setGLoading(false);
   };
+
+  // While checking auth state, show nothing to avoid flash
+  if (authLoading) return (
+    <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+      <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--amber)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 16px 40px', background: 'var(--bg)' }}>
@@ -141,7 +141,7 @@ export default function AuthPage() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <Link href="/" style={{ display: 'inline-block', marginBottom: 12 }}>
-            <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontWeight: 700, fontSize: 26, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontWeight: 700, fontSize: 28, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               Bhartiya<span style={{ color: 'var(--amber)' }}>Bazar</span>
             </div>
           </Link>
@@ -153,17 +153,13 @@ export default function AuthPage() {
           {/* Tabs */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid var(--border)' }}>
             {(['signup', 'signin'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => switchTab(t)}
-                style={{
-                  padding: '14px 0', fontSize: 14, fontWeight: tab === t ? 700 : 500,
-                  color: tab === t ? 'var(--amber)' : 'var(--text-muted)',
-                  background: tab === t ? 'var(--amber-subtle)' : 'transparent',
-                  border: 'none', borderBottom: tab === t ? '2px solid var(--amber)' : '2px solid transparent',
-                  cursor: 'pointer', transition: 'all 0.18s ease',
-                }}
-              >
+              <button key={t} onClick={() => switchTab(t)} style={{
+                padding: '14px 0', fontSize: 14, fontWeight: tab === t ? 700 : 500,
+                color: tab === t ? 'var(--amber)' : 'var(--text-muted)',
+                background: tab === t ? 'var(--amber-subtle)' : 'transparent',
+                border: 'none', borderBottom: tab === t ? '2px solid var(--amber)' : '2px solid transparent',
+                cursor: 'pointer', transition: 'all 0.18s ease',
+              }}>
                 {t === 'signup' ? 'Create Account' : 'Sign In'}
               </button>
             ))}
@@ -173,97 +169,86 @@ export default function AuthPage() {
 
             {/* Error */}
             {error && (
-              <div style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'var(--error-bg, #fff0f0)', border: '1px solid var(--crimson-glow, #fca5a5)', color: 'var(--crimson, #dc2626)', fontSize: 13, marginBottom: 18 }}>
-                ⚠️ {error}
+              <div style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', background: '#fff0f0', border: '1px solid #fca5a5', color: '#dc2626', fontSize: 13, marginBottom: 18, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <span style={{ flexShrink: 0 }}>⚠️</span>
+                <span>{error}</span>
               </div>
             )}
 
-            {/* Google button */}
-            <button
-              type="button"
-              onClick={handleGoogle}
-              disabled={gLoading || loading}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                padding: '11px 16px', borderRadius: 'var(--r-md)',
-                border: '1px solid var(--border-hover)', background: 'var(--bg)',
-                color: 'var(--text-primary)', fontSize: 14, fontWeight: 600,
-                cursor: gLoading ? 'wait' : 'pointer', marginBottom: 20,
-                opacity: gLoading ? 0.7 : 1, transition: 'all 0.18s ease',
-              }}
+            {/* Google */}
+            <button type="button" onClick={handleGoogle} disabled={gLoading || loading}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '11px 16px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: gLoading ? 'wait' : 'pointer', marginBottom: 20, opacity: gLoading ? 0.7 : 1, transition: 'all 0.18s ease' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--amber)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.boxShadow = 'none'; }}
-            >
-              <GoogleIcon />
-              {gLoading ? 'Please wait…' : tab === 'signup' ? 'Sign up with Google' : 'Sign in with Google'}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.boxShadow = 'none'; }}>
+              {gLoading
+                ? <><div style={{ width: 16, height: 16, border: '2px solid #ccc', borderTopColor: '#666', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> Redirecting to Google…</>
+                : <><GoogleIcon /> {tab === 'signup' ? 'Sign up with Google' : 'Sign in with Google'}</>
+              }
             </button>
 
             {/* Divider */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
               <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-              <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500 }}>
-                {tab === 'signup' ? 'or sign up with email' : 'or sign in with email'}
+              <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                or with email
               </span>
               <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
             </div>
 
-            {/* ── SIGN UP FORM ── */}
+            {/* Sign Up Form */}
             {tab === 'signup' && (
-              <form onSubmit={handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <form onSubmit={handleSignUp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 5 }}>Full Name *</label>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 5 }}>Full Name <span style={{ color: '#dc2626' }}>*</span></label>
                   <input style={baseInp} placeholder="Rahul Sharma" value={su.name} onChange={setSuF('name')}
-                    onFocus={e => (e.target.style.borderColor = 'var(--amber)')}
-                    onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
+                    onFocus={e => (e.target.style.borderColor = 'var(--amber)')} onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 5 }}>Email *</label>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 5 }}>Email <span style={{ color: '#dc2626' }}>*</span></label>
                   <input type="email" style={baseInp} placeholder="you@example.com" value={su.email} onChange={setSuF('email')}
-                    onFocus={e => (e.target.style.borderColor = 'var(--amber)')}
-                    onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
+                    onFocus={e => (e.target.style.borderColor = 'var(--amber)')} onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div>
                     <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 5 }}>Phone</label>
                     <input style={baseInp} placeholder="+91 98100…" value={su.phone} onChange={setSuF('phone')}
-                      onFocus={e => (e.target.style.borderColor = 'var(--amber)')}
-                      onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
+                      onFocus={e => (e.target.style.borderColor = 'var(--amber)')} onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
                   </div>
                   <div>
                     <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 5 }}>City</label>
                     <input style={baseInp} placeholder="Delhi" value={su.city} onChange={setSuF('city')}
-                      onFocus={e => (e.target.style.borderColor = 'var(--amber)')}
-                      onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
+                      onFocus={e => (e.target.style.borderColor = 'var(--amber)')} onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 5 }}>Password *</label>
-                  <PasswordInput value={su.password} onChange={v => setSu(p => ({ ...p, password: v }))} placeholder="Min 6 characters" />
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 5 }}>Password <span style={{ color: '#dc2626' }}>*</span></label>
+                  <PasswordInput value={su.password} onChange={v => setSu(p => ({ ...p, password: v }))} placeholder="At least 6 characters" />
                 </div>
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 5 }}>Confirm Password *</label>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 5 }}>Confirm Password <span style={{ color: '#dc2626' }}>*</span></label>
                   <PasswordInput value={su.confirm} onChange={v => setSu(p => ({ ...p, confirm: v }))} placeholder="Repeat password" />
                 </div>
-                <button type="submit" disabled={loading}
-                  style={{ width: '100%', padding: '12px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: loading ? 'wait' : 'pointer', marginTop: 4, opacity: loading ? 0.8 : 1 }}>
-                  {loading ? 'Creating account…' : 'Create Free Account'}
+                <button type="submit" disabled={loading || gLoading}
+                  style={{ width: '100%', padding: 12, borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: loading ? 'wait' : 'pointer', marginTop: 4, opacity: loading ? 0.8 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {loading
+                    ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> Creating account…</>
+                    : 'Create Free Account'}
                 </button>
                 <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>
-                  Want to list a business?{' '}
-                  <Link href="/register-business" style={{ color: 'var(--amber)', fontWeight: 600 }}>Register here</Link>
+                  Business owner?{' '}
+                  <Link href="/register-business" style={{ color: 'var(--amber)', fontWeight: 600 }}>Register your business</Link>
                 </p>
               </form>
             )}
 
-            {/* ── SIGN IN FORM ── */}
+            {/* Sign In Form */}
             {tab === 'signin' && (
-              <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <form onSubmit={handleSignIn} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 5 }}>Email Address</label>
                   <input type="email" value={si.email} onChange={e => setSi(p => ({ ...p, email: e.target.value }))}
                     placeholder="you@example.com" style={baseInp}
-                    onFocus={e => (e.target.style.borderColor = 'var(--amber)')}
-                    onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
+                    onFocus={e => (e.target.style.borderColor = 'var(--amber)')} onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
                 </div>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
@@ -272,13 +257,14 @@ export default function AuthPage() {
                   </div>
                   <PasswordInput value={si.password} onChange={v => setSi(p => ({ ...p, password: v }))} placeholder="Your password" />
                 </div>
-                <button type="submit" disabled={loading}
-                  style={{ width: '100%', padding: 12, borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.8 : 1 }}>
-                  {loading ? 'Signing in…' : 'Sign In'}
+                <button type="submit" disabled={loading || gLoading}
+                  style={{ width: '100%', padding: 12, borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.8 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {loading
+                    ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> Signing in…</>
+                    : 'Sign In'}
                 </button>
               </form>
             )}
-
           </div>
         </div>
 
@@ -289,6 +275,7 @@ export default function AuthPage() {
           <Link href="/privacy" style={{ color: 'var(--amber)' }}>Privacy Policy</Link>
         </p>
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
