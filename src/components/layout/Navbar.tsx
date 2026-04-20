@@ -94,7 +94,7 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Right: only shown when logged in */}
+          {/* Right actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {user ? (
               <div style={{ position: 'relative' }}>
@@ -137,10 +137,10 @@ export default function Navbar() {
                       </div>
                     </div>
 
-                    {/* List / Manage Business CTA */}
+                    {/* List / Manage Business CTA — fixed href */}
                     <div style={{ padding: '8px 10px 4px' }}>
                       <Link
-                        href="/list-business"
+                        href="/register-business"
                         onClick={() => setDropOpen(false)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 8,
@@ -187,19 +187,33 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              /* Not logged in — single clean Sign In link, no button clutter */
-              <Link
-                href="/login"
-                style={{
-                  padding: '7px 20px', borderRadius: 'var(--r-md)',
-                  fontSize: 13, fontWeight: 600,
-                  background: 'var(--amber)', color: '#fff',
-                  border: '1px solid var(--amber)', textDecoration: 'none',
-                  transition: 'all var(--t)',
-                }}
-              >
-                Sign In
-              </Link>
+              /* Not logged in — Sign In + List Business */
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Link
+                  href="/login"
+                  style={{
+                    padding: '7px 16px', borderRadius: 'var(--r-md)',
+                    fontSize: 13, fontWeight: 500, textDecoration: 'none',
+                    border: '1px solid var(--border-strong)',
+                    color: 'var(--text-primary)', background: 'transparent',
+                    transition: 'all var(--t)',
+                  }}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/register-business"
+                  style={{
+                    padding: '7px 16px', borderRadius: 'var(--r-md)',
+                    fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                    background: 'var(--amber)', color: '#fff',
+                    border: '1px solid var(--amber)',
+                    transition: 'all var(--t)',
+                  }}
+                >
+                  List Business
+                </Link>
+              </div>
             )}
           </div>
         </div>
