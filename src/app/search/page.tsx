@@ -53,42 +53,29 @@ const SORT_OPTIONS = [
   { label: 'Newest', value: 'newest' },
 ];
 
-// Seed businesses from registered users + static data
-const STATIC_BUSINESSES = [
-  { id: 's1', name: 'Sharma Electronics', category: 'Electronics & Repair', city: 'Delhi', area: 'Karol Bagh', rating: 4.5, reviewCount: 128, description: 'Trusted electronics repair and retail since 1995. Authorised service for all major brands.', phone: '+91 98100 11111', verified: true, slug: 'sharma-electronics', joinedAt: '2020-01-15' },
-  { id: 's2', name: 'Meera Beauty Salon', category: 'Salons & Beauty', city: 'Mumbai', area: 'Andheri West', rating: 4.8, reviewCount: 256, description: 'Premium beauty services — hair, skin, nail, and bridal packages by certified stylists.', phone: '+91 98200 22222', verified: true, slug: 'meera-beauty-salon', joinedAt: '2019-06-10' },
-  { id: 's3', name: 'Rajput Fitness Club', category: 'Fitness & Gym', city: 'Jaipur', area: 'Vaishali Nagar', rating: 4.3, reviewCount: 89, description: 'State-of-the-art gym with personal trainers, cardio zone, and group fitness classes.', phone: '+91 94100 33333', verified: true, slug: 'rajput-fitness-club', joinedAt: '2021-03-22' },
-  { id: 's4', name: 'Delhi Dine House', category: 'Restaurants & Food', city: 'Delhi', area: 'Connaught Place', rating: 4.6, reviewCount: 342, description: 'Authentic North Indian cuisine. Dine-in, takeaway and bulk catering available.', phone: '+91 91100 44444', verified: true, slug: 'delhi-dine-house', joinedAt: '2018-11-08' },
-  { id: 's5', name: 'Bhiwadi Auto Works', category: 'Auto & Vehicles', city: 'Bhiwadi', area: 'Phase 2', rating: 4.2, reviewCount: 67, description: 'Multi-brand car service centre. Engine, AC, tyres, and full body work.', phone: '+91 97300 55555', verified: false, slug: 'bhiwadi-auto-works', joinedAt: '2022-07-14' },
-  { id: 's6', name: 'Sunita Kirana Store', category: 'Grocery & Kirana', city: 'Noida', area: 'Sector 62', rating: 4.1, reviewCount: 44, description: 'Daily essentials, fresh produce, and home delivery within 5 km.', phone: '+91 96200 66666', verified: false, slug: 'sunita-kirana-store', joinedAt: '2023-01-30' },
-  { id: 's7', name: 'Arjun Law Associates', category: 'Legal & Finance', city: 'Bangalore', area: 'MG Road', rating: 4.7, reviewCount: 113, description: 'Full-service legal firm — corporate, property, family, and consumer law.', phone: '+91 99800 77777', verified: true, slug: 'arjun-law-associates', joinedAt: '2017-05-20' },
-  { id: 's8', name: 'Gupta Home Services', category: 'Home Services', city: 'Gurgaon', area: 'DLF Phase 4', rating: 4.4, reviewCount: 198, description: 'Plumbing, electricians, painters, and carpenters — same-day service guaranteed.', phone: '+91 98700 88888', verified: true, slug: 'gupta-home-services', joinedAt: '2020-09-01' },
-  { id: 's9', name: 'Radiance Skin Clinic', category: 'Health & Doctors', city: 'Hyderabad', area: 'Banjara Hills', rating: 4.9, reviewCount: 301, description: 'Dermatology and aesthetic treatments by MBBS-certified dermatologists.', phone: '+91 98000 99999', verified: true, slug: 'radiance-skin-clinic', joinedAt: '2016-03-17' },
-  { id: 's10', name: 'Chennai Catering Co.', category: 'Events & Catering', city: 'Chennai', area: 'Anna Nagar', rating: 4.5, reviewCount: 175, description: 'Weddings, corporate events, and private parties. South and North Indian menus.', phone: '+91 94400 10101', verified: true, slug: 'chennai-catering-co', joinedAt: '2019-12-25' },
-  { id: 's11', name: 'Kolkata Photo Studio', category: 'Photography', city: 'Kolkata', area: 'Park Street', rating: 4.6, reviewCount: 93, description: 'Wedding, product, and portrait photography. Studio and outdoor shoots.', phone: '+91 97000 11212', verified: false, slug: 'kolkata-photo-studio', joinedAt: '2021-08-18' },
-  { id: 's12', name: 'Pune Travel Experts', category: 'Travel & Tours', city: 'Pune', area: 'FC Road', rating: 4.3, reviewCount: 57, description: 'Domestic and international tour packages, visa assistance, and corporate travel.', phone: '+91 98600 13131', verified: true, slug: 'pune-travel-experts', joinedAt: '2022-02-14' },
-];
-
-type RegisteredUser = {
+type Business = {
   id: string;
-  role: string;
-  businessName?: string;
-  businessCategory?: string;
-  city?: string;
-  area?: string;
-  businessSlug?: string;
-  phone?: string;
-  joinedAt?: string;
+  name: string;
+  category: string;
+  city: string;
+  area: string;
+  rating: number;
+  reviewCount: number;
+  description: string;
+  phone: string;
+  verified: boolean;
+  slug: string;
+  joinedAt: string;
 };
 
-function getRegisteredBusinesses() {
+function getRegisteredBusinesses(): Business[] {
   try {
-    const users: RegisteredUser[] = JSON.parse(localStorage.getItem('bb_users_db') || '[]');
+    const users = JSON.parse(localStorage.getItem('bb_users_db') || '[]');
     return users
-      .filter(u => u.role === 'business' && u.businessName)
-      .map(u => ({
+      .filter((u: { role: string; businessName?: string }) => u.role === 'business' && u.businessName)
+      .map((u: { id: string; businessName: string; businessCategory?: string; city?: string; area?: string; phone?: string; businessSlug?: string; joinedAt?: string }) => ({
         id: u.id,
-        name: u.businessName!,
+        name: u.businessName,
         category: u.businessCategory || 'Other',
         city: u.city || 'India',
         area: u.area || '',
@@ -104,41 +91,50 @@ function getRegisteredBusinesses() {
 }
 
 export default function SearchPage() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery]       = useState('');
   const [category, setCategory] = useState('');
-  const [city, setCity] = useState('');
-  const [sort, setSort] = useState('match');
-  const [page, setPage] = useState(1);
-  const [businesses, setBusinesses] = useState(STATIC_BUSINESSES);
+  const [city, setCity]         = useState('');
+  const [sort, setSort]         = useState('match');
+  const [page, setPage]         = useState(1);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
 
   const PER_PAGE = 9;
 
   useEffect(() => {
-    const registered = getRegisteredBusinesses();
-    setBusinesses([...STATIC_BUSINESSES, ...registered]);
+    setBusinesses(getRegisteredBusinesses());
   }, []);
 
   const filtered = useMemo(() => {
     let list = [...businesses];
     if (query.trim()) {
       const q = query.toLowerCase();
-      list = list.filter(b => b.name.toLowerCase().includes(q) || b.category.toLowerCase().includes(q) || b.description.toLowerCase().includes(q) || b.area.toLowerCase().includes(q));
+      list = list.filter(b =>
+        b.name.toLowerCase().includes(q) ||
+        b.category.toLowerCase().includes(q) ||
+        b.description.toLowerCase().includes(q) ||
+        b.area.toLowerCase().includes(q)
+      );
     }
     if (category) list = list.filter(b => b.category === category);
     if (city && city !== 'All Cities') list = list.filter(b => b.city === city);
-    if (sort === 'rating')  list = [...list].sort((a,b) => b.rating - a.rating);
-    if (sort === 'reviews') list = [...list].sort((a,b) => b.reviewCount - a.reviewCount);
-    if (sort === 'newest')  list = [...list].sort((a,b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime());
+    if (sort === 'rating')  list = [...list].sort((a, b) => b.rating - a.rating);
+    if (sort === 'reviews') list = [...list].sort((a, b) => b.reviewCount - a.reviewCount);
+    if (sort === 'newest')  list = [...list].sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime());
     return list;
   }, [businesses, query, category, city, sort]);
 
-  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated   = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalPages  = Math.ceil(filtered.length / PER_PAGE);
 
-  const inp: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border-hover)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 14, color: 'var(--text-primary)', outline: 'none', fontFamily: 'var(--font-body)' };
+  const inp: React.CSSProperties = {
+    background: 'var(--surface)', border: '1px solid var(--border-hover)',
+    borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 14,
+    color: 'var(--text-primary)', outline: 'none', fontFamily: 'var(--font-body)',
+  };
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 64 }}>
+
       {/* Header */}
       <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: 'clamp(28px,5vw,48px) 0' }}>
         <div className="container">
@@ -147,7 +143,9 @@ export default function SearchPage() {
             Find Businesses Across India
           </h1>
           <p style={{ fontSize: 15, color: 'var(--text-muted)', marginBottom: 24, maxWidth: 500 }}>
-            Search from {businesses.length}+ verified businesses in your city
+            {businesses.length > 0
+              ? `${businesses.length} businesses listed`
+              : 'Be the first to list your business — completely free'}
           </p>
 
           {/* Search bar */}
@@ -186,6 +184,7 @@ export default function SearchPage() {
 
           {/* Results */}
           <div style={{ flex: 1, minWidth: 0 }}>
+
             {/* Toolbar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
               <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
@@ -218,14 +217,31 @@ export default function SearchPage() {
               ))}
             </div>
 
-            {paginated.length === 0 ? (
+            {/* Empty state */}
+            {paginated.length === 0 && (
               <div className="empty-state">
-                <div className="empty-state-icon"><Icon d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" size={48} /></div>
-                <h3>No businesses found</h3>
-                <p>Try different keywords or clear your filters to see all listings.</p>
-                <button onClick={() => { setQuery(''); setCategory(''); setCity(''); }} className="btn btn-outline">Clear Filters</button>
+                <div className="empty-state-icon">
+                  <Icon d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10" size={48} />
+                </div>
+                <h3>{businesses.length === 0 ? 'No businesses listed yet' : 'No businesses found'}</h3>
+                <p>
+                  {businesses.length === 0
+                    ? 'BhartiyaBazar is growing. Be the first to list your business — completely free.'
+                    : 'Try different keywords or clear your filters.'}
+                </p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <Link href="/register-business" className="btn btn-primary">List Your Business Free</Link>
+                  {businesses.length > 0 && (
+                    <button onClick={() => { setQuery(''); setCategory(''); setCity(''); }} className="btn btn-outline">
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
               </div>
-            ) : (
+            )}
+
+            {/* Cards grid */}
+            {paginated.length > 0 && (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
                   {paginated.map((b, i) => (
@@ -240,14 +256,14 @@ export default function SearchPage() {
                       className="btn btn-outline btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Icon d="M15 18l-6-6 6-6" size={14} /> Prev
                     </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).slice(
-                      Math.max(0, page - 3), Math.min(totalPages, page + 2)
-                    ).map(n => (
-                      <button key={n} onClick={() => setPage(n)}
-                        style={{ width: 34, height: 34, borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: n === page ? 700 : 400, background: n === page ? 'var(--amber)' : 'var(--surface)', border: `1px solid ${n === page ? 'var(--amber)' : 'var(--border)'}`, color: n === page ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}>
-                        {n}
-                      </button>
-                    ))}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .slice(Math.max(0, page - 3), Math.min(totalPages, page + 2))
+                      .map(n => (
+                        <button key={n} onClick={() => setPage(n)}
+                          style={{ width: 34, height: 34, borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: n === page ? 700 : 400, background: n === page ? 'var(--amber)' : 'var(--surface)', border: `1px solid ${n === page ? 'var(--amber)' : 'var(--border)'}`, color: n === page ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}>
+                          {n}
+                        </button>
+                      ))}
                     <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}
                       className="btn btn-outline btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       Next <Icon d="M9 18l6-6-6-6" size={14} />
@@ -263,13 +279,13 @@ export default function SearchPage() {
   );
 }
 
-function BusinessCard({ biz, delay }: { biz: typeof STATIC_BUSINESSES[number]; delay: number }) {
+function BusinessCard({ biz, delay }: { biz: Business; delay: number }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ background: 'var(--surface)', border: `1px solid ${hovered ? 'var(--amber-glow)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)', padding: '20px', transition: 'all var(--t)', transform: hovered ? 'translateY(-2px)' : 'none', boxShadow: hovered ? 'var(--shadow-md)' : 'var(--shadow-sm)', animationDelay: `${delay}ms` }}
+      style={{ background: 'var(--surface)', border: `1px solid ${hovered ? 'var(--amber-glow)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)', padding: '20px', transition: 'all var(--t)', transform: hovered ? 'translateY(-2px)' : 'none', boxShadow: hovered ? 'var(--shadow-md)' : 'var(--shadow-sm)' }}
       className="anim-fadeUp">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
         <div style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--amber)', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, flexShrink: 0 }}>

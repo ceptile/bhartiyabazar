@@ -24,7 +24,6 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const pathname = usePathname();
   const router   = useRouter();
@@ -36,7 +35,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  useEffect(() => { setMenuOpen(false); setDropOpen(false); }, [pathname]);
+  useEffect(() => { setDropOpen(false); }, [pathname]);
 
   const isActive = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href);
   const initials = user?.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '';
@@ -54,7 +53,7 @@ export default function Navbar() {
       }}>
         <div className="container" style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 
-          {/* Text-only logo, no subtitle, enlarged */}
+          {/* Text-only logo */}
           <Link href="/" style={{ flexShrink: 0, lineHeight: 1 }}>
             <div style={{
               fontFamily: "'EB Garamond', Georgia, serif",
@@ -68,7 +67,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'center' }} className="hide-mobile">
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'center' }}>
             {NAV_LINKS.map(l => (
               <Link key={l.href} href={l.href} style={{
                 padding: '6px 13px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 500,
@@ -80,7 +79,7 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Actions — no theme toggle */}
+          {/* Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {user ? (
               <div style={{ position: 'relative' }}>
@@ -90,7 +89,7 @@ export default function Navbar() {
                   border: '1px solid var(--border-hover)', background: 'var(--surface)', cursor: 'pointer',
                 }}>
                   <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--amber)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{initials}</div>
-                  <span className="hide-mobile" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{user.name.split(' ')[0]}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{user.name.split(' ')[0]}</span>
                   <Icon d="M6 9l6 6 6-6" size={14} />
                 </button>
 
@@ -128,33 +127,12 @@ export default function Navbar() {
               </div>
             ) : (
               <>
-                <Link href="/login" className="hide-mobile" style={{ padding: '7px 16px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, border: '1px solid var(--border-strong)', color: 'var(--text-primary)', background: 'transparent' }}>Sign In</Link>
+                <Link href="/login" style={{ padding: '7px 16px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 500, border: '1px solid var(--border-strong)', color: 'var(--text-primary)', background: 'transparent' }}>Sign In</Link>
                 <Link href="/register-business" style={{ padding: '7px 16px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 600, background: 'var(--amber)', color: '#fff', border: '1px solid var(--amber)' }}>List Business</Link>
               </>
             )}
-
-            <button onClick={() => setMenuOpen(p => !p)} aria-label="Menu" className="show-mobile"
-              style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'transparent', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon d={menuOpen ? 'M18 6L6 18 M6 6l12 12' : 'M3 12h18 M3 6h18 M3 18h18'} size={18} />
-            </button>
           </div>
         </div>
-
-        {menuOpen && (
-          <div style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {NAV_LINKS.map(l => (
-              <Link key={l.href} href={l.href} style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, fontWeight: 500, color: isActive(l.href) ? 'var(--amber)' : 'var(--text-primary)', background: isActive(l.href) ? 'var(--amber-subtle)' : 'transparent' }}>{l.label}</Link>
-            ))}
-            {!user ? <>
-              <Link href="/login" style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--text-primary)', fontWeight: 500 }}>Sign In</Link>
-              <Link href="/register" style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--text-primary)', fontWeight: 500 }}>Create Account</Link>
-            </> : <>
-              <Link href="/dashboard" style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--text-primary)', fontWeight: 500 }}>Dashboard</Link>
-              <Link href="/settings" style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--text-primary)', fontWeight: 500 }}>Settings</Link>
-              <button onClick={() => { logout(); router.push('/'); }} style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--crimson)', fontWeight: 500, textAlign: 'left' }}>Sign Out</button>
-            </>}
-          </div>
-        )}
       </header>
       {dropOpen && <div onClick={() => setDropOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />}
     </>
