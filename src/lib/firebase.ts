@@ -12,21 +12,11 @@ const firebaseConfig = {
   measurementId:     process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  const missing = Object.entries(firebaseConfig)
-    .filter(([, v]) => !v)
-    .map(([k]) => k);
-  if (missing.length > 0) {
-    console.error('[Firebase] Missing env vars:', missing.join(', '));
-  }
-}
-
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 export const auth = getAuth(app);
 export const db   = getFirestore(app);
 
-// Set persistence to LOCAL so user stays logged in across page reloads
 if (typeof window !== 'undefined') {
   setPersistence(auth, browserLocalPersistence).catch(() => {});
 }

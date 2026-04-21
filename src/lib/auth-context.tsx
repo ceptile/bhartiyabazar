@@ -1,13 +1,13 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   updateProfile as fbUpdateProfile,
+  createUserWithEmailAndPassword,
   User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -43,8 +43,7 @@ export interface RegisterData {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  loginWithGoogle: () => Promise<{ ok: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<void>;
   register: (data: RegisterData) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<AuthUser>) => Promise<void>;
@@ -57,7 +56,6 @@ googleProvider.addScope('email');
 googleProvider.addScope('profile');
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// ── Firestore helpers ─────────────────────────────────────────────────────
 async function fetchOrCreateProfile(fbUser: FirebaseUser): Promise<AuthUser> {
   const ref = doc(db, 'users', fbUser.uid);
   try {
@@ -70,7 +68,7 @@ async function fetchOrCreateProfile(fbUser: FirebaseUser): Promise<AuthUser> {
         email: fbUser.email || data.email || '',
       };
     }
-  } catch { /* network error — fall through to create */ }
+  } catch { /* network error — fall through */ }
 
   const newUser: AuthUser = {
     id: fbUser.uid,
@@ -86,35 +84,23 @@ async function fetchOrCreateProfile(fbUser: FirebaseUser): Promise<AuthUser> {
   return newUser;
 }
 
-function friendlyError(code: string, context: 'login' | 'register' | 'google'): string {
-  const map: Record<string, string> = {
-    'auth/user-not-found':        'No account found with this email. Please sign up first.',
-    'auth/invalid-credential':    'Incorrect email or password. Please try again.',
-    'auth/wrong-password':        'Incorrect password. Please try again.',
-    'auth/email-already-in-use':  'An account with this email already exists. Please sign in instead.',
-    'auth/weak-password':         'Password must be at least 6 characters.',
-    'auth/too-many-requests':     'Too many attempts. Please wait a few minutes and try again.',
-    'auth/network-request-failed':'Network error. Please check your internet connection.',
-    'auth/popup-closed-by-user':  '',
-    'auth/cancelled-popup-request': '',
-    'auth/popup-blocked':         'Popup was blocked. Please allow popups for this site and try again.',
-    'auth/operation-not-allowed': 'This sign-in method is not enabled. Please enable it in the Firebase Console → Authentication → Sign-in methods.',
-    'auth/invalid-email':         'Invalid email address.',
-    'auth/missing-password':      'Password is required.',
-    'auth/internal-error':        'Firebase returned an internal error. Please check your Firebase Console → Authentication → Sign-in methods and ensure Google sign-in is enabled, and your Vercel domain is added under Authorised domains.',
-    'auth/unauthorized-domain':   'This domain is not authorised in Firebase. Go to Firebase Console → Authentication → Settings → Authorised domains and add your Vercel deployment URL.',
-    'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method. Please sign in with email/password instead.',
-  };
-  if (map[code] !== undefined) return map[code];
-  if (context === 'google')   return `Google sign-in failed. (${code})`;
-  if (context === 'register') return `Registration failed. (${code})`;
-  return `Sign-in failed. (${code})`;
-}
-
-// ── Provider ──────────────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser]       = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Handle redirect result on mount (called after Google redirects back)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          const profile = await fetchOrCreateProfile(result.user);
+          setUser(profile);
+        }
+      })
+      .catch((err) => {
+        console.error('[Google Redirect Error]', err?.code, err?.message);
+      });
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
@@ -140,49 +126,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, []);
 
-  // ── Email / Password Login ────────────────────────────────────────────
-  const login = async (email: string, password: string) => {
-    try {
-      await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
-      return { ok: true };
-    } catch (err: unknown) {
-      const code = (err as { code?: string }).code || '';
-      return { ok: false, error: friendlyError(code, 'login') };
-    }
-  };
-
-  // ── Google Login ──────────────────────────────────────────────────────
+  // Google login — redirect flow (works on all browsers & deployed domains)
   const loginWithGoogle = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      // If new user via Google, ensure Firestore profile exists with role='user'
-      const ref = doc(db, 'users', result.user.uid);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        const newUser: AuthUser = {
-          id: result.user.uid,
-          name: result.user.displayName || result.user.email?.split('@')[0] || 'User',
-          email: result.user.email || '',
-          role: 'user',
-          verified: result.user.emailVerified,
-          joinedAt: new Date().toISOString(),
-        };
-        await setDoc(ref, { ...newUser, createdAt: serverTimestamp() });
-      }
-      return { ok: true };
-    } catch (err: unknown) {
-      const code = (err as { code?: string }).code || '';
-      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
-        return { ok: false, error: '' };
-      }
-      if (code === 'auth/account-exists-with-different-credential') {
-        return { ok: false, error: 'An account already exists with this email. Please sign in with your email and password.' };
-      }
-      return { ok: false, error: friendlyError(code, 'google') };
-    }
+    await signInWithRedirect(auth, googleProvider);
+    // Page will redirect to Google and come back — no return value needed
   };
 
-  // ── Register ──────────────────────────────────────────────────────────
+  // Register with email/password
   const register = async (data: RegisterData) => {
     try {
       const cred = await createUserWithEmailAndPassword(
@@ -217,19 +167,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: true };
     } catch (err: unknown) {
       const code = (err as { code?: string }).code || '';
-      // auth/email-already-in-use is the correct Firebase error for duplicate email
-      // No need for fetchSignInMethodsForEmail — Firebase throws this natively
-      return { ok: false, error: friendlyError(code, 'register') };
+      const messages: Record<string, string> = {
+        'auth/email-already-in-use': 'An account with this email already exists.',
+        'auth/weak-password':        'Password must be at least 6 characters.',
+        'auth/invalid-email':        'Invalid email address.',
+        'auth/too-many-requests':    'Too many attempts. Please wait and try again.',
+        'auth/network-request-failed': 'Network error. Check your connection.',
+      };
+      return { ok: false, error: messages[code] || `Registration failed. (${code})` };
     }
   };
 
-  // ── Logout ────────────────────────────────────────────────────────────
   const logout = async () => {
     await signOut(auth);
     setUser(null);
   };
 
-  // ── Update Profile ────────────────────────────────────────────────────
   const updateProfile = async (data: Partial<AuthUser>) => {
     if (!user) return;
     setUser(prev => prev ? { ...prev, ...data } : prev);
@@ -239,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, loginWithGoogle, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
