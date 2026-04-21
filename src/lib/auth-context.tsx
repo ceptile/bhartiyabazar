@@ -56,19 +56,21 @@ googleProvider.addScope('email');
 googleProvider.addScope('profile');
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-async function fetchOrCreateProfile(fbUser: FirebaseUser): Promise<AuthUser> {
+async function upsertProfile(fbUser: FirebaseUser): Promise<AuthUser> {
   const ref = doc(db, 'users', fbUser.uid);
   try {
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const data = snap.data() as AuthUser;
-      return {
+      // Always sync latest name/email from Google
+      const updated = {
         ...data,
         name: fbUser.displayName || data.name || fbUser.email?.split('@')[0] || 'User',
         email: fbUser.email || data.email || '',
       };
+      return updated;
     }
-  } catch { /* network error — fall through */ }
+  } catch { /* fall through */ }
 
   const newUser: AuthUser = {
     id: fbUser.uid,
@@ -88,25 +90,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser]       = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Handle redirect result on mount (called after Google redirects back)
   useEffect(() => {
+    let redirectHandled = false;
+
+    // Step 1: Check for redirect result first
     getRedirectResult(auth)
       .then(async (result) => {
         if (result?.user) {
-          const profile = await fetchOrCreateProfile(result.user);
+          redirectHandled = true;
+          const profile = await upsertProfile(result.user);
           setUser(profile);
+          // Redirect to home after successful Google login
+          if (typeof window !== 'undefined' && window.location.pathname === '/login') {
+            window.location.href = '/';
+          }
         }
       })
       .catch((err) => {
-        console.error('[Google Redirect Error]', err?.code, err?.message);
+        console.error('[getRedirectResult error]', err?.code, err?.message);
       });
-  }, []);
 
-  useEffect(() => {
+    // Step 2: Auth state listener (handles all sessions including redirect)
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         try {
-          const profile = await fetchOrCreateProfile(fbUser);
+          const profile = await upsertProfile(fbUser);
           setUser(profile);
         } catch {
           setUser({
@@ -119,20 +127,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       } else {
-        setUser(null);
+        if (!redirectHandled) setUser(null);
       }
       setLoading(false);
     });
+
     return () => unsub();
   }, []);
 
-  // Google login — redirect flow (works on all browsers & deployed domains)
   const loginWithGoogle = async () => {
-    await signInWithRedirect(auth, googleProvider);
-    // Page will redirect to Google and come back — no return value needed
+    try {
+      await signInWithRedirect(auth, googleProvider);
+    } catch (err) {
+      console.error('[signInWithRedirect error]', err);
+    }
   };
 
-  // Register with email/password
   const register = async (data: RegisterData) => {
     try {
       const cred = await createUserWithEmailAndPassword(
