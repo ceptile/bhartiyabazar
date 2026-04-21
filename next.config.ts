@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  poweredByHeader: false,   // Hide "X-Powered-By: Next.js"
+  poweredByHeader: false,
 
   images: {
     remotePatterns: [
@@ -15,13 +15,12 @@ const nextConfig: NextConfig = {
       source: '/(.*)',
       headers: [
         { key: 'X-DNS-Prefetch-Control', value: 'on' },
-        { key: 'X-Frame-Options', value: 'DENY' },
         { key: 'X-Content-Type-Options', value: 'nosniff' },
+        // NOTE: X-Frame-Options: DENY removed — it blocks Firebase OAuth popup/redirect flow
       ],
     },
   ],
 
-  // Disable exposing build ID
   generateBuildId: async () => 'bhartiyabazar-build',
 };
 

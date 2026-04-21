@@ -1,8 +1,7 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
@@ -43,7 +42,7 @@ export interface RegisterData {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: () => Promise<{ ok: boolean; error?: string }>;
   register: (data: RegisterData) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<AuthUser>) => Promise<void>;
@@ -62,13 +61,11 @@ async function upsertProfile(fbUser: FirebaseUser): Promise<AuthUser> {
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const data = snap.data() as AuthUser;
-      // Always sync latest name/email from Google
-      const updated = {
+      return {
         ...data,
         name: fbUser.displayName || data.name || fbUser.email?.split('@')[0] || 'User',
         email: fbUser.email || data.email || '',
       };
-      return updated;
     }
   } catch { /* fall through */ }
 
@@ -86,31 +83,27 @@ async function upsertProfile(fbUser: FirebaseUser): Promise<AuthUser> {
   return newUser;
 }
 
+function getFriendlyError(code: string): string {
+  const map: Record<string, string> = {
+    'auth/popup-closed-by-user':       '',
+    'auth/cancelled-popup-request':    '',
+    'auth/popup-blocked':              'Popup was blocked by your browser. Please allow popups for this site and try again.',
+    'auth/network-request-failed':     'Network error. Please check your internet connection.',
+    'auth/too-many-requests':          'Too many attempts. Please wait a few minutes and try again.',
+    'auth/user-disabled':              'This account has been disabled.',
+    'auth/operation-not-allowed':      'Google sign-in is not enabled. Please contact support.',
+    'auth/unauthorized-domain':        'This domain is not authorised in Firebase. Add it under Authentication → Settings → Authorised domains.',
+    'auth/internal-error':             'An internal error occurred. Please try again.',
+    'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method.',
+  };
+  return map[code] ?? `Sign-in failed. (${code})`;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser]       = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let redirectHandled = false;
-
-    // Step 1: Check for redirect result first
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result?.user) {
-          redirectHandled = true;
-          const profile = await upsertProfile(result.user);
-          setUser(profile);
-          // Redirect to home after successful Google login
-          if (typeof window !== 'undefined' && window.location.pathname === '/login') {
-            window.location.href = '/';
-          }
-        }
-      })
-      .catch((err) => {
-        console.error('[getRedirectResult error]', err?.code, err?.message);
-      });
-
-    // Step 2: Auth state listener (handles all sessions including redirect)
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         try {
@@ -127,23 +120,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       } else {
-        if (!redirectHandled) setUser(null);
+        setUser(null);
       }
       setLoading(false);
     });
-
     return () => unsub();
   }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (): Promise<{ ok: boolean; error?: string }> => {
     try {
-      await signInWithRedirect(auth, googleProvider);
-    } catch (err) {
-      console.error('[signInWithRedirect error]', err);
+      const result = await signInWithPopup(auth, googleProvider);
+      const profile = await upsertProfile(result.user);
+      setUser(profile);
+      return { ok: true };
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code || '';
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        return { ok: false, error: '' };
+      }
+      return { ok: false, error: getFriendlyError(code) };
     }
   };
 
-  const register = async (data: RegisterData) => {
+  const register = async (data: RegisterData): Promise<{ ok: boolean; error?: string }> => {
     try {
       const cred = await createUserWithEmailAndPassword(
         auth,

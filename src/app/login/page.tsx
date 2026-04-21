@@ -1,16 +1,26 @@
 'use client';
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
 function LoginContent() {
   const { loginWithGoogle } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
 
   const handleGoogle = async () => {
     setLoading(true);
-    await loginWithGoogle();
-    // Page navigates away to Google — loading stays true until redirect
+    setError('');
+    const res = await loginWithGoogle();
+    setLoading(false);
+    if (res.ok) {
+      router.push('/');
+      router.refresh();
+    } else if (res.error) {
+      setError(res.error);
+    }
   };
 
   return (
@@ -29,9 +39,7 @@ function LoginContent() {
               Bhartiya<span style={{ color: 'var(--amber)' }}>Bazar</span>
             </div>
           </Link>
-          <h1 style={{ fontSize: '1.5rem', fontFamily: "'EB Garamond',serif", color: 'var(--text-primary)', marginBottom: 6 }}>
-            Welcome back
-          </h1>
+          <h1 style={{ fontSize: '1.5rem', fontFamily: "'EB Garamond',serif", color: 'var(--text-primary)', marginBottom: 6 }}>Welcome back</h1>
           <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Sign in to continue</p>
         </div>
 
@@ -39,6 +47,16 @@ function LoginContent() {
           background: 'var(--surface)', border: '1px solid var(--border)',
           borderRadius: 'var(--r-xl)', padding: 32, boxShadow: 'var(--shadow-md)'
         }}>
+
+          {error && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 'var(--r-md)',
+              background: '#fff0f0', border: '1px solid #fca5a5',
+              color: '#dc2626', fontSize: 13, marginBottom: 20
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
 
           <button
             onClick={handleGoogle}
@@ -61,7 +79,7 @@ function LoginContent() {
                   borderTopColor: 'var(--amber)', borderRadius: '50%',
                   animation: 'spin 0.7s linear infinite', flexShrink: 0
                 }} />
-                Redirecting to Google…
+                Signing in…
               </>
             ) : (
               <>
