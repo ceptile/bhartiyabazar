@@ -12,7 +12,7 @@ interface Listing {
   verified?: boolean; ownerName?: string; status?: string;
 }
 
-const CITY_PILLS = ['All Cities','Delhi','Mumbai','Bangalore','Hyderabad','Chennai','Kolkata','Pune','Ahmedabad','Jaipur','Surat','Lucknow','Bhiwadi','Gurgaon','Noida','Faridabad'];
+const CITY_PILLS = ['All Cities','Delhi','Mumbai','Bangalore','Hyderabad','Chennai','Kolkata','Pune','Ahmedabad','Jaipur','Surat','Lucknow','Bhiwadi','Gurgaon','Noida','Faridabad','Firozabad','Agra','Mathura','Aligarh','Meerut'];
 const CAT_PILLS  = ['All Categories','Restaurants','Electronics','Health','Home Services','Education','Salons','Auto','Clothing','Grocery','Jewellery','Real Estate','Events','Fitness'];
 const SORT_OPTIONS = [
   { value: 'best',    label: 'Best Match' },
@@ -32,19 +32,16 @@ export default function ListingsPage() {
   const [listings,    setListings]      = useState<Listing[]>([]);
   const [loading,     setLoading]       = useState(true);
 
-  // city
   const [cityFilter,  setCityFilter]    = useState('');
   const [cityLabel,   setCityLabel]     = useState('All Cities');
   const [locState,    setLocState]      = useState<LocState>('idle');
   const [locError,    setLocError]      = useState('');
 
-  // category
   const [catSelected, setCatSelected]   = useState('');
   const [catQuery,    setCatQuery]      = useState('');
   const [catSugg,     setCatSugg]       = useState<ReturnType<typeof searchCategories>>([]);
   const catRef = useRef<HTMLDivElement>(null);
 
-  // sort / search
   const [sortBy,      setSortBy]        = useState('newest');
   const [textSearch,  setTextSearch]    = useState('');
 
@@ -64,9 +61,7 @@ export default function ListingsPage() {
     })();
   }, []);
 
-  // ── GPS on mount ──────────────────────────────────────────────────────────
-  useEffect(() => { detectLocation(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
+  // ── Manual detect (button only — NOT auto on mount) ───────────────────────
   const detectLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setLocState('error');
@@ -108,9 +103,11 @@ export default function ListingsPage() {
   useEffect(() => {
     let data = [...allListings];
     if (cityFilter && cityFilter !== 'All Cities') {
+      const q = cityFilter.toLowerCase();
       data = data.filter(b =>
-        b.city?.toLowerCase().includes(cityFilter.toLowerCase()) ||
-        b.area?.toLowerCase().includes(cityFilter.toLowerCase())
+        b.city?.toLowerCase().includes(q) ||
+        b.area?.toLowerCase().includes(q) ||
+        q.includes(b.city?.toLowerCase() || '__')
       );
     }
     if (catSelected && catSelected !== 'All Categories') {
@@ -166,11 +163,9 @@ export default function ListingsPage() {
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 64 }}>
 
-      {/* ── Hero Header ───────────────────────────────────────────────────── */}
       <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '32px 0 0' }}>
         <div className="lc">
 
-          {/* Title */}
           <h1 style={{ fontFamily: "'EB Garamond',serif", fontSize: 'clamp(1.6rem,4vw,2.4rem)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
             Business Directory
           </h1>
@@ -178,7 +173,6 @@ export default function ListingsPage() {
             Find Businesses Across India &nbsp;·&nbsp; Be the first to list your business — completely free
           </p>
 
-          {/* Search bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 240, background: 'var(--bg)', border: '1.5px solid var(--border-hover)', borderRadius: 'var(--r-lg)', padding: '10px 14px', boxShadow: 'var(--shadow-sm)' }}>
               <SearchIcon size={16} />
@@ -193,7 +187,6 @@ export default function ListingsPage() {
               )}
             </div>
 
-            {/* Category search */}
             <div ref={catRef} style={{ position: 'relative', minWidth: 200 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1.5px solid var(--border-hover)', borderRadius: 'var(--r-lg)', padding: '10px 14px', boxShadow: 'var(--shadow-sm)' }}>
                 <span style={{ fontSize: 14 }}>🏷️</span>
@@ -224,27 +217,28 @@ export default function ListingsPage() {
             </div>
           </div>
 
-          {/* Location detection status */}
           {locState === 'loading' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', marginBottom: 12, width: 'fit-content', fontSize: 13, color: 'var(--amber)' }}>
               <div style={{ width: 13, height: 13, border: '2px solid var(--amber)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
               Detecting your location…
             </div>
           )}
+          {locState === 'success' && cityLabel !== 'All Cities' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', marginBottom: 12, width: 'fit-content', fontSize: 13, color: 'var(--amber)', fontWeight: 600 }}>
+              📍 Showing results near <strong>{cityLabel}</strong>
+              <button onClick={clearAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--amber)', padding: 0, marginLeft: 4, fontSize: 13 }}>✕</button>
+            </div>
+          )}
           {(locState === 'denied' || locState === 'error') && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 12px', borderRadius: 'var(--r-md)', background: '#fef2f2', border: '1px solid #fecaca', marginBottom: 12, fontSize: 13, color: '#b91c1c', maxWidth: 560 }}>
               <span>⚠️ {locError}</span>
               {locState !== 'denied' && (
-                <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  Retry
-                </button>
+                <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>Retry</button>
               )}
             </div>
           )}
 
-          {/* City pills */}
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 14, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-            {/* Detect button as first pill */}
             <button
               onClick={detectLocation}
               disabled={locState === 'loading'}
@@ -256,7 +250,7 @@ export default function ListingsPage() {
               }
             </button>
             {CITY_PILLS.map(city => {
-              const active = city === 'All Cities' ? (!cityFilter || cityFilter === '') : cityFilter === city;
+              const active = city === 'All Cities' ? (!cityFilter || cityFilter === '') : cityFilter.toLowerCase() === city.toLowerCase();
               return (
                 <button key={city} onClick={() => selectCity(city)}
                   style={{ padding: '6px 14px', borderRadius: 'var(--r-full)', border: `1.5px solid ${active ? 'var(--amber)' : 'var(--border)'}`, background: active ? 'var(--amber-subtle)' : 'var(--bg)', color: active ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.18s' }}
@@ -267,7 +261,6 @@ export default function ListingsPage() {
             })}
           </div>
 
-          {/* Category pills */}
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 16, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
             {CAT_PILLS.map(cat => {
               const active = cat === 'All Categories' ? !catSelected : catSelected === cat;
@@ -283,7 +276,6 @@ export default function ListingsPage() {
         </div>
       </div>
 
-      {/* ── Results bar ──────────────────────────────────────────────────────── */}
       <div style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)', padding: '10px 0' }}>
         <div className="lc" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {!loading && (
@@ -306,7 +298,6 @@ export default function ListingsPage() {
         </div>
       </div>
 
-      {/* ── Category sub-pills (quick mobile filter) ─────────────────────── */}
       <div style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '8px 0' }}>
         <div className="lc">
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
@@ -323,7 +314,6 @@ export default function ListingsPage() {
         </div>
       </div>
 
-      {/* ── Listings grid ────────────────────────────────────────────────────── */}
       <div className="lc" style={{ padding: '24px 0 56px' }}>
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>

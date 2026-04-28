@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getUserLocation, reverseGeocode, forwardGeocode } from '@/lib/geo';
 import { searchCategories, ALL_CATEGORIES, CATEGORY_GROUPS } from '@/lib/categories';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const inp: React.CSSProperties = {
   width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)',
@@ -263,9 +265,28 @@ export default function RegisterBusinessPage() {
 
     setLoading(true);
     const addressStr = [f.address.building, f.address.street, f.address.area, f.address.city, f.address.state, f.address.pincode, f.address.country].filter(Boolean).join(', ');
+    const slug = f.businessName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    // Always write to businesses collection
+    const bizData = {
+      name: f.businessName.trim(),
+      category: f.businessCategory,
+      description: f.description.trim(),
+      slug,
+      city: f.address.city,
+      area: f.address.area,
+      address: addressStr,
+      country: f.address.country,
+      state: f.address.state,
+      pincode: f.address.pincode,
+      ownerName: user?.name || f.name,
+      phone: user?.phone || f.phone,
+      status: 'active',
+      verified: false,
+      createdAt: serverTimestamp(),
+    };
 
     if (user) {
-      const slug = f.businessName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       await updateProfile({
         role: 'business',
         businessName: f.businessName.trim(),
@@ -278,6 +299,7 @@ export default function RegisterBusinessPage() {
         state: f.address.state,
         pincode: f.address.pincode,
       });
+      await setDoc(doc(db, 'businesses', slug), { ...bizData, ownerId: user.id });
       setLoading(false);
       router.push('/dashboard');
     } else {
@@ -288,8 +310,10 @@ export default function RegisterBusinessPage() {
         city: f.address.city, area: f.address.area,
         address: addressStr, country: f.address.country, state: f.address.state, pincode: f.address.pincode,
       });
+      if (!res.ok) { setLoading(false); setError(res.error || 'Registration failed.'); setStep(1); return; }
+      // Write to businesses collection after successful registration
+      await setDoc(doc(db, 'businesses', slug), { ...bizData, ownerEmail: f.email });
       setLoading(false);
-      if (!res.ok) { setError(res.error || 'Registration failed.'); setStep(1); return; }
       router.push('/dashboard');
     }
   };
@@ -340,7 +364,6 @@ export default function RegisterBusinessPage() {
               <div style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', background: '#fff0f0', border: '1px solid #fca5a5', color: '#dc2626', fontSize: 13 }}>⚠️ {error}</div>
             )}
 
-            {/* Step 1 — Account */}
             {step === 1 && !isLoggedIn && (
               <>
                 <div><label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Your Full Name <span style={{ color: '#dc2626' }}>*</span></label>
@@ -358,24 +381,20 @@ export default function RegisterBusinessPage() {
               </>
             )}
 
-            {/* Step 2 — Business */}
             {(step === 2 || isLoggedIn) && (
               <>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Business Name <span style={{ color: '#dc2626' }}>*</span></label>
                   <input style={inp} placeholder="Sharma Electronics" value={f.businessName} onChange={set('businessName')} onFocus={focus} onBlur={blur} />
                 </div>
-
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Category <span style={{ color: '#dc2626' }}>*</span></label>
                   <CategoryPanel value={f.businessCategory} onChange={v => setF(p => ({ ...p, businessCategory: v }))} />
                 </div>
-
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Short Description</label>
                   <textarea style={{ ...inp, minHeight: 70, resize: 'vertical' }} placeholder="Describe your business in 1-2 sentences…" value={f.description} onChange={set('description')} onFocus={focus} onBlur={blur} />
                 </div>
-
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>📍 Business Address</div>
                   <AddressPicker value={f.address} onChange={addr => setF(p => ({ ...p, address: addr }))} />
