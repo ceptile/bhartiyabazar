@@ -21,6 +21,11 @@ export interface AuthUser {
   role: UserRole;
   phone?: string;
   city?: string;
+  area?: string;
+  address?: string;
+  country?: string;
+  state?: string;
+  pincode?: string;
   businessName?: string;
   businessSlug?: string;
   businessCategory?: string;
@@ -34,6 +39,11 @@ export interface RegisterData {
   password: string;
   phone?: string;
   city?: string;
+  area?: string;
+  address?: string;
+  country?: string;
+  state?: string;
+  pincode?: string;
   role: UserRole;
   businessName?: string;
   businessCategory?: string;
@@ -161,6 +171,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: data.role,
         phone: data.phone?.trim() || '',
         city: data.city?.trim() || '',
+        area: data.area?.trim() || '',
+        address: data.address?.trim() || '',
+        country: data.country?.trim() || '',
+        state: data.state?.trim() || '',
+        pincode: data.pincode?.trim() || '',
         businessName: data.businessName?.trim() || '',
         businessCategory: data.businessCategory || '',
         businessSlug: slug,
