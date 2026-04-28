@@ -51,8 +51,9 @@ function LoginContent() {
           {error && (
             <div style={{
               padding: '10px 14px', borderRadius: 'var(--r-md)',
-              background: '#fff0f0', border: '1px solid #fca5a5',
-              color: '#dc2626', fontSize: 13, marginBottom: 20
+              background: 'var(--error-bg)',
+              border: '1px solid var(--crimson-glow)',
+              color: 'var(--error)', fontSize: 13, marginBottom: 20
             }}>
               ⚠️ {error}
             </div>
