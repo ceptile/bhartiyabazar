@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
+const ADMIN_EMAIL = 'ceptile.com@gmail.com';
+
 function Icon({ d, size = 18 }: { d: string | string[]; size?: number }) {
   const paths = Array.isArray(d) ? d : [d];
   return (
@@ -14,11 +16,11 @@ function Icon({ d, size = 18 }: { d: string | string[]; size?: number }) {
 }
 
 const NAV_LINKS = [
-  { href: '/',          label: 'Home' },
-  { href: '/listings',  label: 'Listings' },
-  { href: '/pricing',   label: 'Pricing' },
-  { href: '/about',     label: 'About' },
-  { href: '/contact',   label: 'Contact' },
+  { href: '/',         label: 'Home' },
+  { href: '/listings', label: 'Listings' },
+  { href: '/pricing',  label: 'Pricing' },
+  { href: '/about',    label: 'About' },
+  { href: '/contact',  label: 'Contact' },
 ];
 
 export default function Navbar() {
@@ -37,8 +39,15 @@ export default function Navbar() {
 
   useEffect(() => { setMenuOpen(false); setDropOpen(false); }, [pathname]);
 
-  const isActive = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href);
-  const initials = user?.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '';
+  const isActive  = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href);
+  const initials  = user?.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '';
+  const isAdmin   = user?.email === ADMIN_EMAIL;
+
+  const dropItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z' },
+    { href: '/profile',   label: 'My Profile', icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
+    { href: '/settings',  label: 'Settings',   icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' },
+  ];
 
   return (
     <>
@@ -53,12 +62,14 @@ export default function Navbar() {
       }}>
         <div className="container" style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 
+          {/* Logo */}
           <Link href="/" style={{ flexShrink: 0, lineHeight: 1, textDecoration: 'none' }}>
             <div style={{ fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 700, fontSize: 22, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               Bhartiya<span style={{ color: 'var(--amber)' }}>Bazar</span>
             </div>
           </Link>
 
+          {/* Desktop nav */}
           <nav style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'center' }} className="hide-mobile">
             {NAV_LINKS.map(l => (
               <Link key={l.href} href={l.href} style={{
@@ -71,9 +82,11 @@ export default function Navbar() {
             ))}
           </nav>
 
+          {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {user ? (
               <div style={{ position: 'relative' }}>
+                {/* Avatar button */}
                 <button onClick={() => setDropOpen(p => !p)} style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '4px 8px 4px 4px', borderRadius: 'var(--r-full)',
@@ -84,8 +97,10 @@ export default function Navbar() {
                   <Icon d="M6 9l6 6 6-6" size={14} />
                 </button>
 
+                {/* Dropdown */}
                 {dropOpen && (
                   <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 220, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', padding: '8px 0', zIndex: 300 }}>
+                    {/* User info header */}
                     <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid var(--border)' }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{user.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{user.email}</div>
@@ -93,11 +108,9 @@ export default function Navbar() {
                         {user.role === 'business' ? 'Business Account' : 'User Account'}
                       </div>
                     </div>
-                    {[
-                      { href: '/dashboard', label: 'Dashboard', icon: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z' },
-                      { href: '/profile',   label: 'My Profile', icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
-                      { href: '/settings',  label: 'Settings',   icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' },
-                    ].map(item => (
+
+                    {/* Standard nav items */}
+                    {dropItems.map(item => (
                       <Link key={item.href} href={item.href} onClick={() => setDropOpen(false)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
@@ -105,7 +118,23 @@ export default function Navbar() {
                         <Icon d={item.icon} size={14} />{item.label}
                       </Link>
                     ))}
+
+                    {/* Studio link — admin only */}
+                    {isAdmin && (
+                      <>
+                        <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+                        <Link href="/studio" onClick={() => setDropOpen(false)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', fontSize: 13, color: 'var(--amber)', textDecoration: 'none', fontWeight: 600 }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--amber-subtle)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          <Icon d="M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" size={14} />
+                          Studio
+                        </Link>
+                      </>
+                    )}
+
                     <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+                    {/* Sign out */}
                     <button onClick={() => { logout(); router.push('/'); setDropOpen(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 16px', fontSize: 13, color: 'var(--crimson)', background: 'none', border: 'none', cursor: 'pointer' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
@@ -134,6 +163,7 @@ export default function Navbar() {
           </div>
         </div>
 
+        {/* Mobile menu */}
         {menuOpen && (
           <div style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {NAV_LINKS.map(l => (
@@ -147,6 +177,12 @@ export default function Navbar() {
             ) : (
               <>
                 <Link href="/dashboard" style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--text-primary)', fontWeight: 500, textDecoration: 'none' }}>Dashboard</Link>
+                {isAdmin && (
+                  <Link href="/studio" style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--amber)', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon d="M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" size={15} />
+                    Studio
+                  </Link>
+                )}
                 <button onClick={() => { logout(); router.push('/'); }} style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', fontSize: 15, color: 'var(--crimson)', fontWeight: 500, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}>Sign Out</button>
               </>
             )}
