@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { categories } from '@/lib/data';
 
 const ROTATING = ['Electrician', 'Doctor', 'Restaurant', 'Tutor', 'Mechanic', 'Salon', 'Plumber', 'Gym'];
 
@@ -42,9 +41,6 @@ export default function HeroSection() {
     if (city)  p.set('city', city);
     router.push(`/search?${p.toString()}`);
   };
-
-  const quickLinks = ['AC Repair', 'Doctor', 'Restaurant', 'Tutor', 'Salon'];
-  const topCats = categories.slice(0, 8);
 
   return (
     <section style={{
@@ -90,7 +86,7 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* ── Search bar (identical to original) ── */}
+        {/* ── Search bar ── */}
         <form onSubmit={handleSearch}>
           <div style={{
             background: 'var(--surface)',
@@ -127,53 +123,6 @@ export default function HeroSection() {
             </button>
           </div>
         </form>
-
-        {/* ── Popular quick links ── */}
-        <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: 'var(--text-faint)', fontWeight: 500 }}>Popular:</span>
-          {quickLinks.map(q => (
-            <a key={q} href={`/search?q=${encodeURIComponent(q)}`} className="chip">
-              {q}
-            </a>
-          ))}
-        </div>
-
-        {/* ── Category chips ── */}
-        <div style={{ marginTop: 48, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-          {topCats.map(cat => (
-            <a key={cat.id} href={`/search?category=${cat.slug}`}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 9,
-                padding: '9px 16px', borderRadius: 'var(--r-full)',
-                background: 'var(--surface)', border: '1px solid var(--border)',
-                fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500,
-                transition: 'all var(--t)', cursor: 'pointer',
-                boxShadow: 'var(--shadow-sm)',
-              }}
-              onMouseEnter={e => {
-                const el = e.currentTarget as HTMLAnchorElement;
-                el.style.borderColor = cat.color;
-                el.style.color = cat.color;
-                el.style.background = cat.bg;
-                el.style.transform = 'translateY(-2px)';
-                el.style.boxShadow = 'var(--shadow-md)';
-              }}
-              onMouseLeave={e => {
-                const el = e.currentTarget as HTMLAnchorElement;
-                el.style.borderColor = 'var(--border)';
-                el.style.color = 'var(--text-secondary)';
-                el.style.background = 'var(--surface)';
-                el.style.transform = 'translateY(0)';
-                el.style.boxShadow = 'var(--shadow-sm)';
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cat.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d={cat.iconPath} />
-              </svg>
-              {cat.name.split(' ')[0]}
-            </a>
-          ))}
-        </div>
 
       </div>
     </section>
