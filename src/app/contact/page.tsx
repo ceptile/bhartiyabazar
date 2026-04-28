@@ -1,5 +1,6 @@
 'use client';
 import { useState, FormEvent } from 'react';
+import { usePageContent } from '@/hooks/usePageContent';
 
 function Icon({ d, size = 18, sw = 1.75 }: { d: string | string[]; size?: number; sw?: number }) {
   const paths = Array.isArray(d) ? d : [d];
@@ -28,28 +29,8 @@ const SUBJECTS = [
   'Other',
 ];
 
-const CONTACT_INFO = [
-  {
-    icon: 'M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z',
-    label: 'Email',
-    value: 'support@bhartiyabazar.in',
-    sub: 'Response within 24 hours',
-  },
-  {
-    icon: 'M3 5a2 2 0 0 1 2-2h3.28a1 1 0 0 1 .948.684l1.498 4.493a1 1 0 0 1-.502 1.21l-2.257 1.13a11.042 11.042 0 0 0 5.516 5.516l1.13-2.257a1 1 0 0 1 1.21-.502l4.493 1.498a1 1 0 0 1 .684.949V19a2 2 0 0 1-2 2h-1C9.716 21 3 14.284 3 6V5z',
-    label: 'Phone',
-    value: '+91 11 4567 8900',
-    sub: 'Mon–Sat, 9 AM – 6 PM IST',
-  },
-  {
-    icon: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-    label: 'Office',
-    value: 'DLF Cyber City, Gurgaon',
-    sub: 'Haryana — 122 002',
-  },
-];
-
 export default function ContactPage() {
+  const { get } = usePageContent('contact');
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -82,6 +63,33 @@ export default function ContactPage() {
   const blur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     (e.target.style.borderColor = 'var(--border-hover)');
 
+  const contactItems = [
+    {
+      icon: 'M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z',
+      label: 'Email',
+      value: get('Contact — Email', 'support@bhartiyabazar.in'),
+      sub: get('Contact — Email Sub', 'Response within 24 hours'),
+    },
+    {
+      icon: 'M3 5a2 2 0 0 1 2-2h3.28a1 1 0 0 1 .948.684l1.498 4.493a1 1 0 0 1-.502 1.21l-2.257 1.13a11.042 11.042 0 0 0 5.516 5.516l1.13-2.257a1 1 0 0 1 1.21-.502l4.493 1.498a1 1 0 0 1 .684.949V19a2 2 0 0 1-2 2h-1C9.716 21 3 14.284 3 6V5z',
+      label: 'Phone',
+      value: get('Contact — Phone', '+91 11 4567 8900'),
+      sub: get('Contact — Phone Sub', 'Mon–Sat, 9 AM – 6 PM IST'),
+    },
+    {
+      icon: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+      label: 'Office',
+      value: get('Contact — Office', 'DLF Cyber City, Gurgaon'),
+      sub: get('Contact — Office Sub', 'Haryana — 122 002'),
+    },
+  ];
+
+  const hours = [
+    { day: 'Monday – Friday', time: get('Hours — Mon–Fri', '9:00 AM – 7:00 PM IST') },
+    { day: 'Saturday', time: get('Hours — Saturday', '10:00 AM – 5:00 PM IST') },
+    { day: 'Sunday', time: get('Hours — Sunday', 'Closed') },
+  ];
+
   return (
     <div style={{ background: 'var(--bg)', paddingTop: 64 }}>
 
@@ -93,10 +101,10 @@ export default function ContactPage() {
             Contact Us
           </div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem,4vw,2.8rem)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.15, marginBottom: 14 }}>
-            We&rsquo;re here to help
+            {get('Hero Headline', "We're here to help")}
           </h1>
           <p style={{ fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.75, maxWidth: '100%' }}>
-            Have a question, need support, or want to explore a partnership? Send us a message and we will get back to you within one business day.
+            {get('Hero Subtext', 'Have a question, need support, or want to explore a partnership? Send us a message and we will get back to you within one business day.')}
           </p>
         </div>
       </section>
@@ -106,7 +114,7 @@ export default function ContactPage() {
 
           {/* Info sidebar */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {CONTACT_INFO.map((info, i) => (
+            {contactItems.map((info, i) => (
               <div key={i} className="card-flat" style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 'var(--r-lg)', background: 'var(--amber-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--amber)', flexShrink: 0 }}>
                   <Icon d={info.icon} size={17} />
@@ -121,11 +129,7 @@ export default function ContactPage() {
 
             <div className="card-flat" style={{ marginTop: 4 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Support Hours</div>
-              {[
-                { day: 'Monday – Friday', time: '9:00 AM – 7:00 PM IST' },
-                { day: 'Saturday', time: '10:00 AM – 5:00 PM IST' },
-                { day: 'Sunday', time: 'Closed' },
-              ].map(row => (
+              {hours.map(row => (
                 <div key={row.day} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
                   <span style={{ color: 'var(--text-muted)' }}>{row.day}</span>
                   <span style={{ color: row.time === 'Closed' ? 'var(--crimson)' : 'var(--text-primary)', fontWeight: 500 }}>{row.time}</span>
@@ -143,13 +147,15 @@ export default function ContactPage() {
                 </div>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Message sent</h3>
                 <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.7, maxWidth: 400, margin: '0 auto 24px' }}>
-                  Thank you for reaching out. A member of our team will respond to your message within one business day.
+                  {get('Success Message', 'Thank you for reaching out. A member of our team will respond to your message within one business day.')}
                 </p>
                 <button onClick={() => setSent(false)} className="btn btn-outline">Send another message</button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Send a message</h2>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+                  {get('Form Title', 'Send a message')}
+                </h2>
 
                 {error && (
                   <div style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'rgba(161,44,123,0.06)', border: '1px solid rgba(161,44,123,0.2)', color: 'var(--crimson)', fontSize: 13 }}>
