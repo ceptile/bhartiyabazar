@@ -1,55 +1,53 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs, query, where, limit } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { searchCategories, ALL_CATEGORIES, CATEGORY_GROUPS } from '@/lib/categories';
 import { getUserLocation, reverseGeocode } from '@/lib/geo';
 import Link from 'next/link';
 
-const ROTATING = ['Electrician', 'Doctor', 'Restaurant', 'Tutor', 'Mechanic', 'Salon', 'Plumber', 'Gym', 'Lawyer', 'CA / Accountant'];
+interface Business {
+  slug: string; name: string; category: string;
+  city: string; area?: string; description?: string; verified?: boolean;
+}
 
-interface Business { slug: string; name: string; category: string; city: string; area?: string; description?: string; verified?: boolean; }
+const POPULAR = ['Restaurants', 'Doctors', 'Salons', 'Electricians', 'Plumbers', 'Grocery', 'Lawyers', 'Tutors'];
 
-function MapPinIcon() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
-}
-function SearchIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
-}
-function XIcon() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>;
-}
+function LocIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>; }
+function SearchIco() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>; }
+function MapPin() { return <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>; }
+function XIcon() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>; }
 
 export default function HeroSection() {
-  const [query2, setQuery2]     = useState('');
-  const [city, setCity]         = useState('');
-  const [cityLabel, setCityLabel] = useState('Detecting…');
-  const [wordIdx, setWordIdx]   = useState(0);
-  const [visible, setVisible]   = useState(true);
-  const [results, setResults]   = useState<Business[]>([]);
-  const [allData, setAllData]   = useState<Business[]>([]);
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Business[]>([]);
+  const [allBiz, setAllBiz] = useState<Business[]>([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
+  const [catGroup, setCatGroup] = useState('');
   const [catSuggestions, setCatSuggestions] = useState<ReturnType<typeof searchCategories>>([]);
-  const [showCatBrowse, setShowCatBrowse]   = useState(false);
-  const [activeGroup, setActiveGroup]       = useState(CATEGORY_GROUPS[0]);
-  const [selectedCat, setSelectedCat]       = useState('');
-  const [locLoading, setLocLoading]         = useState(false);
+  const [city, setCity] = useState('');
+  const [cityLabel, setCityLabel] = useState('Detecting…');
+  const [locLoading, setLocLoading] = useState(true);
+  const [showCityPicker, setShowCityPicker] = useState(false);
+  const [cityInput, setCityInput] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
-  const debounce  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const router = useRouter();
+  const cityRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Rotating placeholder
+  // Load all businesses once
   useEffect(() => {
-    const iv = setInterval(() => {
-      setVisible(false);
-      setTimeout(() => { setWordIdx(i => (i + 1) % ROTATING.length); setVisible(true); }, 280);
-    }, 2400);
-    return () => clearInterval(iv);
+    getDocs(collection(db, 'businesses')).then(snap => {
+      const data = snap.docs.map(d => ({ slug: d.id, ...d.data() } as Business))
+        .filter(b => !(b as unknown as { status?: string }).status || (b as unknown as { status?: string }).status === 'approved' || (b as unknown as { status?: string }).status === 'active');
+      setAllBiz(data);
+    }).catch(() => setAllBiz([]));
   }, []);
 
-  // Live GPS location
+  // GPS on mount
   useEffect(() => {
     (async () => {
       setLocLoading(true);
@@ -57,84 +55,53 @@ export default function HeroSection() {
         const pos = await getUserLocation();
         const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
         const c = geo.city || geo.state || '';
-        setCity(c);
-        setCityLabel(c || 'All Cities');
+        setCity(c); setCityLabel(c || 'All Cities'); setCityInput(c);
       } catch {
-        setCity('');
-        setCityLabel('All Cities');
+        setCity(''); setCityLabel('All Cities'); setCityInput('');
       }
       setLocLoading(false);
     })();
   }, []);
 
-  // Preload all approved businesses for instant search
-  useEffect(() => {
-    (async () => {
-      try {
-        const snap = await getDocs(query(collection(db, 'businesses'), where('status', '==', 'approved'), limit(300)));
-        setAllData(snap.docs.map(d => ({ slug: d.id, ...d.data() } as Business)));
-      } catch { /* silent */ }
-    })();
-  }, []);
-
-  // Close on outside click
+  // Close dropdowns outside click
   useEffect(() => {
     const fn = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowResults(false); setShowCatBrowse(false);
-      }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) { setShowResults(false); setShowCategories(false); }
+      if (cityRef.current && !cityRef.current.contains(e.target as Node)) setShowCityPicker(false);
     };
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  const runSearch = useCallback((q: string, cat: string, c: string) => {
-    if (!q.trim() && !cat) { setResults([]); setShowResults(false); return; }
+  // Live search with debounce
+  const doSearch = useCallback((q: string, cityFilter: string) => {
+    if (!q.trim()) { setResults([]); setCatSuggestions(searchCategories(q, 6)); return; }
     setSearching(true);
-    const lower = q.toLowerCase();
-    const catKeywords = cat ? (ALL_CATEGORIES.find(a => a.name === cat)?.keywords || []) : [];
-    let filtered = allData.filter(b => {
-      const cityMatch = !c || b.city.toLowerCase().includes(c.toLowerCase());
-      const textMatch = !q.trim() || b.name.toLowerCase().includes(lower) ||
-        b.category.toLowerCase().includes(lower) ||
-        (b.description || '').toLowerCase().includes(lower) ||
-        b.city.toLowerCase().includes(lower);
-      const catMatch = !cat || b.category === cat ||
-        catKeywords.some(k => b.category.toLowerCase().includes(k));
-      return cityMatch && textMatch && catMatch;
-    });
-    // boost verified
-    filtered = [...filtered.filter(b => b.verified), ...filtered.filter(b => !b.verified)];
-    setResults(filtered.slice(0, 8));
-    setShowResults(true);
+    const q2 = q.toLowerCase();
+    let data = allBiz.filter(b =>
+      b.name?.toLowerCase().includes(q2) ||
+      b.category?.toLowerCase().includes(q2) ||
+      b.description?.toLowerCase().includes(q2) ||
+      b.area?.toLowerCase().includes(q2)
+    );
+    if (cityFilter) data = data.filter(b => b.city?.toLowerCase().includes(cityFilter.toLowerCase()));
+    // Boost verified
+    data.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
+    setResults(data.slice(0, 8));
+    setCatSuggestions(searchCategories(q, 4));
     setSearching(false);
-  }, [allData]);
+  }, [allBiz]);
 
-  const handleInput = (v: string) => {
-    setQuery2(v);
-    if (debounce.current) clearTimeout(debounce.current);
-    // Category suggestions
-    if (v.length >= 1) {
-      setCatSuggestions(searchCategories(v, 5));
-    } else {
-      setCatSuggestions([]);
-    }
-    debounce.current = setTimeout(() => runSearch(v, selectedCat, city), 220);
-  };
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(query, city), 220);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query, city, doSearch]);
 
-  const handleCatPick = (name: string) => {
-    setSelectedCat(name); setQuery2(name);
-    setCatSuggestions([]); setShowCatBrowse(false);
-    runSearch(name, name, city);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const p = new URLSearchParams();
-    if (query2) p.set('q', query2);
-    if (city)   p.set('city', city);
-    if (selectedCat) p.set('cat', selectedCat);
-    router.push(`/search?${p.toString()}`);
+    if (!query.trim()) return;
+    router.push(`/listings?q=${encodeURIComponent(query)}${city ? `&city=${encodeURIComponent(city)}` : ''}`);
   };
 
   const detectCity = async () => {
@@ -143,184 +110,253 @@ export default function HeroSection() {
       const pos = await getUserLocation();
       const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
       const c = geo.city || geo.state || '';
-      setCity(c); setCityLabel(c || 'All Cities');
+      setCity(c); setCityLabel(c || 'All Cities'); setCityInput(c);
     } catch {
-      setCity(''); setCityLabel('All Cities');
+      setCity(''); setCityLabel('All Cities'); setCityInput('');
     }
     setLocLoading(false);
+    setShowCityPicker(false);
   };
 
-  const groupCats = ALL_CATEGORIES.filter(c => c.group === activeGroup);
+  const groupCats = catGroup ? ALL_CATEGORIES.filter(c => c.group === catGroup) : [];
 
   return (
-    <section style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', paddingTop: 64 }}>
-      <div style={{ width: '100%', maxWidth: 780, padding: '0 clamp(16px,4vw,48px)', textAlign: 'center' }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
 
-        {/* Brand */}
-        <div style={{ marginBottom: 36 }}>
-          <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontWeight: 700, fontSize: 'clamp(2.6rem,7vw,4.4rem)', letterSpacing: '-0.03em', lineHeight: 1, color: 'var(--text-primary)' }}>
-            Bhartiya<span style={{ color: 'var(--amber)' }}>Bazar</span>
+      {/* ── Hero ── */}
+      <section style={{ padding: 'clamp(80px,10vw,140px) 16px clamp(48px,6vw,80px)', textAlign: 'center' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600, marginBottom: 20 }}>
+            🇮🇳 India's Trusted Business Directory
           </div>
-          <div style={{ marginTop: 12, fontSize: 'clamp(0.95rem,1.6vw,1.1rem)', color: 'var(--text-muted)' }}>
-            Find the best{' '}
-            <span style={{ color: 'var(--amber)', fontWeight: 600, display: 'inline-block', transition: 'opacity 0.28s ease, transform 0.28s ease', opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(-8px)' }}>
-              {ROTATING[wordIdx]}
-            </span>
-            {' '}near you
-          </div>
-        </div>
+          <h1 style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 'clamp(2.2rem,5vw,4rem)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.15, marginBottom: 14, letterSpacing: '-0.02em' }}>
+            Find Any Business,<br/>Anywhere in India
+          </h1>
+          <p style={{ fontSize: 'clamp(1rem,1.5vw,1.2rem)', color: 'var(--text-secondary)', marginBottom: 32, maxWidth: 500, margin: '0 auto 32px' }}>
+            Search restaurants, doctors, shops, services & more — near you or anywhere.
+          </p>
 
-        {/* Smart search box */}
-        <div ref={searchRef} style={{ position: 'relative', maxWidth: 720, margin: '0 auto' }}>
-          <form onSubmit={handleSubmit}>
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-hover)', borderRadius: 'var(--r-xl)', padding: 6, display: 'flex', gap: 6, boxShadow: 'var(--shadow-lg)' }}>
+          {/* ── Smart Search Bar ── */}
+          <div style={{ display: 'flex', gap: 8, maxWidth: 680, margin: '0 auto', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
 
-              {/* Query input */}
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 'var(--r-lg)', background: 'var(--bg)', border: '1px solid var(--border)', position: 'relative' }}>
-                <span style={{ color: 'var(--text-faint)', display: 'flex', flexShrink: 0 }}><SearchIcon /></span>
-                <input
-                  value={query2}
-                  onChange={e => handleInput(e.target.value)}
-                  onFocus={() => { if (query2) setShowResults(true); }}
-                  placeholder={`Search for ${ROTATING[wordIdx]}…`}
-                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit' }}
-                />
-                {query2 && (
-                  <button type="button" onClick={() => { setQuery2(''); setSelectedCat(''); setCatSuggestions([]); setResults([]); setShowResults(false); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0 }}><XIcon /></button>
-                )}
-              </div>
-
-              {/* City chip */}
-              <button type="button" onClick={detectCity}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 12px', borderRadius: 'var(--r-lg)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: 13, whiteSpace: 'nowrap', cursor: 'pointer', minWidth: 0, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span style={{ color: locLoading ? 'var(--amber)' : 'var(--text-faint)', display: 'flex', flexShrink: 0 }}>{locLoading ? <div style={{ width: 14, height: 14, border: '2px solid var(--amber)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> : <MapPinIcon />}</span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{cityLabel}</span>
+            {/* City chip */}
+            <div ref={cityRef} style={{ position: 'relative' }}>
+              <button type="button" onClick={() => setShowCityPicker(p => !p)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 14px', borderRadius: 'var(--r-lg)', border: `1px solid ${showCityPicker ? 'var(--amber)' : 'var(--border-hover)'}`, background: 'var(--surface)', color: city ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', height: 50 }}>
+                {locLoading
+                  ? <div style={{ width: 13, height: 13, border: '2px solid var(--amber)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                }
+                {cityLabel}
               </button>
-
-              <button type="submit" style={{ padding: '11px 24px', fontSize: 14, borderRadius: 'var(--r-lg)', background: 'var(--amber)', color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer', flexShrink: 0 }}>
-                Search
-              </button>
-            </div>
-          </form>
-
-          {/* Category suggestions dropdown */}
-          {catSuggestions.length > 0 && !showResults && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 500, overflow: 'hidden' }}>
-              <div style={{ padding: '7px 14px 3px', fontSize: 11, color: 'var(--text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Categories</div>
-              {catSuggestions.map(cat => (
-                <button key={cat.id} type="button" onClick={() => handleCatPick(cat.name)}
-                  style={{ display: 'flex', justifyContent: 'space-between', width: '100%', padding: '9px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                >
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{cat.name}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{cat.group}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Live search results */}
-          {showResults && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 500, overflow: 'hidden' }}>
-              {searching ? (
-                <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Searching…</div>
-              ) : results.length === 0 ? (
-                <div style={{ padding: 20, textAlign: 'center' }}>
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>No businesses found. Try different keywords.</div>
-                  <Link href={`/listings?q=${encodeURIComponent(query2)}`} style={{ fontSize: 13, color: 'var(--amber)', fontWeight: 600, textDecoration: 'none' }}>Browse all listings →</Link>
+              {showCityPicker && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 300, padding: 12, minWidth: 260 }}>
+                  <button type="button" onClick={detectCity}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '9px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--amber-glow)', background: 'var(--amber-subtle)', color: 'var(--amber)', fontWeight: 600, fontSize: 13, cursor: 'pointer', marginBottom: 8 }}>
+                    <LocIcon /> 📡 Detect My Location
+                  </button>
+                  <input value={cityInput} onChange={e => { setCityInput(e.target.value); setCity(e.target.value); setCityLabel(e.target.value || 'All Cities'); }}
+                    placeholder="Type city…"
+                    autoFocus
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+                  />
+                  <button type="button" onClick={() => { setCity(''); setCityLabel('All Cities'); setCityInput(''); setShowCityPicker(false); }}
+                    style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear → All India</button>
                 </div>
-              ) : (
+              )}
+            </div>
+
+            {/* Main search box */}
+            <div ref={searchRef} style={{ position: 'relative', flex: 1, minWidth: 260 }}>
+              <form onSubmit={handleSearch}>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '2px solid var(--border-hover)', borderRadius: 'var(--r-lg)', overflow: 'hidden', height: 50, boxShadow: 'var(--shadow-sm)' }}
+                  onFocus={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--amber)'; setShowResults(true); }}
+                  onBlur={(e) => { if (!searchRef.current?.contains(e.relatedTarget as Node)) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-hover)'; }}
+                >
+                  <div style={{ padding: '0 14px', color: 'var(--text-muted)', display: 'flex' }}><SearchIco /></div>
+                  <input
+                    value={query}
+                    onChange={e => { setQuery(e.target.value); setShowResults(true); setShowCategories(false); }}
+                    onFocus={() => setShowResults(true)}
+                    placeholder="Search businesses, categories, services…"
+                    style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 15, color: 'var(--text-primary)', fontFamily: 'inherit' }}
+                  />
+                  {query && (
+                    <button type="button" onClick={() => { setQuery(''); setResults([]); }} style={{ padding: '0 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}><XIcon /></button>
+                  )}
+                  <button type="submit" style={{ padding: '0 18px', background: 'var(--amber)', border: 'none', cursor: 'pointer', color: '#fff', fontWeight: 700, fontSize: 14, height: '100%', whiteSpace: 'nowrap' }}>Search</button>
+                </div>
+              </form>
+
+              {/* Live results dropdown */}
+              {showResults && (query.trim() || catSuggestions.length > 0) && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 200, overflow: 'hidden', maxHeight: 420, overflowY: 'auto' }}>
+
+                  {/* Category suggestions */}
+                  {catSuggestions.length > 0 && (
+                    <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ padding: '4px 14px', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Categories</div>
+                      {catSuggestions.map(cat => (
+                        <button key={cat.id}
+                          onClick={() => { router.push(`/listings?category=${encodeURIComponent(cat.name)}${city ? `&city=${encodeURIComponent(city)}` : ''}`); setShowResults(false); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                        >
+                          <span style={{ fontSize: 18 }}>🏷️</span>
+                          <span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{cat.name}</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-faint)', marginLeft: 8 }}>{cat.group}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Business results */}
+                  {searching ? (
+                    <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Searching…</div>
+                  ) : results.length > 0 ? (
+                    <div>
+                      <div style={{ padding: '8px 14px 4px', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Businesses</div>
+                      {results.map(biz => (
+                        <Link key={biz.slug} href={`/business/${biz.slug}`} onClick={() => setShowResults(false)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', textDecoration: 'none', borderTop: '1px solid var(--border)' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                        >
+                          <div style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🏪</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {biz.name}
+                              {biz.verified && <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 'var(--r-full)', background: '#d1fae5', color: '#065f46', fontWeight: 700 }}>✓</span>}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span>{biz.category}</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><MapPin />{biz.area ? `${biz.area}, ${biz.city}` : biz.city}</span>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                      <Link href={`/listings?q=${encodeURIComponent(query)}${city ? `&city=${encodeURIComponent(city)}` : ''}`}
+                        onClick={() => setShowResults(false)}
+                        style={{ display: 'block', padding: '10px 14px', textAlign: 'center', fontSize: 13, color: 'var(--amber)', fontWeight: 600, textDecoration: 'none', borderTop: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+                        See all results for "{query}" →
+                      </Link>
+                    </div>
+                  ) : query.trim() ? (
+                    <div style={{ padding: '16px 14px', textAlign: 'center' }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>No results for "{query}"</span>
+                      <br />
+                      <Link href={`/listings?q=${encodeURIComponent(query)}`} style={{ fontSize: 12, color: 'var(--amber)', fontWeight: 600, textDecoration: 'none' }}>Browse all listings →</Link>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Popular chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
+            {POPULAR.map(p => (
+              <button key={p} onClick={() => { setQuery(p); setShowResults(true); }}
+                style={{ padding: '5px 14px', borderRadius: 'var(--r-full)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--amber-subtle)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}
+              >{p}</button>
+            ))}
+            <button onClick={() => setShowCategories(p => !p)}
+              style={{ padding: '5px 14px', borderRadius: 'var(--r-full)', border: `1px solid ${showCategories ? 'var(--amber)' : 'var(--border)'}`, background: showCategories ? 'var(--amber-subtle)' : 'var(--surface)', color: showCategories ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>
+              All Categories ▾
+            </button>
+          </div>
+
+          {/* Category browser */}
+          {showCategories && (
+            <div style={{ maxWidth: 680, margin: '0 auto 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16, boxShadow: 'var(--shadow-md)', textAlign: 'left' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Groups</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                {CATEGORY_GROUPS.map(g => (
+                  <button key={g} onClick={() => setCatGroup(catGroup === g ? '' : g)}
+                    style={{ padding: '5px 12px', borderRadius: 'var(--r-full)', fontSize: 12, fontWeight: 500, border: `1px solid ${catGroup === g ? 'var(--amber)' : 'var(--border)'}`, background: catGroup === g ? 'var(--amber-subtle)' : 'var(--bg)', color: catGroup === g ? 'var(--amber)' : 'var(--text-secondary)', cursor: 'pointer' }}>{g}</button>
+                ))}
+              </div>
+              {catGroup && (
                 <>
-                  {results.map(biz => (
-                    <Link key={biz.slug} href={`/business/${biz.slug}`}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid var(--border)', textDecoration: 'none' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                    >
-                      <div style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ fontSize: 16 }}>🏪</span>
-                      </div>
-                      <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {biz.name}
-                          {biz.verified && <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--r-full)', background: '#d1fae5', color: '#065f46', fontWeight: 700 }}>✓</span>}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{biz.category} · {biz.area ? `${biz.area}, ${biz.city}` : biz.city}</div>
-                      </div>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-faint)', flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    </Link>
-                  ))}
-                  <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)' }}>
-                    <button type="button" onClick={handleSubmit as unknown as React.MouseEventHandler}
-                      style={{ fontSize: 13, color: 'var(--amber)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                      See all results for &ldquo;{query2}&rdquo; →
-                    </button>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{catGroup}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {groupCats.map(cat => (
+                      <button key={cat.id}
+                        onClick={() => { router.push(`/listings?category=${encodeURIComponent(cat.name)}${city ? `&city=${encodeURIComponent(city)}` : ''}`); setShowCategories(false); }}
+                        style={{ padding: '4px 11px', borderRadius: 'var(--r-full)', fontSize: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--amber-subtle)'; e.currentTarget.style.borderColor = 'var(--amber)'; e.currentTarget.style.color = 'var(--amber)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                      >{cat.name}</button>
+                    ))}
                   </div>
                 </>
               )}
             </div>
           )}
         </div>
+      </section>
 
-        {/* Quick category browse */}
-        <div style={{ marginTop: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Browse</span>
-            <button type="button" onClick={() => setShowCatBrowse(p => !p)}
-              style={{ fontSize: 12, color: 'var(--amber)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
-              {showCatBrowse ? 'Hide categories' : 'All categories'}
-            </button>
-          </div>
+      {/* ── Stats ── */}
+      <section style={{ padding: '0 16px 60px' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+          {[['10,000+', 'Businesses Listed'], ['500+', 'Cities Covered'], ['50+', 'Categories']].map(([n, l]) => (
+            <div key={l} style={{ textAlign: 'center', padding: '20px 12px', background: 'var(--surface)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 'clamp(1.4rem,2.5vw,2rem)', fontWeight: 800, color: 'var(--amber)', fontFamily: "'EB Garamond',serif" }}>{n}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          {/* Popular quick chips */}
-          {!showCatBrowse && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {['Restaurant', 'Doctor / Clinic', 'Electrician', 'Plumber', 'Salon / Hair Studio', 'Tutor / Home Tuition', 'Gym / Fitness Center', 'Grocery / Kirana'].map(name => (
-                <button key={name} type="button" onClick={() => handleCatPick(name)}
-                  style={{ padding: '6px 14px', borderRadius: 'var(--r-full)', fontSize: 12, fontWeight: 500, border: `1px solid ${selectedCat === name ? 'var(--amber)' : 'var(--border)'}`, background: selectedCat === name ? 'var(--amber-subtle)' : 'var(--surface)', color: selectedCat === name ? 'var(--amber)' : 'var(--text-secondary)', cursor: 'pointer' }}
-                  onMouseEnter={e => { if (selectedCat !== name) e.currentTarget.style.borderColor = 'var(--amber-glow)'; }}
-                  onMouseLeave={e => { if (selectedCat !== name) e.currentTarget.style.borderColor = 'var(--border)'; }}
+      {/* ── Recently added ── */}
+      {allBiz.length > 0 && (
+        <section style={{ padding: '0 16px 80px' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20 }}>
+              <h2 style={{ fontFamily: "'EB Garamond',serif", fontSize: 'clamp(1.3rem,2vw,1.7rem)', fontWeight: 700, color: 'var(--text-primary)' }}>Recently Listed</h2>
+              <Link href="/listings" style={{ fontSize: 13, color: 'var(--amber)', fontWeight: 600, textDecoration: 'none' }}>View all →</Link>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 14 }}>
+              {allBiz.slice(0, 8).map(biz => (
+                <Link key={biz.slug} href={`/business/${biz.slug}`}
+                  style={{ textDecoration: 'none', display: 'block', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16, boxShadow: 'var(--shadow-sm)', transition: 'all 160ms ease' }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                 >
-                  {name}
-                </button>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>{biz.name}</h3>
+                    {biz.verified && <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 'var(--r-full)', background: '#d1fae5', color: '#065f46', fontWeight: 700, whiteSpace: 'nowrap' }}>✓</span>}
+                  </div>
+                  <span style={{ padding: '2px 7px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', color: 'var(--amber)', fontSize: 10, fontWeight: 600 }}>{biz.category}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--text-faint)', fontSize: 11, marginTop: 8 }}>
+                    <MapPin />{biz.area ? `${biz.area}, ${biz.city}` : biz.city}
+                  </div>
+                </Link>
               ))}
             </div>
-          )}
+          </div>
+        </section>
+      )}
 
-          {/* Full category browser */}
-          {showCatBrowse && (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', textAlign: 'left', maxHeight: 380 }}>
-              <div style={{ display: 'flex', height: 380 }}>
-                <div style={{ width: 140, borderRight: '1px solid var(--border)', overflowY: 'auto', flexShrink: 0 }}>
-                  {CATEGORY_GROUPS.map(g => (
-                    <button key={g} type="button" onClick={() => setActiveGroup(g)}
-                      style={{ display: 'block', width: '100%', padding: '9px 12px', background: activeGroup === g ? 'var(--amber-subtle)' : 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12, fontWeight: activeGroup === g ? 700 : 500, color: activeGroup === g ? 'var(--amber)' : 'var(--text-secondary)', borderLeft: activeGroup === g ? '3px solid var(--amber)' : '3px solid transparent' }}>
-                      {g}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {groupCats.map(cat => (
-                      <button key={cat.id} type="button" onClick={() => { handleCatPick(cat.name); setShowCatBrowse(false); }}
-                        style={{ padding: '6px 12px', borderRadius: 'var(--r-full)', fontSize: 12, fontWeight: 500, border: `1px solid ${selectedCat === cat.name ? 'var(--amber)' : 'var(--border)'}`, background: selectedCat === cat.name ? 'var(--amber-subtle)' : 'var(--bg)', color: selectedCat === cat.name ? 'var(--amber)' : 'var(--text-secondary)', cursor: 'pointer' }}
-                        onMouseEnter={e => { if (selectedCat !== cat.name) e.currentTarget.style.borderColor = 'var(--amber-glow)'; }}
-                        onMouseLeave={e => { if (selectedCat !== cat.name) e.currentTarget.style.borderColor = 'var(--border)'; }}
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+      {/* ── CTA ── */}
+      <section style={{ padding: '60px 16px 100px', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
+        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontFamily: "'EB Garamond',serif", fontSize: 'clamp(1.5rem,2.5vw,2.2rem)', color: 'var(--text-primary)', marginBottom: 12 }}>Own a Business?</h2>
+          <p style={{ fontSize: 15, color: 'var(--text-muted)', marginBottom: 28 }}>List it free on BhartiyaBazar and reach customers in your city.</p>
+          <Link href="/register-business"
+            style={{ display: 'inline-block', padding: '13px 32px', borderRadius: 'var(--r-lg)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 16, textDecoration: 'none', boxShadow: '0 4px 14px rgba(0,0,0,0.12)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--amber-dark)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--amber)')}
+          >List Your Business Free →</Link>
         </div>
+      </section>
 
-      </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </section>
+    </div>
   );
 }

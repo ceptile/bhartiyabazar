@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { collection, query, where, limit, getDocs, QueryConstraint } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { searchCategories, ALL_CATEGORIES, CATEGORY_GROUPS } from '@/lib/categories';
 import { getUserLocation, reverseGeocode } from '@/lib/geo';
@@ -12,9 +12,11 @@ interface Listing {
   verified?: boolean; ownerName?: string; status?: string;
 }
 
-const SORT_OPTIONS = [{ value: 'newest', label: 'Newest First' }, { value: 'name', label: 'Name A–Z' }];
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest First' },
+  { value: 'name', label: 'Name A–Z' },
+];
 
-function StarIcon() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>; }
 function MapPin() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>; }
 function SearchIcon({ size = 16 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>; }
 function XIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>; }
@@ -22,23 +24,42 @@ function FilterIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" f
 function LocIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>; }
 
 export default function ListingsPage() {
-  const [listings, setListings]   = useState<Listing[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [cityFilter, setCityFilter]   = useState('');
-  const [cityLabel, setCityLabel]     = useState('');
-  const [cityInput, setCityInput]     = useState('');
-  const [locLoading, setLocLoading]   = useState(false);
-  const [catQuery, setCatQuery]       = useState('');
+  const [allListings, setAllListings] = useState<Listing[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [cityFilter, setCityFilter] = useState('');
+  const [cityLabel, setCityLabel] = useState('Detecting…');
+  const [cityInput, setCityInput] = useState('');
+  const [locLoading, setLocLoading] = useState(true);
+  const [catQuery, setCatQuery] = useState('');
   const [catSelected, setCatSelected] = useState('');
   const [catSuggestions, setCatSuggestions] = useState<ReturnType<typeof searchCategories>>([]);
-  const [sortBy, setSortBy]       = useState('newest');
+  const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [groupFilter, setGroupFilter] = useState('');
   const [showCityInput, setShowCityInput] = useState(false);
-  const catRef  = useRef<HTMLDivElement>(null);
+  const catRef = useRef<HTMLDivElement>(null);
   const cityRef = useRef<HTMLDivElement>(null);
 
-  // Live GPS on mount — fallback to All Cities
+  // Step 1: Fetch ALL businesses from Firestore (no server-side filter)
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const snap = await getDocs(collection(db, 'businesses'));
+        const data: Listing[] = snap.docs.map(d => ({ slug: d.id, ...d.data() } as Listing));
+        // Only show approved ones, but fetch all so filters work client-side
+        const approved = data.filter(b => !b.status || b.status === 'approved' || b.status === 'active');
+        setAllListings(approved);
+      } catch (e) {
+        console.error('[listings fetch]', e);
+        setAllListings([]);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  // Step 2: GPS location on mount
   useEffect(() => {
     (async () => {
       setLocLoading(true);
@@ -47,7 +68,7 @@ export default function ListingsPage() {
         const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
         const c = geo.city || geo.state || '';
         setCityFilter(c);
-        setCityLabel(c);
+        setCityLabel(c || 'All Cities');
         setCityInput(c);
       } catch {
         setCityFilter('');
@@ -58,11 +79,35 @@ export default function ListingsPage() {
     })();
   }, []);
 
+  // Step 3: Apply filters client-side whenever allListings or filters change
+  useEffect(() => {
+    let data = [...allListings];
+    if (cityFilter.trim()) {
+      data = data.filter(b =>
+        b.city?.toLowerCase().includes(cityFilter.toLowerCase()) ||
+        b.area?.toLowerCase().includes(cityFilter.toLowerCase())
+      );
+    }
+    if (catSelected) {
+      data = data.filter(b =>
+        b.category?.toLowerCase() === catSelected.toLowerCase()
+      );
+    }
+    if (groupFilter) {
+      const groupCatNames = ALL_CATEGORIES.filter(c => c.group === groupFilter).map(c => c.name.toLowerCase());
+      data = data.filter(b => groupCatNames.includes(b.category?.toLowerCase() || ''));
+    }
+    if (sortBy === 'name') data.sort((a, b) => a.name.localeCompare(b.name));
+    setListings(data.slice(0, 120));
+  }, [allListings, cityFilter, catSelected, groupFilter, sortBy]);
+
+  // Category suggestions
   useEffect(() => {
     if (catQuery.trim().length < 1) { setCatSuggestions([]); return; }
     setCatSuggestions(searchCategories(catQuery, 8));
   }, [catQuery]);
 
+  // Close dropdowns on outside click
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (catRef.current && !catRef.current.contains(e.target as Node)) setCatSuggestions([]);
@@ -72,55 +117,42 @@ export default function ListingsPage() {
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  const fetchListings = useCallback(async () => {
-    setLoading(true);
-    try {
-      const constraints: QueryConstraint[] = [where('status', '==', 'approved'), limit(300)];
-      const snap = await getDocs(query(collection(db, 'businesses'), ...constraints));
-      let data = snap.docs.map(d => ({ slug: d.id, ...d.data() } as Listing));
-
-      if (cityFilter) data = data.filter(b => b.city?.toLowerCase().includes(cityFilter.toLowerCase()));
-      if (catSelected) data = data.filter(b => b.category === catSelected);
-      if (sortBy === 'name') data = data.sort((a, b) => a.name.localeCompare(b.name));
-      else data = data.reverse();
-
-      setListings(data.slice(0, 60));
-    } catch (e) {
-      console.error('[listings]', e);
-      setListings([]);
-    }
-    setLoading(false);
-  }, [cityFilter, catSelected, sortBy]);
-
-  useEffect(() => { fetchListings(); }, [fetchListings]);
-
   const detectLocation = async () => {
     setLocLoading(true);
     try {
       const pos = await getUserLocation();
       const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
       const c = geo.city || geo.state || '';
-      setCityFilter(c); setCityLabel(c || 'All Cities'); setCityInput(c);
+      setCityFilter(c);
+      setCityLabel(c || 'All Cities');
+      setCityInput(c);
     } catch {
-      setCityFilter(''); setCityLabel('All Cities'); setCityInput('');
+      setCityFilter('');
+      setCityLabel('All Cities');
+      setCityInput('');
     }
     setLocLoading(false);
+    setShowCityInput(false);
   };
 
-  const clearFilters = () => { setCityFilter(''); setCityLabel('All Cities'); setCityInput(''); setCatSelected(''); setCatQuery(''); setGroupFilter(''); setSortBy('newest'); };
+  const clearFilters = () => {
+    setCityFilter(''); setCityLabel('All Cities'); setCityInput('');
+    setCatSelected(''); setCatQuery(''); setGroupFilter(''); setSortBy('newest');
+  };
+
   const hasFilters = cityFilter || catSelected || groupFilter;
-  const groupCats  = groupFilter ? ALL_CATEGORIES.filter(c => c.group === groupFilter) : [];
+  const groupCats = groupFilter ? ALL_CATEGORIES.filter(c => c.group === groupFilter) : [];
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 72 }}>
 
-      {/* ── Sticky top bar ── */}
+      {/* ── Sticky filter bar ── */}
       <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '14px 0', position: 'sticky', top: 64, zIndex: 100 }}>
         <div className="container" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
 
           <h1 style={{ fontFamily: "'EB Garamond',serif", fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', marginRight: 4, whiteSpace: 'nowrap' }}>Listings</h1>
 
-          {/* City selector with live location */}
+          {/* City selector */}
           <div ref={cityRef} style={{ position: 'relative' }}>
             <button type="button"
               onClick={() => setShowCityInput(p => !p)}
@@ -132,19 +164,20 @@ export default function ListingsPage() {
               📍 {cityLabel || 'All Cities'}
             </button>
             {showCityInput && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 200, padding: 12, minWidth: 240 }}>
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 200, padding: 12, minWidth: 260 }}>
                 <button type="button" onClick={detectLocation}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '8px 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--amber-glow)', background: 'var(--amber-subtle)', color: 'var(--amber)', fontWeight: 600, fontSize: 12, cursor: 'pointer', marginBottom: 8 }}>
-                  <LocIcon /> Detect My Location
+                  <LocIcon /> 📡 Detect My Location
                 </button>
                 <input
                   value={cityInput}
                   onChange={e => { setCityInput(e.target.value); setCityFilter(e.target.value); setCityLabel(e.target.value || 'All Cities'); }}
                   placeholder="Type city name…"
+                  autoFocus
                   style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
                 />
                 <button type="button" onClick={() => { setCityFilter(''); setCityLabel('All Cities'); setCityInput(''); setShowCityInput(false); }}
-                  style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear city →</button>
+                  style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear → Show All Cities</button>
               </div>
             )}
           </div>
@@ -221,23 +254,28 @@ export default function ListingsPage() {
 
       {/* ── Results ── */}
       <div className="container" style={{ padding: '24px 0 48px' }}>
-        {(cityFilter || catSelected) && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Showing:</span>
-            {cityFilter && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600 }}>
-                📍 {cityLabel}
-                <button onClick={() => { setCityFilter(''); setCityLabel('All Cities'); setCityInput(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, color: 'var(--amber)' }}><XIcon /></button>
-              </span>
-            )}
-            {catSelected && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600 }}>
-                🏷️ {catSelected}
-                <button onClick={() => { setCatSelected(''); setCatQuery(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, color: 'var(--amber)' }}><XIcon /></button>
-              </span>
-            )}
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+          {!loading && (
+            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              {listings.length} listing{listings.length !== 1 ? 's' : ''}
+              {cityFilter ? ` in ${cityLabel}` : ' · All Cities'}
+              {catSelected ? ` · ${catSelected}` : ''}
+              {allListings.length > 0 && !cityFilter && !catSelected && !groupFilter && ` (${allListings.length} total)`}
+            </span>
+          )}
+          {cityFilter && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600 }}>
+              📍 {cityLabel}
+              <button onClick={() => { setCityFilter(''); setCityLabel('All Cities'); setCityInput(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, color: 'var(--amber)' }}><XIcon /></button>
+            </span>
+          )}
+          {catSelected && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600 }}>
+              🏷️ {catSelected}
+              <button onClick={() => { setCatSelected(''); setCatQuery(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, color: 'var(--amber)' }}><XIcon /></button>
+            </span>
+          )}
+        </div>
 
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 16 }}>
@@ -253,42 +291,39 @@ export default function ListingsPage() {
           <div style={{ textAlign: 'center', padding: '80px 16px', color: 'var(--text-muted)' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
             <h2 style={{ fontFamily: "'EB Garamond',serif", fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: 8 }}>No listings found</h2>
-            <p style={{ fontSize: 14, marginBottom: 20 }}>{hasFilters ? 'Try changing your filters or clearing them.' : 'Be the first to list your business!'}</p>
+            <p style={{ fontSize: 14, marginBottom: 20 }}>
+              {hasFilters
+                ? `No businesses found${cityFilter ? ` in "${cityLabel}"` : ''}${catSelected ? ` for "${catSelected}"` : ''}. Try changing filters.`
+                : 'No approved businesses yet. Be the first!'}
+            </p>
             {hasFilters
               ? <button onClick={clearFilters} style={{ padding: '10px 24px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}>Clear Filters</button>
               : <Link href="/list-business" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>List Your Business →</Link>
             }
           </div>
         ) : (
-          <>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
-              {listings.length} listing{listings.length !== 1 ? 's' : ''} found
-              {cityFilter ? ` in ${cityLabel}` : ' · All Cities'}
-              {catSelected ? ` · ${catSelected}` : ''}
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 16 }}>
-              {listings.map(biz => (
-                <Link key={biz.slug} href={`/business/${biz.slug}`}
-                  style={{ textDecoration: 'none', display: 'block', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: 'var(--shadow-sm)', transition: 'all var(--t)' }}
-                  onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, flex: 1, marginRight: 8 }}>{biz.name}</h3>
-                    {biz.verified && <span style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 'var(--r-full)', background: '#d1fae5', color: '#065f46', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>✓ Verified</span>}
-                  </div>
-                  <div style={{ marginBottom: 6 }}>
-                    <span style={{ padding: '2px 8px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', color: 'var(--amber)', fontSize: 11, fontWeight: 600 }}>{biz.category}</span>
-                  </div>
-                  {biz.description && <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 10, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{biz.description}</p>}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-faint)', fontSize: 12 }}>
-                    <MapPin />
-                    {biz.area ? `${biz.area}, ${biz.city}` : biz.city}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 16 }}>
+            {listings.map(biz => (
+              <Link key={biz.slug} href={`/business/${biz.slug}`}
+                style={{ textDecoration: 'none', display: 'block', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: 'var(--shadow-sm)', transition: 'all var(--t)' }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, flex: 1, marginRight: 8 }}>{biz.name}</h3>
+                  {biz.verified && <span style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 'var(--r-full)', background: '#d1fae5', color: '#065f46', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>✓ Verified</span>}
+                </div>
+                <div style={{ marginBottom: 6 }}>
+                  <span style={{ padding: '2px 8px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', color: 'var(--amber)', fontSize: 11, fontWeight: 600 }}>{biz.category}</span>
+                </div>
+                {biz.description && <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 10, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{biz.description}</p>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-faint)', fontSize: 12 }}>
+                  <MapPin />
+                  {biz.area ? `${biz.area}, ${biz.city}` : biz.city}
+                </div>
+              </Link>
+            ))}
+          </div>
         )}
       </div>
 
