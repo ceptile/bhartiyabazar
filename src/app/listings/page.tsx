@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { searchCategories, ALL_CATEGORIES, CATEGORY_GROUPS } from '@/lib/categories';
-import { getUserLocation, reverseGeocode } from '@/lib/geo';
+import { reverseGeocode } from '@/lib/geo';
 import Link from 'next/link';
 
 interface Listing {
@@ -12,273 +12,321 @@ interface Listing {
   verified?: boolean; ownerName?: string; status?: string;
 }
 
+const CITY_PILLS = ['All Cities','Delhi','Mumbai','Bangalore','Hyderabad','Chennai','Kolkata','Pune','Ahmedabad','Jaipur','Surat','Lucknow','Bhiwadi','Gurgaon','Noida','Faridabad'];
+const CAT_PILLS  = ['All Categories','Restaurants','Electronics','Health','Home Services','Education','Salons','Auto','Clothing','Grocery','Jewellery','Real Estate','Events','Fitness'];
 const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest First' },
-  { value: 'name', label: 'Name A–Z' },
+  { value: 'best',    label: 'Best Match' },
+  { value: 'rated',   label: 'Highest Rated' },
+  { value: 'reviews', label: 'Most Reviews' },
+  { value: 'newest',  label: 'Newest' },
 ];
 
 function MapPin() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>; }
-function SearchIcon({ size = 16 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>; }
-function XIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>; }
-function FilterIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>; }
-function LocIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>; }
+function SearchIcon({ size=18 }: { size?:number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>; }
+function XIcon({ size=14 }: { size?:number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>; }
+
+type LocState = 'idle' | 'loading' | 'success' | 'denied' | 'error';
 
 export default function ListingsPage() {
-  const [allListings, setAllListings] = useState<Listing[]>([]);
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [cityFilter, setCityFilter] = useState('');
-  const [cityLabel, setCityLabel] = useState('Detecting…');
-  const [cityInput, setCityInput] = useState('');
-  const [locLoading, setLocLoading] = useState(true);
-  const [catQuery, setCatQuery] = useState('');
-  const [catSelected, setCatSelected] = useState('');
-  const [catSuggestions, setCatSuggestions] = useState<ReturnType<typeof searchCategories>>([]);
-  const [sortBy, setSortBy] = useState('newest');
-  const [showFilters, setShowFilters] = useState(false);
-  const [groupFilter, setGroupFilter] = useState('');
-  const [showCityInput, setShowCityInput] = useState(false);
-  const catRef = useRef<HTMLDivElement>(null);
-  const cityRef = useRef<HTMLDivElement>(null);
+  const [allListings, setAllListings]   = useState<Listing[]>([]);
+  const [listings,    setListings]      = useState<Listing[]>([]);
+  const [loading,     setLoading]       = useState(true);
 
-  // Step 1: Fetch ALL businesses from Firestore (no server-side filter)
+  // city
+  const [cityFilter,  setCityFilter]    = useState('');
+  const [cityLabel,   setCityLabel]     = useState('All Cities');
+  const [locState,    setLocState]      = useState<LocState>('idle');
+  const [locError,    setLocError]      = useState('');
+
+  // category
+  const [catSelected, setCatSelected]   = useState('');
+  const [catQuery,    setCatQuery]      = useState('');
+  const [catSugg,     setCatSugg]       = useState<ReturnType<typeof searchCategories>>([]);
+  const catRef = useRef<HTMLDivElement>(null);
+
+  // sort / search
+  const [sortBy,      setSortBy]        = useState('newest');
+  const [textSearch,  setTextSearch]    = useState('');
+
+  // ── Fetch businesses ──────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
         const snap = await getDocs(collection(db, 'businesses'));
         const data: Listing[] = snap.docs.map(d => ({ slug: d.id, ...d.data() } as Listing));
-        // Only show approved ones, but fetch all so filters work client-side
-        const approved = data.filter(b => !b.status || b.status === 'approved' || b.status === 'active');
-        setAllListings(approved);
+        setAllListings(data.filter(b => !b.status || b.status === 'approved' || b.status === 'active'));
       } catch (e) {
-        console.error('[listings fetch]', e);
+        console.error('[listings]', e);
         setAllListings([]);
       }
       setLoading(false);
     })();
   }, []);
 
-  // Step 2: GPS location on mount
-  useEffect(() => {
-    (async () => {
-      setLocLoading(true);
-      try {
-        const pos = await getUserLocation();
-        const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-        const c = geo.city || geo.state || '';
-        setCityFilter(c);
-        setCityLabel(c || 'All Cities');
-        setCityInput(c);
-      } catch {
-        setCityFilter('');
-        setCityLabel('All Cities');
-        setCityInput('');
-      }
-      setLocLoading(false);
-    })();
+  // ── GPS on mount ──────────────────────────────────────────────────────────
+  useEffect(() => { detectLocation(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const detectLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocState('error');
+      setLocError('Geolocation not supported by your browser.');
+      return;
+    }
+    setLocState('loading');
+    setLocError('');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+          const city = geo.city || geo.state || '';
+          setCityFilter(city);
+          setCityLabel(city || 'All Cities');
+          setLocState('success');
+        } catch {
+          setLocState('error');
+          setLocError('Could not resolve your city. Please select manually.');
+        }
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocState('denied');
+          setLocError('Location permission denied. Please allow it in your browser settings, or select a city manually.');
+        } else if (err.code === err.TIMEOUT) {
+          setLocState('error');
+          setLocError('Location request timed out. Try again.');
+        } else {
+          setLocState('error');
+          setLocError('Could not get location. Try again.');
+        }
+      },
+      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: false }
+    );
   }, []);
 
-  // Step 3: Apply filters client-side whenever allListings or filters change
+  // ── Filter + sort ─────────────────────────────────────────────────────────
   useEffect(() => {
     let data = [...allListings];
-    if (cityFilter.trim()) {
+    if (cityFilter && cityFilter !== 'All Cities') {
       data = data.filter(b =>
         b.city?.toLowerCase().includes(cityFilter.toLowerCase()) ||
         b.area?.toLowerCase().includes(cityFilter.toLowerCase())
       );
     }
-    if (catSelected) {
+    if (catSelected && catSelected !== 'All Categories') {
+      data = data.filter(b => b.category?.toLowerCase() === catSelected.toLowerCase());
+    }
+    if (textSearch.trim()) {
+      const q = textSearch.toLowerCase();
       data = data.filter(b =>
-        b.category?.toLowerCase() === catSelected.toLowerCase()
+        b.name?.toLowerCase().includes(q) ||
+        b.category?.toLowerCase().includes(q) ||
+        b.city?.toLowerCase().includes(q) ||
+        b.description?.toLowerCase().includes(q)
       );
     }
-    if (groupFilter) {
-      const groupCatNames = ALL_CATEGORIES.filter(c => c.group === groupFilter).map(c => c.name.toLowerCase());
-      data = data.filter(b => groupCatNames.includes(b.category?.toLowerCase() || ''));
-    }
-    if (sortBy === 'name') data.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortBy === 'newest') data.reverse();
+    else if (sortBy === 'best' || sortBy === 'name') data.sort((a, b) => a.name.localeCompare(b.name));
     setListings(data.slice(0, 120));
-  }, [allListings, cityFilter, catSelected, groupFilter, sortBy]);
+  }, [allListings, cityFilter, catSelected, textSearch, sortBy]);
 
-  // Category suggestions
+  // ── Category suggestions ──────────────────────────────────────────────────
   useEffect(() => {
-    if (catQuery.trim().length < 1) { setCatSuggestions([]); return; }
-    setCatSuggestions(searchCategories(catQuery, 8));
+    if (catQuery.trim().length < 1) { setCatSugg([]); return; }
+    setCatSugg(searchCategories(catQuery, 8));
   }, [catQuery]);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const fn = (e: MouseEvent) => {
-      if (catRef.current && !catRef.current.contains(e.target as Node)) setCatSuggestions([]);
-      if (cityRef.current && !cityRef.current.contains(e.target as Node)) setShowCityInput(false);
+      if (catRef.current && !catRef.current.contains(e.target as Node)) setCatSugg([]);
     };
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  const detectLocation = async () => {
-    setLocLoading(true);
-    try {
-      const pos = await getUserLocation();
-      const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-      const c = geo.city || geo.state || '';
-      setCityFilter(c);
-      setCityLabel(c || 'All Cities');
-      setCityInput(c);
-    } catch {
-      setCityFilter('');
-      setCityLabel('All Cities');
-      setCityInput('');
-    }
-    setLocLoading(false);
-    setShowCityInput(false);
+  const selectCity = (city: string) => {
+    if (city === 'All Cities') { setCityFilter(''); setCityLabel('All Cities'); }
+    else { setCityFilter(city); setCityLabel(city); }
+    setLocState('success');
   };
 
-  const clearFilters = () => {
-    setCityFilter(''); setCityLabel('All Cities'); setCityInput('');
-    setCatSelected(''); setCatQuery(''); setGroupFilter(''); setSortBy('newest');
+  const selectCat = (cat: string) => {
+    if (cat === 'All Categories') { setCatSelected(''); setCatQuery(''); }
+    else { setCatSelected(cat); setCatQuery(cat); }
   };
 
-  const hasFilters = cityFilter || catSelected || groupFilter;
-  const groupCats = groupFilter ? ALL_CATEGORIES.filter(c => c.group === groupFilter) : [];
+  const hasFilters = (cityFilter && cityFilter !== 'All Cities') || (catSelected && catSelected !== 'All Categories') || textSearch.trim();
+
+  const clearAll = () => {
+    setCityFilter(''); setCityLabel('All Cities');
+    setCatSelected(''); setCatQuery(''); setTextSearch('');
+    setSortBy('newest'); setLocState('idle');
+  };
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 72 }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 64 }}>
 
-      {/* ── Sticky filter bar ── */}
-      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '14px 0', position: 'sticky', top: 64, zIndex: 100 }}>
-        <div className="container" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* ── Hero Header ───────────────────────────────────────────────────── */}
+      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '32px 0 0' }}>
+        <div className="lc">
 
-          <h1 style={{ fontFamily: "'EB Garamond',serif", fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', marginRight: 4, whiteSpace: 'nowrap' }}>Listings</h1>
+          {/* Title */}
+          <h1 style={{ fontFamily: "'EB Garamond',serif", fontSize: 'clamp(1.6rem,4vw,2.4rem)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+            Business Directory
+          </h1>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 20 }}>
+            Find Businesses Across India &nbsp;·&nbsp; Be the first to list your business — completely free
+          </p>
 
-          {/* City selector */}
-          <div ref={cityRef} style={{ position: 'relative' }}>
-            <button type="button"
-              onClick={() => setShowCityInput(p => !p)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 'var(--r-md)', border: `1px solid ${showCityInput ? 'var(--amber)' : 'var(--border-hover)'}`, background: 'var(--bg)', color: cityFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>
-              {locLoading
-                ? <div style={{ width: 12, height: 12, border: '2px solid var(--amber)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              }
-              📍 {cityLabel || 'All Cities'}
-            </button>
-            {showCityInput && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 200, padding: 12, minWidth: 260 }}>
-                <button type="button" onClick={detectLocation}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '8px 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--amber-glow)', background: 'var(--amber-subtle)', color: 'var(--amber)', fontWeight: 600, fontSize: 12, cursor: 'pointer', marginBottom: 8 }}>
-                  <LocIcon /> 📡 Detect My Location
-                </button>
-                <input
-                  value={cityInput}
-                  onChange={e => { setCityInput(e.target.value); setCityFilter(e.target.value); setCityLabel(e.target.value || 'All Cities'); }}
-                  placeholder="Type city name…"
-                  autoFocus
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
-                />
-                <button type="button" onClick={() => { setCityFilter(''); setCityLabel('All Cities'); setCityInput(''); setShowCityInput(false); }}
-                  style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear → Show All Cities</button>
-              </div>
-            )}
-          </div>
-
-          {/* Category search */}
-          <div ref={catRef} style={{ position: 'relative', flex: 1, minWidth: 180, maxWidth: 320 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)' }}>
-              <SearchIcon size={14} />
-              <input value={catQuery}
-                onChange={e => { setCatQuery(e.target.value); if (!e.target.value) setCatSelected(''); }}
-                placeholder={catSelected || 'Search category…'}
-                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--text-primary)', minWidth: 0 }}
+          {/* Search bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 240, background: 'var(--bg)', border: '1.5px solid var(--border-hover)', borderRadius: 'var(--r-lg)', padding: '10px 14px', boxShadow: 'var(--shadow-sm)' }}>
+              <SearchIcon size={16} />
+              <input
+                value={textSearch}
+                onChange={e => setTextSearch(e.target.value)}
+                placeholder="Search businesses, categories, cities…"
+                style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--text-primary)' }}
               />
-              {(catQuery || catSelected) && (
-                <button onClick={() => { setCatQuery(''); setCatSelected(''); setCatSuggestions([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0 }}><XIcon /></button>
+              {textSearch && (
+                <button onClick={() => setTextSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0 }}><XIcon /></button>
               )}
             </div>
-            {catSuggestions.length > 0 && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 200, overflow: 'hidden' }}>
-                {catSuggestions.map(cat => (
-                  <button key={cat.id} onClick={() => { setCatSelected(cat.name); setCatQuery(cat.name); setCatSuggestions([]); }}
-                    style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: '9px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--border)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                  >
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{cat.name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{cat.group}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <button onClick={() => setShowFilters(p => !p)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r-md)', border: `1px solid ${showFilters ? 'var(--amber)' : 'var(--border-hover)'}`, background: showFilters ? 'var(--amber-subtle)' : 'var(--bg)', color: showFilters ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
-            <FilterIcon /> Filters {hasFilters ? '•' : ''}
-          </button>
-          {hasFilters && (
-            <button onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}>Clear all</button>
-          )}
-          <div style={{ marginLeft: 'auto' }}>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', outline: 'none' }}>
-              {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {showFilters && (
-          <div className="container" style={{ marginTop: 10, padding: 14, background: 'var(--surface-2)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Browse by Group</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {CATEGORY_GROUPS.map(g => (
-                  <button key={g} onClick={() => setGroupFilter(groupFilter === g ? '' : g)}
-                    style={{ padding: '5px 12px', borderRadius: 'var(--r-full)', fontSize: 12, fontWeight: 500, border: `1px solid ${groupFilter === g ? 'var(--amber)' : 'var(--border)'}`, background: groupFilter === g ? 'var(--amber-subtle)' : 'var(--bg)', color: groupFilter === g ? 'var(--amber)' : 'var(--text-secondary)', cursor: 'pointer' }}>{g}</button>
-                ))}
+            {/* Category search */}
+            <div ref={catRef} style={{ position: 'relative', minWidth: 200 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1.5px solid var(--border-hover)', borderRadius: 'var(--r-lg)', padding: '10px 14px', boxShadow: 'var(--shadow-sm)' }}>
+                <span style={{ fontSize: 14 }}>🏷️</span>
+                <input
+                  value={catQuery}
+                  onChange={e => { setCatQuery(e.target.value); if (!e.target.value) setCatSelected(''); }}
+                  placeholder={catSelected || 'Category…'}
+                  style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--text-primary)', minWidth: 100 }}
+                />
+                {(catQuery || catSelected) && (
+                  <button onClick={() => { setCatQuery(''); setCatSelected(''); setCatSugg([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0 }}><XIcon /></button>
+                )}
               </div>
-            </div>
-            {groupFilter && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{groupFilter}</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {groupCats.map(cat => (
-                    <button key={cat.id} onClick={() => { setCatSelected(cat.name); setCatQuery(cat.name); setShowFilters(false); }}
-                      style={{ padding: '5px 12px', borderRadius: 'var(--r-full)', fontSize: 12, border: `1px solid ${catSelected === cat.name ? 'var(--amber)' : 'var(--border)'}`, background: catSelected === cat.name ? 'var(--amber-subtle)' : 'var(--bg)', color: catSelected === cat.name ? 'var(--amber)' : 'var(--text-secondary)', cursor: 'pointer' }}>{cat.name}</button>
+              {catSugg.length > 0 && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 300, overflow: 'hidden' }}>
+                  {catSugg.map(cat => (
+                    <button key={cat.id} onClick={() => { setCatSelected(cat.name); setCatQuery(cat.name); setCatSugg([]); }}
+                      style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: '9px 14px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                    >
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{cat.name}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{cat.group}</span>
+                    </button>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Location detection status */}
+          {locState === 'loading' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', marginBottom: 12, width: 'fit-content', fontSize: 13, color: 'var(--amber)' }}>
+              <div style={{ width: 13, height: 13, border: '2px solid var(--amber)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+              Detecting your location…
+            </div>
+          )}
+          {(locState === 'denied' || locState === 'error') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 12px', borderRadius: 'var(--r-md)', background: '#fef2f2', border: '1px solid #fecaca', marginBottom: 12, fontSize: 13, color: '#b91c1c', maxWidth: 560 }}>
+              <span>⚠️ {locError}</span>
+              {locState !== 'denied' && (
+                <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  Retry
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* City pills */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 14, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {/* Detect button as first pill */}
+            <button
+              onClick={detectLocation}
+              disabled={locState === 'loading'}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 'var(--r-full)', border: '1.5px solid var(--amber)', background: locState === 'loading' ? 'var(--amber-subtle)' : 'var(--amber)', color: locState === 'loading' ? 'var(--amber)' : '#fff', fontSize: 12, fontWeight: 600, cursor: locState === 'loading' ? 'default' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.18s' }}
+            >
+              {locState === 'loading'
+                ? <><div style={{ width: 10, height: 10, border: '2px solid var(--amber)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> Detecting…</>
+                : <><span>📡</span> Detect My Location</>
+              }
+            </button>
+            {CITY_PILLS.map(city => {
+              const active = city === 'All Cities' ? (!cityFilter || cityFilter === '') : cityFilter === city;
+              return (
+                <button key={city} onClick={() => selectCity(city)}
+                  style={{ padding: '6px 14px', borderRadius: 'var(--r-full)', border: `1.5px solid ${active ? 'var(--amber)' : 'var(--border)'}`, background: active ? 'var(--amber-subtle)' : 'var(--bg)', color: active ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.18s' }}
+                >
+                  {city}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Category pills */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 16, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {CAT_PILLS.map(cat => {
+              const active = cat === 'All Categories' ? !catSelected : catSelected === cat;
+              return (
+                <button key={cat} onClick={() => selectCat(cat)}
+                  style={{ padding: '6px 14px', borderRadius: 'var(--r-full)', border: `1.5px solid ${active ? 'var(--amber)' : 'var(--border)'}`, background: active ? 'var(--amber-subtle)' : 'var(--bg)', color: active ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.18s' }}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      {/* ── Results ── */}
-      <div className="container" style={{ padding: '24px 0 48px' }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* ── Results bar ──────────────────────────────────────────────────────── */}
+      <div style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)', padding: '10px 0' }}>
+        <div className="lc" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {!loading && (
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              {listings.length} listing{listings.length !== 1 ? 's' : ''}
-              {cityFilter ? ` in ${cityLabel}` : ' · All Cities'}
-              {catSelected ? ` · ${catSelected}` : ''}
-              {allListings.length > 0 && !cityFilter && !catSelected && !groupFilter && ` (${allListings.length} total)`}
+            <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>
+              {listings.length} business{listings.length !== 1 ? 'es' : ''} found
             </span>
           )}
-          {cityFilter && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600 }}>
-              📍 {cityLabel}
-              <button onClick={() => { setCityFilter(''); setCityLabel('All Cities'); setCityInput(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, color: 'var(--amber)' }}><XIcon /></button>
-            </span>
-          )}
-          {catSelected && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600 }}>
-              🏷️ {catSelected}
-              <button onClick={() => { setCatSelected(''); setCatQuery(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, color: 'var(--amber)' }}><XIcon /></button>
-            </span>
-          )}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Sort:</span>
+            {SORT_OPTIONS.map(o => (
+              <button key={o.value} onClick={() => setSortBy(o.value)}
+                style={{ padding: '5px 10px', borderRadius: 'var(--r-md)', border: `1px solid ${sortBy === o.value ? 'var(--amber)' : 'var(--border)'}`, background: sortBy === o.value ? 'var(--amber-subtle)' : 'none', color: sortBy === o.value ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, fontWeight: sortBy === o.value ? 600 : 400, cursor: 'pointer' }}>
+                {o.label}
+              </button>
+            ))}
+            {hasFilters && (
+              <button onClick={clearAll} style={{ padding: '5px 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}>Clear all</button>
+            )}
+          </div>
         </div>
+      </div>
 
+      {/* ── Category sub-pills (quick mobile filter) ─────────────────────── */}
+      <div style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '8px 0' }}>
+        <div className="lc">
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {['All Categories','Restaurants','Electronics','Health','Home Services','Education','Salons','Auto'].map(cat => {
+              const active = cat === 'All Categories' ? !catSelected : catSelected === cat;
+              return (
+                <button key={cat} onClick={() => selectCat(cat)}
+                  style={{ padding: '4px 12px', borderRadius: 'var(--r-full)', border: `1px solid ${active ? 'var(--amber)' : 'var(--border)'}`, background: active ? 'var(--amber-subtle)' : 'var(--bg)', color: active ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, fontWeight: active ? 600 : 400, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Listings grid ────────────────────────────────────────────────────── */}
+      <div className="lc" style={{ padding: '24px 0 56px' }}>
         {loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, height: 160 }}>
                 <div style={{ height: 14, background: 'var(--surface-offset)', borderRadius: 4, marginBottom: 10, width: '60%', animation: 'shimmer 1.5s ease-in-out infinite' }} />
@@ -288,21 +336,26 @@ export default function ListingsPage() {
             ))}
           </div>
         ) : listings.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 16px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-            <h2 style={{ fontFamily: "'EB Garamond',serif", fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: 8 }}>No listings found</h2>
-            <p style={{ fontSize: 14, marginBottom: 20 }}>
+          <div style={{ textAlign: 'center', padding: '80px 16px' }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>🏪</div>
+            <h2 style={{ fontFamily: "'EB Garamond',serif", fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: 8 }}>
+              {hasFilters ? 'No businesses found' : 'No businesses listed yet'}
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24, maxWidth: 400, marginInline: 'auto' }}>
               {hasFilters
-                ? `No businesses found${cityFilter ? ` in "${cityLabel}"` : ''}${catSelected ? ` for "${catSelected}"` : ''}. Try changing filters.`
-                : 'No approved businesses yet. Be the first!'}
+                ? `No results${cityFilter ? ` in "${cityLabel}"` : ''}${catSelected ? ` for "${catSelected}"` : ''}. Try different filters.`
+                : 'BhartiyaBazar is growing. Be the first to list your business — completely free.'}
             </p>
-            {hasFilters
-              ? <button onClick={clearFilters} style={{ padding: '10px 24px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}>Clear Filters</button>
-              : <Link href="/list-business" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>List Your Business →</Link>
-            }
+            {hasFilters ? (
+              <button onClick={clearAll} style={{ padding: '11px 28px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}>Clear Filters</button>
+            ) : (
+              <Link href="/list-business" style={{ display: 'inline-block', padding: '11px 28px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+                List Your Business Free →
+              </Link>
+            )}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
             {listings.map(biz => (
               <Link key={biz.slug} href={`/business/${biz.slug}`}
                 style={{ textDecoration: 'none', display: 'block', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: 'var(--shadow-sm)', transition: 'all var(--t)' }}
@@ -328,9 +381,10 @@ export default function ListingsPage() {
       </div>
 
       <style>{`
+        .lc { max-width:1200px; margin:0 auto; padding-inline:clamp(16px,4vw,48px); }
         @keyframes shimmer { 0%{opacity:1} 50%{opacity:0.4} 100%{opacity:1} }
         @keyframes spin { to{transform:rotate(360deg)} }
-        .container { max-width:1200px; margin:0 auto; padding-inline:clamp(16px,4vw,48px); }
+        ::-webkit-scrollbar { display:none; }
       `}</style>
     </div>
   );
