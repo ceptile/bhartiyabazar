@@ -30,7 +30,6 @@ export default function ListBusinessPage() {
   const [error, setError]     = useState('');
   const [done, setDone]       = useState(false);
 
-  // Auth guard — redirect to login if not signed in
   useEffect(() => {
     if (!authLoading && !user) {
       router.replace('/login?redirect=/list-business');
@@ -66,6 +65,7 @@ export default function ListBusinessPage() {
         phone: f.phone.trim() || user.phone || '',
         description: f.description.trim(),
         verified: false,
+        status: 'approved',
         createdAt: serverTimestamp(),
       });
 
@@ -85,7 +85,6 @@ export default function ListBusinessPage() {
     setLoading(false);
   };
 
-  // Show spinner while auth is resolving OR while redirecting unauthenticated users
   if (authLoading || !user) {
     return (
       <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
@@ -95,7 +94,6 @@ export default function ListBusinessPage() {
     );
   }
 
-  // ── Success screen ────────────────────────────────────────────────────
   if (done) {
     return (
       <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: '80px 16px' }}>
@@ -105,22 +103,25 @@ export default function ListBusinessPage() {
             Business Listed!
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24 }}>
-            Your business has been submitted for review. We&apos;ll verify and publish it shortly.
+            Your business is now live on BhartiyaBazar!
           </p>
-          <Link href="/dashboard" style={{ padding: '11px 28px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
-            Go to Dashboard →
-          </Link>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/listings" style={{ padding: '11px 28px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+              View Listings →
+            </Link>
+            <Link href="/dashboard" style={{ padding: '11px 28px', borderRadius: 'var(--r-md)', background: 'var(--surface)', color: 'var(--text-primary)', fontWeight: 600, fontSize: 14, textDecoration: 'none', border: '1px solid var(--border)' }}>
+              Dashboard
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ── Form (user is guaranteed non-null here) ───────────────────────────
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', padding: '80px 16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: 520 }}>
 
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <Link href="/" style={{ display: 'inline-block', marginBottom: 12, textDecoration: 'none' }}>
             <div style={{ fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 700, fontSize: 22, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
@@ -130,34 +131,28 @@ export default function ListBusinessPage() {
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontFamily: "'EB Garamond',serif", color: 'var(--text-primary)', marginBottom: 6 }}>
             List Your Business
           </h1>
-          {/* user is guaranteed non-null here — safe to access directly */}
           <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
             Logged in as <strong>{user.name}</strong> ({user.email})
           </p>
         </div>
 
-        {/* Form card */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 32, boxShadow: 'var(--shadow-md)' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {error && (
-              <div style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', background: '#fff0f0', border: '1px solid #fca5a5', color: '#dc2626', fontSize: 13 }}>
+              <div style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', background: 'var(--error-bg)', border: '1px solid var(--crimson-glow)', color: 'var(--error)', fontSize: 13 }}>
                 ⚠️ {error}
               </div>
             )}
 
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                Business Name *
-              </label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Business Name *</label>
               <input style={inp} placeholder="Sharma Electronics" value={f.businessName}
                 onChange={set('businessName')} onFocus={focus} onBlur={blur} />
             </div>
 
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                Category *
-              </label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Category *</label>
               <select style={{ ...inp, cursor: 'pointer' }} value={f.businessCategory}
                 onChange={set('businessCategory')} onFocus={focus} onBlur={blur}>
                 <option value="">Select a category…</option>
@@ -167,9 +162,7 @@ export default function ListBusinessPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                  City *
-                </label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>City *</label>
                 <select style={{ ...inp, cursor: 'pointer' }} value={f.city}
                   onChange={set('city')} onFocus={focus} onBlur={blur}>
                   <option value="">Select city…</option>
@@ -177,26 +170,20 @@ export default function ListBusinessPage() {
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                  Area / Locality
-                </label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Area / Locality</label>
                 <input style={inp} placeholder="Karol Bagh" value={f.area}
                   onChange={set('area')} onFocus={focus} onBlur={blur} />
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                Business Phone
-              </label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Business Phone</label>
               <input style={inp} placeholder="+91 98100 00000" value={f.phone}
                 onChange={set('phone')} onFocus={focus} onBlur={blur} />
             </div>
 
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>
-                Short Description
-              </label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6 }}>Short Description</label>
               <textarea
                 style={{ ...inp, minHeight: 80, resize: 'vertical' }}
                 placeholder="Tell customers what makes your business special…"

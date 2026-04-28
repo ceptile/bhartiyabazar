@@ -15,6 +15,7 @@ interface Listing {
   description?: string;
   verified?: boolean;
   ownerName?: string;
+  status?: string;
 }
 
 const CITIES = ['Delhi','Mumbai','Bangalore','Hyderabad','Chennai','Kolkata','Pune','Ahmedabad','Jaipur','Surat','Lucknow','Bhiwadi','Gurgaon','Noida','Faridabad'];
@@ -51,22 +52,18 @@ export default function ListingsPage() {
   const [groupFilter, setGroupFilter] = useState('');
   const catRef = useRef<HTMLDivElement>(null);
 
-  // Detect user city from browser (best-effort)
   useEffect(() => {
     if (typeof window !== 'undefined' && !cityFilter) {
-      // Try to match a known city from timezone/locale — fallback to no filter
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (tz.includes('Kolkata') || tz.includes('Calcutta')) setCityFilter('Kolkata');
     }
   }, []);
 
-  // Category smart search
   useEffect(() => {
     if (catQuery.trim().length < 1) { setCatSuggestions([]); return; }
     setCatSuggestions(searchCategories(catQuery, 8));
   }, [catQuery]);
 
-  // Close cat dropdown on outside click
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (catRef.current && !catRef.current.contains(e.target as Node)) {
@@ -80,19 +77,34 @@ export default function ListingsPage() {
   const fetchListings = useCallback(async () => {
     setLoading(true);
     try {
-      const constraints: QueryConstraint[] = [];
-      if (cityFilter) constraints.push(where('city', '==', cityFilter));
-      if (catSelected) constraints.push(where('category', '==', catSelected));
-      constraints.push(orderBy('createdAt', 'desc'));
-      constraints.push(limit(48));
+      // Use a simple query with only status filter + limit to avoid composite index requirement.
+      // City and category filtering is done client-side to keep queries index-free.
+      const constraints: QueryConstraint[] = [
+        where('status', '==', 'approved'),
+        limit(200),
+      ];
 
       const snap = await getDocs(query(collection(db, 'businesses'), ...constraints));
       let data = snap.docs.map(d => ({ slug: d.id, ...d.data() } as Listing));
 
-      if (sortBy === 'name') data = data.sort((a, b) => a.name.localeCompare(b.name));
-      setListings(data);
-    } catch (e) {
-      console.error(e);
+      // Client-side filters
+      if (cityFilter) data = data.filter(b => b.city === cityFilter);
+      if (catSelected) data = data.filter(b => b.category === catSelected);
+
+      // Sort
+      if (sortBy === 'name') {
+        data = data.sort((a, b) => a.name.localeCompare(b.name));
+      }
+      // Default (newest) — Firestore returns in insertion order without orderBy,
+      // so we reverse to approximate newest-first without needing a composite index.
+      else {
+        data = data.reverse();
+      }
+
+      setListings(data.slice(0, 48));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('[listings] Firestore error:', msg);
       setListings([]);
     }
     setLoading(false);
@@ -103,7 +115,6 @@ export default function ListingsPage() {
   const clearFilters = () => { setCityFilter(''); setCatSelected(''); setCatQuery(''); setGroupFilter(''); setSortBy('newest'); };
   const hasFilters = cityFilter || catSelected || groupFilter;
 
-  // Category browser by group
   const groupCats = groupFilter ? ALL_CATEGORIES.filter(c => c.group === groupFilter) : [];
 
   return (
@@ -117,7 +128,6 @@ export default function ListingsPage() {
             Listings
           </h1>
 
-          {/* City filter */}
           <select
             value={cityFilter}
             onChange={e => setCityFilter(e.target.value)}
@@ -127,7 +137,6 @@ export default function ListingsPage() {
             {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
-          {/* Smart category search */}
           <div ref={catRef} style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 320 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)' }}>
               <SearchIcon size={14} />
@@ -160,7 +169,6 @@ export default function ListingsPage() {
             )}
           </div>
 
-          {/* More filters toggle */}
           <button onClick={() => setShowFilters(p => !p)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r-md)', border: `1px solid ${showFilters ? 'var(--amber)' : 'var(--border-hover)'}`, background: showFilters ? 'var(--amber-subtle)' : 'var(--bg)', color: showFilters ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
             <FilterIcon /> Filters {hasFilters ? '•' : ''}
@@ -180,7 +188,6 @@ export default function ListingsPage() {
           </div>
         </div>
 
-        {/* Expanded filters */}
         {showFilters && (
           <div className="container" style={{ marginTop: 12, padding: '16px', background: 'var(--surface-2)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
@@ -216,7 +223,6 @@ export default function ListingsPage() {
       {/* ── Results ── */}
       <div className="container" style={{ padding: '24px 0 48px' }}>
 
-        {/* Active filter chips */}
         {(cityFilter || catSelected) && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Showing:</span>
@@ -252,7 +258,10 @@ export default function ListingsPage() {
             <p style={{ fontSize: 14, marginBottom: 20 }}>
               {hasFilters ? 'Try changing your filters or clearing them.' : 'Be the first to list your business!'}
             </p>
-            {hasFilters && <button onClick={clearFilters} style={{ padding: '10px 24px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}>Clear Filters</button>}
+            {hasFilters
+              ? <button onClick={clearFilters} style={{ padding: '10px 24px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}>Clear Filters</button>
+              : <Link href="/list-business" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>List Your Business →</Link>
+            }
           </div>
         ) : (
           <>
