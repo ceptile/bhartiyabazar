@@ -21,11 +21,6 @@ export interface AuthUser {
   role: UserRole;
   phone?: string;
   city?: string;
-  area?: string;
-  address?: string;
-  country?: string;
-  state?: string;
-  pincode?: string;
   businessName?: string;
   businessSlug?: string;
   businessCategory?: string;
@@ -39,11 +34,6 @@ export interface RegisterData {
   password: string;
   phone?: string;
   city?: string;
-  area?: string;
-  address?: string;
-  country?: string;
-  state?: string;
-  pincode?: string;
   role: UserRole;
   businessName?: string;
   businessCategory?: string;
@@ -102,7 +92,7 @@ function getFriendlyError(code: string): string {
     'auth/too-many-requests':          'Too many attempts. Please wait a few minutes and try again.',
     'auth/user-disabled':              'This account has been disabled.',
     'auth/operation-not-allowed':      'Google sign-in is not enabled. Please contact support.',
-    'auth/unauthorized-domain':        'This domain is not authorised in Firebase. Add it under Authentication \u2192 Settings \u2192 Authorised domains.',
+    'auth/unauthorized-domain':        'This domain is not authorised in Firebase. Add it under Authentication → Settings → Authorised domains.',
     'auth/internal-error':             'An internal error occurred. Please try again.',
     'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method.',
   };
@@ -171,11 +161,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: data.role,
         phone: data.phone?.trim() || '',
         city: data.city?.trim() || '',
-        area: data.area?.trim() || '',
-        address: data.address?.trim() || '',
-        country: data.country?.trim() || '',
-        state: data.state?.trim() || '',
-        pincode: data.pincode?.trim() || '',
         businessName: data.businessName?.trim() || '',
         businessCategory: data.businessCategory || '',
         businessSlug: slug,
