@@ -121,26 +121,15 @@ export default function ListingsPage() {
 
 
   // ── GPS location detect ──
+  // NOTE: We intentionally do NOT use navigator.permissions.query() before calling
+  // getCurrentPosition. The Permissions API can return stale 'denied' state even
+  // after the user re-allows in Site Settings, causing a false early exit.
+  // Instead we let getCurrentPosition itself handle all permission outcomes.
   const detectLocation = useCallback(async () => {
-    // Guard: check browser support first
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setLocState('error');
       setLocError('Geolocation is not supported by your browser.');
       return;
-    }
-
-    // Guard: check permission state if Permissions API is available
-    if (navigator.permissions) {
-      try {
-        const perm = await navigator.permissions.query({ name: 'geolocation' });
-        if (perm.state === 'denied') {
-          setLocState('denied');
-          setLocError('Location permission is blocked. Open Chrome → Site Settings → Location → Allow for this site, then refresh.');
-          return;
-        }
-      } catch {
-        // permissions API not available, continue
-      }
     }
 
     setLocState('loading');
@@ -165,16 +154,18 @@ export default function ListingsPage() {
       const code = (err as GeolocationPositionError)?.code;
 
       if (code === 1) {
+        // PERMISSION_DENIED
         setLocState('denied');
-        setLocError('Location permission is blocked. Open Chrome → Site Settings → Location → Allow for this site, then refresh.');
+        setLocError('Location permission is blocked. Open Chrome → Site Settings → Location → Allow for this site, then refresh the page.');
       } else if (code === 2) {
+        // POSITION_UNAVAILABLE
         setLocState('error');
         setLocError('Could not determine your location. Check your GPS/network and try again.');
       } else if (code === 3) {
+        // TIMEOUT
         setLocState('error');
         setLocError('Location request timed out. Try again.');
       } else {
-        // Plain Error (e.g. fetch failure, non-GeolocationPositionError)
         setLocState('error');
         setLocError('Something went wrong detecting your location. Please select a city manually.');
       }
@@ -389,7 +380,7 @@ export default function ListingsPage() {
           {(locState === 'denied' || locState === 'error') && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '7px 12px', borderRadius: 'var(--r-md)', background: '#fef2f2', border: '1px solid #fecaca', fontSize: 13, color: '#b91c1c', maxWidth: 520, marginTop: 8 }}>
               ⚠️ {locError}
-              {locState === 'error' && (
+              {(locState === 'error' || locState === 'denied') && (
                 <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Retry</button>
               )}
             </div>
