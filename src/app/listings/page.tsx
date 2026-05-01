@@ -6,6 +6,7 @@ import { searchCategories, ALL_CATEGORIES, CATEGORY_GROUPS } from '@/lib/categor
 import { reverseGeocode, getUserLocation } from '@/lib/geo';
 import Link from 'next/link';
 
+
 interface Listing {
   slug: string;
   name: string;
@@ -20,18 +21,22 @@ interface Listing {
   createdAt?: { seconds: number } | string | number;
 }
 
+
 const CITIES = [
   'Delhi','Mumbai','Bangalore','Hyderabad','Chennai','Kolkata','Pune',
   'Ahmedabad','Jaipur','Surat','Lucknow','Bhiwadi','Gurgaon','Noida',
   'Faridabad','Firozabad','Agra','Mathura','Aligarh','Meerut',
 ];
 
+
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest First' },
   { value: 'name',   label: 'Name A–Z'     },
 ];
 
+
 type LocState = 'idle' | 'loading' | 'success' | 'denied' | 'error';
+
 
 function MapPin() {
   return (
@@ -63,6 +68,7 @@ function FilterIcon() {
   );
 }
 
+
 function getCreatedAtSeconds(val?: Listing['createdAt']): number {
   if (!val) return 0;
   if (typeof val === 'object' && 'seconds' in val) return val.seconds;
@@ -70,15 +76,18 @@ function getCreatedAtSeconds(val?: Listing['createdAt']): number {
   return new Date(val).getTime() / 1000;
 }
 
+
 export default function ListingsPage() {
   const [allListings, setAllListings] = useState<Listing[]>([]);
   const [listings,    setListings]    = useState<Listing[]>([]);
   const [loading,     setLoading]     = useState(true);
 
+
   const [cityFilter,  setCityFilter]  = useState('');
   const [cityLabel,   setCityLabel]   = useState('All Cities');
   const [locState,    setLocState]    = useState<LocState>('idle');
   const [locError,    setLocError]    = useState('');
+
 
   const [catQuery,      setCatQuery]      = useState('');
   const [catSelected,   setCatSelected]   = useState('');
@@ -86,19 +95,21 @@ export default function ListingsPage() {
   const [groupFilter,   setGroupFilter]   = useState('');
   const [showFilters,   setShowFilters]   = useState(false);
 
+
   const [sortBy,      setSortBy]      = useState('newest');
   const [textSearch,  setTextSearch]  = useState('');
 
+
   const catRef = useRef<HTMLDivElement>(null);
 
-  // ── Fetch ALL businesses once (client-side filtering avoids composite index) ──
+
+  // ── Fetch ALL businesses once ──
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
         const snap = await getDocs(collection(db, 'businesses'));
         const data: Listing[] = snap.docs.map(d => ({ slug: d.id, ...d.data() } as Listing));
-        // exclude only explicitly rejected listings
         setAllListings(data.filter(b => b.status !== 'rejected'));
       } catch (e) {
         console.error('[listings] fetch error', e);
@@ -108,10 +119,33 @@ export default function ListingsPage() {
     })();
   }, []);
 
-  // ── GPS location detect ───────────────────────────────────────────────────
+
+  // ── GPS location detect ──
   const detectLocation = useCallback(async () => {
+    // Guard: check browser support first
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setLocState('error');
+      setLocError('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    // Guard: check permission state if Permissions API is available
+    if (navigator.permissions) {
+      try {
+        const perm = await navigator.permissions.query({ name: 'geolocation' });
+        if (perm.state === 'denied') {
+          setLocState('denied');
+          setLocError('Location permission is blocked. Open Chrome → Site Settings → Location → Allow for this site, then refresh.');
+          return;
+        }
+      } catch {
+        // permissions API not available, continue
+      }
+    }
+
     setLocState('loading');
     setLocError('');
+
     try {
       const pos = await getUserLocation();
       const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
@@ -122,26 +156,36 @@ export default function ListingsPage() {
         setLocState('success');
       } else {
         setLocState('error');
-        setLocError('Could not resolve your city. Please select manually.');
+        setLocError('Could not resolve your city. Please select manually from the list below.');
       }
     } catch (err: unknown) {
-      const geoErr = err as GeolocationPositionError;
-      if (geoErr?.code === 1) {
+      console.error('[detectLocation] error:', err);
+
+      // GeolocationPositionError has a numeric .code
+      const code = (err as GeolocationPositionError)?.code;
+
+      if (code === 1) {
         setLocState('denied');
-        setLocError('Location permission denied. Please allow it in your browser settings, or pick a city below.');
-      } else if (geoErr?.code === 3) {
+        setLocError('Location permission is blocked. Open Chrome → Site Settings → Location → Allow for this site, then refresh.');
+      } else if (code === 2) {
+        setLocState('error');
+        setLocError('Could not determine your location. Check your GPS/network and try again.');
+      } else if (code === 3) {
         setLocState('error');
         setLocError('Location request timed out. Try again.');
       } else {
+        // Plain Error (e.g. fetch failure, non-GeolocationPositionError)
         setLocState('error');
-        setLocError('Could not get your location. Try again or select a city below.');
+        setLocError('Something went wrong detecting your location. Please select a city manually.');
       }
     }
   }, []);
 
-  // ── Filter + sort (all client-side) ──────────────────────────────────────
+
+  // ── Filter + sort ──
   useEffect(() => {
     let data = [...allListings];
+
 
     if (cityFilter && cityFilter !== 'All Cities') {
       const q = cityFilter.toLowerCase();
@@ -164,20 +208,24 @@ export default function ListingsPage() {
       );
     }
 
+
     if (sortBy === 'newest') {
       data.sort((a, b) => getCreatedAtSeconds(b.createdAt) - getCreatedAtSeconds(a.createdAt));
     } else if (sortBy === 'name') {
       data.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
     }
 
+
     setListings(data.slice(0, 120));
   }, [allListings, cityFilter, catSelected, textSearch, sortBy]);
 
-  // ── Category smart search ─────────────────────────────────────────────────
+
+  // ── Category smart search ──
   useEffect(() => {
     if (catQuery.trim().length < 1) { setCatSuggestions([]); return; }
     setCatSuggestions(searchCategories(catQuery, 8));
   }, [catQuery]);
+
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
@@ -189,12 +237,14 @@ export default function ListingsPage() {
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  // ── Helpers ──
   const selectCity = (city: string) => {
     if (city === 'All Cities') { setCityFilter(''); setCityLabel('All Cities'); }
     else { setCityFilter(city); setCityLabel(city); }
     setLocState('success');
   };
+
 
   const clearFilters = () => {
     setCityFilter(''); setCityLabel('All Cities');
@@ -202,22 +252,27 @@ export default function ListingsPage() {
     setGroupFilter(''); setSortBy('newest'); setLocState('idle');
   };
 
+
   const hasFilters = !!(cityFilter || catSelected || textSearch.trim());
   const groupCats  = groupFilter
     ? (ALL_CATEGORIES ?? []).filter(c => c.group === groupFilter)
     : [];
 
+
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 72 }}>
+
 
       {/* ── Sticky top bar ── */}
       <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '16px 0', position: 'sticky', top: 64, zIndex: 100 }}>
         <div className="lc">
 
+
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
             <h1 style={{ fontFamily: "'EB Garamond',serif", fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
               Listings
             </h1>
+
 
             {/* Text search */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, maxWidth: 340, padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)' }}>
@@ -234,6 +289,7 @@ export default function ListingsPage() {
                 </button>
               )}
             </div>
+
 
             {/* Smart category search */}
             <div ref={catRef} style={{ position: 'relative', minWidth: 180, maxWidth: 280 }}>
@@ -269,17 +325,20 @@ export default function ListingsPage() {
               )}
             </div>
 
+
             {/* Filters toggle */}
             <button onClick={() => setShowFilters(p => !p)}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r-md)', border: `1px solid ${showFilters ? 'var(--amber)' : 'var(--border-hover)'}`, background: showFilters ? 'var(--amber-subtle)' : 'var(--bg)', color: showFilters ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
               <FilterIcon /> Filters {hasFilters ? '·' : ''}
             </button>
 
+
             {hasFilters && (
               <button onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}>
                 Clear all
               </button>
             )}
+
 
             <div style={{ marginLeft: 'auto' }}>
               <select value={sortBy} onChange={e => setSortBy(e.target.value)}
@@ -288,6 +347,7 @@ export default function ListingsPage() {
               </select>
             </div>
           </div>
+
 
           {/* Location row */}
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none', alignItems: 'center', flexWrap: 'nowrap' }}>
@@ -303,6 +363,7 @@ export default function ListingsPage() {
               }
             </button>
 
+
             {/* City pills */}
             {['All Cities', ...CITIES].map(city => {
               const active = city === 'All Cities'
@@ -317,6 +378,7 @@ export default function ListingsPage() {
             })}
           </div>
 
+
           {/* Location feedback */}
           {locState === 'success' && cityLabel !== 'All Cities' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', fontSize: 13, color: 'var(--amber)', fontWeight: 600, width: 'fit-content', marginTop: 8 }}>
@@ -327,12 +389,13 @@ export default function ListingsPage() {
           {(locState === 'denied' || locState === 'error') && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '7px 12px', borderRadius: 'var(--r-md)', background: '#fef2f2', border: '1px solid #fecaca', fontSize: 13, color: '#b91c1c', maxWidth: 520, marginTop: 8 }}>
               ⚠️ {locError}
-              {locState !== 'denied' && (
+              {locState === 'error' && (
                 <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Retry</button>
               )}
             </div>
           )}
         </div>
+
 
         {/* Expanded filters panel */}
         {showFilters && (
@@ -370,8 +433,10 @@ export default function ListingsPage() {
         )}
       </div>
 
+
       {/* ── Results ── */}
       <div className="lc" style={{ padding: '20px 0 56px' }}>
+
 
         {/* Active filter chips */}
         {(cityFilter || catSelected || textSearch) && (
@@ -398,6 +463,7 @@ export default function ListingsPage() {
           </div>
         )}
 
+
         {!loading && (
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
             {listings.length} business{listings.length !== 1 ? 'es' : ''} found
@@ -405,6 +471,7 @@ export default function ListingsPage() {
             {catSelected ? ` · ${catSelected}` : ''}
           </p>
         )}
+
 
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
@@ -468,6 +535,7 @@ export default function ListingsPage() {
           </div>
         )}
       </div>
+
 
       <style>{`
         .lc { max-width: 1200px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 48px); }

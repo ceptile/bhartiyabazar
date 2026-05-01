@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
       headers: [
         { key: 'X-DNS-Prefetch-Control', value: 'on' },
         { key: 'X-Content-Type-Options', value: 'nosniff' },
+        // Allow geolocation from same origin — required for navigator.geolocation to work
+        { key: 'Permissions-Policy', value: 'geolocation=(self)' },
         // NOTE: X-Frame-Options: DENY removed — it blocks Firebase OAuth popup/redirect flow
       ],
     },
