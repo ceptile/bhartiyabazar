@@ -76,6 +76,26 @@ function getCreatedAtSeconds(val?: Listing['createdAt']): number {
   return new Date(val).getTime() / 1000;
 }
 
+// IP-based location — no permission needed, works always
+async function detectCityByIP(): Promise<string> {
+  try {
+    const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) throw new Error('ipapi failed');
+    const data = await res.json();
+    // data.city is usually accurate to city level in India
+    return data.city || data.region || '';
+  } catch {
+    try {
+      // fallback to ip-api.com
+      const res2 = await fetch('http://ip-api.com/json/?fields=city,regionName', { signal: AbortSignal.timeout(5000) });
+      const d2 = await res2.json();
+      return d2.city || d2.regionName || '';
+    } catch {
+      return '';
+    }
+  }
+}
+
 
 export default function ListingsPage() {
   const [allListings, setAllListings] = useState<Listing[]>([]);
@@ -87,6 +107,7 @@ export default function ListingsPage() {
   const [cityLabel,   setCityLabel]   = useState('All Cities');
   const [locState,    setLocState]    = useState<LocState>('idle');
   const [locError,    setLocError]    = useState('');
+  const [locMethod,   setLocMethod]   = useState<'gps'|'ip'|''>('');
 
 
   const [catQuery,      setCatQuery]      = useState('');
@@ -120,55 +141,48 @@ export default function ListingsPage() {
   }, []);
 
 
-  // ── GPS location detect ──
-  // NOTE: We intentionally do NOT use navigator.permissions.query() before calling
-  // getCurrentPosition. The Permissions API can return stale 'denied' state even
-  // after the user re-allows in Site Settings, causing a false early exit.
-  // Instead we let getCurrentPosition itself handle all permission outcomes.
+  // ── GPS location detect with IP fallback ──
   const detectLocation = useCallback(async () => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setLocState('error');
-      setLocError('Geolocation is not supported by your browser.');
-      return;
-    }
-
     setLocState('loading');
     setLocError('');
+    setLocMethod('');
 
+    // 1️⃣ Try GPS first (if browser supports it)
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      try {
+        const pos = await getUserLocation();
+        const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+        const city = geo.city || geo.state || '';
+        if (city) {
+          setCityFilter(city);
+          setCityLabel(city);
+          setLocState('success');
+          setLocMethod('gps');
+          return;
+        }
+      } catch (err: unknown) {
+        const code = (err as GeolocationPositionError)?.code;
+        // code 1 = permission denied — fall through to IP
+        // code 2/3 = unavailable/timeout — fall through to IP
+        console.warn('[detectLocation] GPS failed, code:', code, '- trying IP fallback');
+      }
+    }
+
+    // 2️⃣ IP-based fallback — no permission needed
     try {
-      const pos = await getUserLocation();
-      const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-      const city = geo.city || geo.state || '';
+      const city = await detectCityByIP();
       if (city) {
         setCityFilter(city);
         setCityLabel(city);
         setLocState('success');
+        setLocMethod('ip');
       } else {
         setLocState('error');
-        setLocError('Could not resolve your city. Please select manually from the list below.');
+        setLocError('Could not detect your location automatically. Please select a city from the list below.');
       }
-    } catch (err: unknown) {
-      console.error('[detectLocation] error:', err);
-
-      // GeolocationPositionError has a numeric .code
-      const code = (err as GeolocationPositionError)?.code;
-
-      if (code === 1) {
-        // PERMISSION_DENIED
-        setLocState('denied');
-        setLocError('Location permission is blocked. Open Chrome → Site Settings → Location → Allow for this site, then refresh the page.');
-      } else if (code === 2) {
-        // POSITION_UNAVAILABLE
-        setLocState('error');
-        setLocError('Could not determine your location. Check your GPS/network and try again.');
-      } else if (code === 3) {
-        // TIMEOUT
-        setLocState('error');
-        setLocError('Location request timed out. Try again.');
-      } else {
-        setLocState('error');
-        setLocError('Something went wrong detecting your location. Please select a city manually.');
-      }
+    } catch {
+      setLocState('error');
+      setLocError('Could not detect your location automatically. Please select a city from the list below.');
     }
   }, []);
 
@@ -241,6 +255,7 @@ export default function ListingsPage() {
     setCityFilter(''); setCityLabel('All Cities');
     setCatSelected(''); setCatQuery(''); setTextSearch('');
     setGroupFilter(''); setSortBy('newest'); setLocState('idle');
+    setLocMethod('');
   };
 
 
@@ -373,16 +388,15 @@ export default function ListingsPage() {
           {/* Location feedback */}
           {locState === 'success' && cityLabel !== 'All Cities' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', fontSize: 13, color: 'var(--amber)', fontWeight: 600, width: 'fit-content', marginTop: 8 }}>
-              📍 Showing results near <strong style={{ marginLeft: 3 }}>{cityLabel}</strong>
+              {locMethod === 'ip' ? '🌐' : '📍'} Showing results near <strong style={{ marginLeft: 3 }}>{cityLabel}</strong>
+              {locMethod === 'ip' && <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 4 }}>(approximate)</span>}
               <button onClick={clearFilters} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--amber)', padding: '0 0 0 4px', fontSize: 13 }}>✕</button>
             </div>
           )}
-          {(locState === 'denied' || locState === 'error') && (
+          {locState === 'error' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '7px 12px', borderRadius: 'var(--r-md)', background: '#fef2f2', border: '1px solid #fecaca', fontSize: 13, color: '#b91c1c', maxWidth: 520, marginTop: 8 }}>
               ⚠️ {locError}
-              {(locState === 'error' || locState === 'denied') && (
-                <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Retry</button>
-              )}
+              <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Retry</button>
             </div>
           )}
         </div>
