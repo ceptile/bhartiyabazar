@@ -3,114 +3,155 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { searchCategories, ALL_CATEGORIES, CATEGORY_GROUPS } from '@/lib/categories';
-import { reverseGeocode } from '@/lib/geo';
+import { reverseGeocode, getUserLocation } from '@/lib/geo';
 import Link from 'next/link';
 
 interface Listing {
-  slug: string; name: string; category: string; city: string;
-  area?: string; phone?: string; description?: string;
-  verified?: boolean; ownerName?: string; status?: string;
+  slug: string;
+  name: string;
+  category: string;
+  city: string;
+  area?: string;
+  phone?: string;
+  description?: string;
+  verified?: boolean;
+  ownerName?: string;
+  status?: string;
+  createdAt?: { seconds: number } | string | number;
 }
 
-const CITY_PILLS = ['All Cities','Delhi','Mumbai','Bangalore','Hyderabad','Chennai','Kolkata','Pune','Ahmedabad','Jaipur','Surat','Lucknow','Bhiwadi','Gurgaon','Noida','Faridabad','Firozabad','Agra','Mathura','Aligarh','Meerut'];
-const CAT_PILLS  = ['All Categories','Restaurants','Electronics','Health','Home Services','Education','Salons','Auto','Clothing','Grocery','Jewellery','Real Estate','Events','Fitness'];
-const SORT_OPTIONS = [
-  { value: 'best',    label: 'Best Match' },
-  { value: 'rated',   label: 'Highest Rated' },
-  { value: 'reviews', label: 'Most Reviews' },
-  { value: 'newest',  label: 'Newest' },
+const CITIES = [
+  'Delhi','Mumbai','Bangalore','Hyderabad','Chennai','Kolkata','Pune',
+  'Ahmedabad','Jaipur','Surat','Lucknow','Bhiwadi','Gurgaon','Noida',
+  'Faridabad','Firozabad','Agra','Mathura','Aligarh','Meerut',
 ];
 
-function MapPin() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>; }
-function SearchIcon({ size=18 }: { size?:number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>; }
-function XIcon({ size=14 }: { size?:number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>; }
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest First' },
+  { value: 'name',   label: 'Name A–Z'     },
+];
 
 type LocState = 'idle' | 'loading' | 'success' | 'denied' | 'error';
 
+function MapPin() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+      <circle cx="12" cy="10" r="3"/>
+    </svg>
+  );
+}
+function SearchIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+  );
+}
+function XIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M18 6 6 18M6 6l12 12"/>
+    </svg>
+  );
+}
+function FilterIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+    </svg>
+  );
+}
+
+function getCreatedAtSeconds(val?: Listing['createdAt']): number {
+  if (!val) return 0;
+  if (typeof val === 'object' && 'seconds' in val) return val.seconds;
+  if (typeof val === 'number') return val;
+  return new Date(val).getTime() / 1000;
+}
+
 export default function ListingsPage() {
-  const [allListings, setAllListings]   = useState<Listing[]>([]);
-  const [listings,    setListings]      = useState<Listing[]>([]);
-  const [loading,     setLoading]       = useState(true);
+  const [allListings, setAllListings] = useState<Listing[]>([]);
+  const [listings,    setListings]    = useState<Listing[]>([]);
+  const [loading,     setLoading]     = useState(true);
 
-  const [cityFilter,  setCityFilter]    = useState('');
-  const [cityLabel,   setCityLabel]     = useState('All Cities');
-  const [locState,    setLocState]      = useState<LocState>('idle');
-  const [locError,    setLocError]      = useState('');
+  const [cityFilter,  setCityFilter]  = useState('');
+  const [cityLabel,   setCityLabel]   = useState('All Cities');
+  const [locState,    setLocState]    = useState<LocState>('idle');
+  const [locError,    setLocError]    = useState('');
 
-  const [catSelected, setCatSelected]   = useState('');
-  const [catQuery,    setCatQuery]      = useState('');
-  const [catSugg,     setCatSugg]       = useState<ReturnType<typeof searchCategories>>([]);
+  const [catQuery,      setCatQuery]      = useState('');
+  const [catSelected,   setCatSelected]   = useState('');
+  const [catSuggestions,setCatSuggestions]= useState<ReturnType<typeof searchCategories>>([]);
+  const [groupFilter,   setGroupFilter]   = useState('');
+  const [showFilters,   setShowFilters]   = useState(false);
+
+  const [sortBy,      setSortBy]      = useState('newest');
+  const [textSearch,  setTextSearch]  = useState('');
+
   const catRef = useRef<HTMLDivElement>(null);
 
-  const [sortBy,      setSortBy]        = useState('newest');
-  const [textSearch,  setTextSearch]    = useState('');
-
-  // ── Fetch businesses ──────────────────────────────────────────────────────
+  // ── Fetch ALL businesses once (client-side filtering avoids composite index) ──
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
         const snap = await getDocs(collection(db, 'businesses'));
         const data: Listing[] = snap.docs.map(d => ({ slug: d.id, ...d.data() } as Listing));
-        setAllListings(data.filter(b => !b.status || b.status === 'approved' || b.status === 'active'));
+        // exclude only explicitly rejected listings
+        setAllListings(data.filter(b => b.status !== 'rejected'));
       } catch (e) {
-        console.error('[listings]', e);
+        console.error('[listings] fetch error', e);
         setAllListings([]);
       }
       setLoading(false);
     })();
   }, []);
 
-  // ── Manual detect (button only — NOT auto on mount) ───────────────────────
-  const detectLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      setLocState('error');
-      setLocError('Geolocation not supported by your browser.');
-      return;
-    }
+  // ── GPS location detect ───────────────────────────────────────────────────
+  const detectLocation = useCallback(async () => {
     setLocState('loading');
     setLocError('');
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-          const city = geo.city || geo.state || '';
-          setCityFilter(city);
-          setCityLabel(city || 'All Cities');
-          setLocState('success');
-        } catch {
-          setLocState('error');
-          setLocError('Could not resolve your city. Please select manually.');
-        }
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          setLocState('denied');
-          setLocError('Location permission denied. Please allow it in your browser settings, or select a city manually.');
-        } else if (err.code === err.TIMEOUT) {
-          setLocState('error');
-          setLocError('Location request timed out. Try again.');
-        } else {
-          setLocState('error');
-          setLocError('Could not get location. Try again.');
-        }
-      },
-      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: false }
-    );
+    try {
+      const pos = await getUserLocation();
+      const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+      const city = geo.city || geo.state || '';
+      if (city) {
+        setCityFilter(city);
+        setCityLabel(city);
+        setLocState('success');
+      } else {
+        setLocState('error');
+        setLocError('Could not resolve your city. Please select manually.');
+      }
+    } catch (err: unknown) {
+      const geoErr = err as GeolocationPositionError;
+      if (geoErr?.code === 1) {
+        setLocState('denied');
+        setLocError('Location permission denied. Please allow it in your browser settings, or pick a city below.');
+      } else if (geoErr?.code === 3) {
+        setLocState('error');
+        setLocError('Location request timed out. Try again.');
+      } else {
+        setLocState('error');
+        setLocError('Could not get your location. Try again or select a city below.');
+      }
+    }
   }, []);
 
-  // ── Filter + sort ─────────────────────────────────────────────────────────
+  // ── Filter + sort (all client-side) ──────────────────────────────────────
   useEffect(() => {
     let data = [...allListings];
+
     if (cityFilter && cityFilter !== 'All Cities') {
       const q = cityFilter.toLowerCase();
       data = data.filter(b =>
         b.city?.toLowerCase().includes(q) ||
         b.area?.toLowerCase().includes(q) ||
-        q.includes(b.city?.toLowerCase() || '__')
+        q.includes(b.city?.toLowerCase() ?? '__')
       );
     }
-    if (catSelected && catSelected !== 'All Categories') {
+    if (catSelected) {
       data = data.filter(b => b.category?.toLowerCase() === catSelected.toLowerCase());
     }
     if (textSearch.trim()) {
@@ -122,89 +163,101 @@ export default function ListingsPage() {
         b.description?.toLowerCase().includes(q)
       );
     }
-    if (sortBy === 'newest') data.reverse();
-    else if (sortBy === 'best' || sortBy === 'name') data.sort((a, b) => a.name.localeCompare(b.name));
+
+    if (sortBy === 'newest') {
+      data.sort((a, b) => getCreatedAtSeconds(b.createdAt) - getCreatedAtSeconds(a.createdAt));
+    } else if (sortBy === 'name') {
+      data.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+    }
+
     setListings(data.slice(0, 120));
   }, [allListings, cityFilter, catSelected, textSearch, sortBy]);
 
-  // ── Category suggestions ──────────────────────────────────────────────────
+  // ── Category smart search ─────────────────────────────────────────────────
   useEffect(() => {
-    if (catQuery.trim().length < 1) { setCatSugg([]); return; }
-    setCatSugg(searchCategories(catQuery, 8));
+    if (catQuery.trim().length < 1) { setCatSuggestions([]); return; }
+    setCatSuggestions(searchCategories(catQuery, 8));
   }, [catQuery]);
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
-      if (catRef.current && !catRef.current.contains(e.target as Node)) setCatSugg([]);
+      if (catRef.current && !catRef.current.contains(e.target as Node)) {
+        setCatSuggestions([]);
+      }
     };
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   const selectCity = (city: string) => {
     if (city === 'All Cities') { setCityFilter(''); setCityLabel('All Cities'); }
     else { setCityFilter(city); setCityLabel(city); }
     setLocState('success');
   };
 
-  const selectCat = (cat: string) => {
-    if (cat === 'All Categories') { setCatSelected(''); setCatQuery(''); }
-    else { setCatSelected(cat); setCatQuery(cat); }
-  };
-
-  const hasFilters = (cityFilter && cityFilter !== 'All Cities') || (catSelected && catSelected !== 'All Categories') || textSearch.trim();
-
-  const clearAll = () => {
+  const clearFilters = () => {
     setCityFilter(''); setCityLabel('All Cities');
     setCatSelected(''); setCatQuery(''); setTextSearch('');
-    setSortBy('newest'); setLocState('idle');
+    setGroupFilter(''); setSortBy('newest'); setLocState('idle');
   };
 
-  return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 64 }}>
+  const hasFilters = !!(cityFilter || catSelected || textSearch.trim());
+  const groupCats  = groupFilter
+    ? (ALL_CATEGORIES ?? []).filter(c => c.group === groupFilter)
+    : [];
 
-      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '32px 0 0' }}>
+  return (
+    <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 72 }}>
+
+      {/* ── Sticky top bar ── */}
+      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '16px 0', position: 'sticky', top: 64, zIndex: 100 }}>
         <div className="lc">
 
-          <h1 style={{ fontFamily: "'EB Garamond',serif", fontSize: 'clamp(1.6rem,4vw,2.4rem)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
-            Business Directory
-          </h1>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 20 }}>
-            Find Businesses Across India &nbsp;·&nbsp; Be the first to list your business — completely free
-          </p>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+            <h1 style={{ fontFamily: "'EB Garamond',serif", fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+              Listings
+            </h1>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 240, background: 'var(--bg)', border: '1.5px solid var(--border-hover)', borderRadius: 'var(--r-lg)', padding: '10px 14px', boxShadow: 'var(--shadow-sm)' }}>
-              <SearchIcon size={16} />
+            {/* Text search */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, maxWidth: 340, padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)' }}>
+              <SearchIcon size={14} />
               <input
                 value={textSearch}
                 onChange={e => setTextSearch(e.target.value)}
-                placeholder="Search businesses, categories, cities…"
-                style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--text-primary)' }}
+                placeholder="Search businesses…"
+                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--text-primary)', minWidth: 0 }}
               />
               {textSearch && (
-                <button onClick={() => setTextSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0 }}><XIcon /></button>
+                <button onClick={() => setTextSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0 }}>
+                  <XIcon />
+                </button>
               )}
             </div>
 
-            <div ref={catRef} style={{ position: 'relative', minWidth: 200 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1.5px solid var(--border-hover)', borderRadius: 'var(--r-lg)', padding: '10px 14px', boxShadow: 'var(--shadow-sm)' }}>
-                <span style={{ fontSize: 14 }}>🏷️</span>
+            {/* Smart category search */}
+            <div ref={catRef} style={{ position: 'relative', minWidth: 180, maxWidth: 280 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)' }}>
+                <span style={{ fontSize: 13 }}>🏷️</span>
                 <input
                   value={catQuery}
                   onChange={e => { setCatQuery(e.target.value); if (!e.target.value) setCatSelected(''); }}
                   placeholder={catSelected || 'Category…'}
-                  style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--text-primary)', minWidth: 100 }}
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--text-primary)', minWidth: 0 }}
                 />
                 {(catQuery || catSelected) && (
-                  <button onClick={() => { setCatQuery(''); setCatSelected(''); setCatSugg([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0 }}><XIcon /></button>
+                  <button onClick={() => { setCatQuery(''); setCatSelected(''); setCatSuggestions([]); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0 }}>
+                    <XIcon />
+                  </button>
                 )}
               </div>
-              {catSugg.length > 0 && (
+              {catSuggestions.length > 0 && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 300, overflow: 'hidden' }}>
-                  {catSugg.map(cat => (
-                    <button key={cat.id} onClick={() => { setCatSelected(cat.name); setCatQuery(cat.name); setCatSugg([]); }}
-                      style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: '9px 14px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}
+                  {catSuggestions.map(cat => (
+                    <button key={cat.id}
+                      onClick={() => { setCatSelected(cat.name); setCatQuery(cat.name); setCatSuggestions([]); }}
+                      style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: '9px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--border)' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                     >
@@ -215,30 +268,30 @@ export default function ListingsPage() {
                 </div>
               )}
             </div>
+
+            {/* Filters toggle */}
+            <button onClick={() => setShowFilters(p => !p)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r-md)', border: `1px solid ${showFilters ? 'var(--amber)' : 'var(--border-hover)'}`, background: showFilters ? 'var(--amber-subtle)' : 'var(--bg)', color: showFilters ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+              <FilterIcon /> Filters {hasFilters ? '·' : ''}
+            </button>
+
+            {hasFilters && (
+              <button onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}>
+                Clear all
+              </button>
+            )}
+
+            <div style={{ marginLeft: 'auto' }}>
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', outline: 'none' }}>
+                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
           </div>
 
-          {locState === 'loading' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', marginBottom: 12, width: 'fit-content', fontSize: 13, color: 'var(--amber)' }}>
-              <div style={{ width: 13, height: 13, border: '2px solid var(--amber)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
-              Detecting your location…
-            </div>
-          )}
-          {locState === 'success' && cityLabel !== 'All Cities' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', marginBottom: 12, width: 'fit-content', fontSize: 13, color: 'var(--amber)', fontWeight: 600 }}>
-              📍 Showing results near <strong>{cityLabel}</strong>
-              <button onClick={clearAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--amber)', padding: 0, marginLeft: 4, fontSize: 13 }}>✕</button>
-            </div>
-          )}
-          {(locState === 'denied' || locState === 'error') && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 12px', borderRadius: 'var(--r-md)', background: '#fef2f2', border: '1px solid #fecaca', marginBottom: 12, fontSize: 13, color: '#b91c1c', maxWidth: 560 }}>
-              <span>⚠️ {locError}</span>
-              {locState !== 'denied' && (
-                <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>Retry</button>
-              )}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 14, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          {/* Location row */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none', alignItems: 'center', flexWrap: 'nowrap' }}>
+            {/* Detect button */}
             <button
               onClick={detectLocation}
               disabled={locState === 'loading'}
@@ -246,100 +299,140 @@ export default function ListingsPage() {
             >
               {locState === 'loading'
                 ? <><div style={{ width: 10, height: 10, border: '2px solid var(--amber)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> Detecting…</>
-                : <><span>📡</span> Detect My Location</>
+                : <>📡 Detect My Location</>
               }
             </button>
-            {CITY_PILLS.map(city => {
-              const active = city === 'All Cities' ? (!cityFilter || cityFilter === '') : cityFilter.toLowerCase() === city.toLowerCase();
+
+            {/* City pills */}
+            {['All Cities', ...CITIES].map(city => {
+              const active = city === 'All Cities'
+                ? (!cityFilter || cityFilter === '')
+                : cityFilter.toLowerCase() === city.toLowerCase();
               return (
                 <button key={city} onClick={() => selectCity(city)}
-                  style={{ padding: '6px 14px', borderRadius: 'var(--r-full)', border: `1.5px solid ${active ? 'var(--amber)' : 'var(--border)'}`, background: active ? 'var(--amber-subtle)' : 'var(--bg)', color: active ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.18s' }}
-                >
+                  style={{ padding: '6px 14px', borderRadius: 'var(--r-full)', border: `1.5px solid ${active ? 'var(--amber)' : 'var(--border)'}`, background: active ? 'var(--amber-subtle)' : 'var(--bg)', color: active ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.18s' }}>
                   {city}
                 </button>
               );
             })}
           </div>
 
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 16, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-            {CAT_PILLS.map(cat => {
-              const active = cat === 'All Categories' ? !catSelected : catSelected === cat;
-              return (
-                <button key={cat} onClick={() => selectCat(cat)}
-                  style={{ padding: '6px 14px', borderRadius: 'var(--r-full)', border: `1.5px solid ${active ? 'var(--amber)' : 'var(--border)'}`, background: active ? 'var(--amber-subtle)' : 'var(--bg)', color: active ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.18s' }}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
+          {/* Location feedback */}
+          {locState === 'success' && cityLabel !== 'All Cities' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', fontSize: 13, color: 'var(--amber)', fontWeight: 600, width: 'fit-content', marginTop: 8 }}>
+              📍 Showing results near <strong style={{ marginLeft: 3 }}>{cityLabel}</strong>
+              <button onClick={clearFilters} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--amber)', padding: '0 0 0 4px', fontSize: 13 }}>✕</button>
+            </div>
+          )}
+          {(locState === 'denied' || locState === 'error') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '7px 12px', borderRadius: 'var(--r-md)', background: '#fef2f2', border: '1px solid #fecaca', fontSize: 13, color: '#b91c1c', maxWidth: 520, marginTop: 8 }}>
+              ⚠️ {locError}
+              {locState !== 'denied' && (
+                <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Retry</button>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* Expanded filters panel */}
+        {showFilters && (
+          <div className="lc" style={{ marginTop: 12 }}>
+            <div style={{ padding: 16, background: 'var(--surface-2)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Browse by Group</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {(CATEGORY_GROUPS ?? []).map(g => (
+                    <button key={g} onClick={() => setGroupFilter(groupFilter === g ? '' : g)}
+                      style={{ padding: '5px 12px', borderRadius: 'var(--r-full)', fontSize: 12, fontWeight: 500, border: `1px solid ${groupFilter === g ? 'var(--amber)' : 'var(--border)'}`, background: groupFilter === g ? 'var(--amber-subtle)' : 'var(--bg)', color: groupFilter === g ? 'var(--amber)' : 'var(--text-secondary)', cursor: 'pointer' }}>
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {groupFilter && groupCats.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {groupFilter} categories
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {groupCats.map(cat => (
+                      <button key={cat.id}
+                        onClick={() => { setCatSelected(cat.name); setCatQuery(cat.name); setShowFilters(false); }}
+                        style={{ padding: '5px 12px', borderRadius: 'var(--r-full)', fontSize: 12, border: `1px solid ${catSelected === cat.name ? 'var(--amber)' : 'var(--border)'}`, background: catSelected === cat.name ? 'var(--amber-subtle)' : 'var(--bg)', color: catSelected === cat.name ? 'var(--amber)' : 'var(--text-secondary)', cursor: 'pointer' }}>
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)', padding: '10px 0' }}>
-        <div className="lc" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {!loading && (
-            <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>
-              {listings.length} business{listings.length !== 1 ? 'es' : ''} found
-            </span>
-          )}
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Sort:</span>
-            {SORT_OPTIONS.map(o => (
-              <button key={o.value} onClick={() => setSortBy(o.value)}
-                style={{ padding: '5px 10px', borderRadius: 'var(--r-md)', border: `1px solid ${sortBy === o.value ? 'var(--amber)' : 'var(--border)'}`, background: sortBy === o.value ? 'var(--amber-subtle)' : 'none', color: sortBy === o.value ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, fontWeight: sortBy === o.value ? 600 : 400, cursor: 'pointer' }}>
-                {o.label}
-              </button>
-            ))}
-            {hasFilters && (
-              <button onClick={clearAll} style={{ padding: '5px 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}>Clear all</button>
+      {/* ── Results ── */}
+      <div className="lc" style={{ padding: '20px 0 56px' }}>
+
+        {/* Active filter chips */}
+        {(cityFilter || catSelected || textSearch) && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Showing:</span>
+            {cityFilter && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600 }}>
+                📍 {cityLabel}
+                <button onClick={() => { setCityFilter(''); setCityLabel('All Cities'); setLocState('idle'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, color: 'var(--amber)' }}><XIcon size={12} /></button>
+              </span>
+            )}
+            {catSelected && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600 }}>
+                🏷️ {catSelected}
+                <button onClick={() => { setCatSelected(''); setCatQuery(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, color: 'var(--amber)' }}><XIcon size={12} /></button>
+              </span>
+            )}
+            {textSearch && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600 }}>
+                🔍 &ldquo;{textSearch}&rdquo;
+                <button onClick={() => setTextSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, color: 'var(--amber)' }}><XIcon size={12} /></button>
+              </span>
             )}
           </div>
-        </div>
-      </div>
+        )}
 
-      <div style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '8px 0' }}>
-        <div className="lc">
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {['All Categories','Restaurants','Electronics','Health','Home Services','Education','Salons','Auto'].map(cat => {
-              const active = cat === 'All Categories' ? !catSelected : catSelected === cat;
-              return (
-                <button key={cat} onClick={() => selectCat(cat)}
-                  style={{ padding: '4px 12px', borderRadius: 'var(--r-full)', border: `1px solid ${active ? 'var(--amber)' : 'var(--border)'}`, background: active ? 'var(--amber-subtle)' : 'var(--bg)', color: active ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, fontWeight: active ? 600 : 400, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+        {!loading && (
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+            {listings.length} business{listings.length !== 1 ? 'es' : ''} found
+            {cityFilter ? ` in ${cityLabel}` : ''}
+            {catSelected ? ` · ${catSelected}` : ''}
+          </p>
+        )}
 
-      <div className="lc" style={{ padding: '24px 0 56px' }}>
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, height: 160 }}>
-                <div style={{ height: 14, background: 'var(--surface-offset)', borderRadius: 4, marginBottom: 10, width: '60%', animation: 'shimmer 1.5s ease-in-out infinite' }} />
-                <div style={{ height: 11, background: 'var(--surface-offset)', borderRadius: 4, marginBottom: 8, width: '40%', animation: 'shimmer 1.5s ease-in-out infinite' }} />
-                <div style={{ height: 11, background: 'var(--surface-offset)', borderRadius: 4, width: '80%', animation: 'shimmer 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 16, background: 'var(--surface-offset)', borderRadius: 4, marginBottom: 10, width: '60%', animation: 'shimmer 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 12, background: 'var(--surface-offset)', borderRadius: 4, marginBottom: 8, width: '40%', animation: 'shimmer 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 12, background: 'var(--surface-offset)', borderRadius: 4, width: '80%', animation: 'shimmer 1.5s ease-in-out infinite' }} />
               </div>
             ))}
           </div>
         ) : listings.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 16px' }}>
-            <div style={{ fontSize: 56, marginBottom: 16 }}>🏪</div>
-            <h2 style={{ fontFamily: "'EB Garamond',serif", fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: 8 }}>
+          <div style={{ textAlign: 'center', padding: '80px 16px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 52, marginBottom: 16 }}>🏪</div>
+            <h2 style={{ fontFamily: "'EB Garamond',serif", fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: 8 }}>
               {hasFilters ? 'No businesses found' : 'No businesses listed yet'}
             </h2>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24, maxWidth: 400, marginInline: 'auto' }}>
+            <p style={{ fontSize: 14, marginBottom: 24, maxWidth: 400, marginInline: 'auto' }}>
               {hasFilters
                 ? `No results${cityFilter ? ` in "${cityLabel}"` : ''}${catSelected ? ` for "${catSelected}"` : ''}. Try different filters.`
                 : 'BhartiyaBazar is growing. Be the first to list your business — completely free.'}
             </p>
             {hasFilters ? (
-              <button onClick={clearAll} style={{ padding: '11px 28px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}>Clear Filters</button>
+              <button onClick={clearFilters} style={{ padding: '11px 28px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}>
+                Clear Filters
+              </button>
             ) : (
-              <Link href="/list-business" style={{ display: 'inline-block', padding: '11px 28px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+              <Link href="/register-business" style={{ display: 'inline-block', padding: '11px 28px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
                 List Your Business Free →
               </Link>
             )}
@@ -354,12 +447,18 @@ export default function ListingsPage() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, flex: 1, marginRight: 8 }}>{biz.name}</h3>
-                  {biz.verified && <span style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 'var(--r-full)', background: '#d1fae5', color: '#065f46', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>✓ Verified</span>}
+                  {biz.verified && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 'var(--r-full)', background: '#d1fae5', color: '#065f46', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>✓ Verified</span>
+                  )}
                 </div>
                 <div style={{ marginBottom: 6 }}>
                   <span style={{ padding: '2px 8px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', color: 'var(--amber)', fontSize: 11, fontWeight: 600 }}>{biz.category}</span>
                 </div>
-                {biz.description && <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 10, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{biz.description}</p>}
+                {biz.description && (
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 10, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {biz.description}
+                  </p>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-faint)', fontSize: 12 }}>
                   <MapPin />
                   {biz.area ? `${biz.area}, ${biz.city}` : biz.city}
@@ -371,10 +470,10 @@ export default function ListingsPage() {
       </div>
 
       <style>{`
-        .lc { max-width:1200px; margin:0 auto; padding-inline:clamp(16px,4vw,48px); }
+        .lc { max-width: 1200px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 48px); }
         @keyframes shimmer { 0%{opacity:1} 50%{opacity:0.4} 100%{opacity:1} }
-        @keyframes spin { to{transform:rotate(360deg)} }
-        ::-webkit-scrollbar { display:none; }
+        @keyframes spin    { to{transform:rotate(360deg)} }
+        ::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
