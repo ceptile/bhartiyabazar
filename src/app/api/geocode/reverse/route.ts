@@ -15,13 +15,13 @@ interface GeoResult {
   country:  string;
   state:    string;
   city:     string;
-  area:     string;    // sublocality / neighbourhood
-  street:   string;    // road / colony
-  building: string;    // house number
+  area:     string;
+  street:   string;
+  building: string;
   postcode: string;
 }
 
-// ── 1. BigDataCloud (completely free, no key needed) ────────────────────────
+// ── 1. BigDataCloud (completely free, no key needed) ─────────────────────────
 async function geocodeWithBigDataCloud(
   lat: string,
   lng: string,
@@ -36,50 +36,47 @@ async function geocodeWithBigDataCloud(
   const d = await res.json();
   if (!d || d.status === 'error') return null;
 
-  // localityInfo.administrative has ordered admin levels (country → state → district → city)
   const admins: Array<{ adminLevel: number; name: string }> =
     d.localityInfo?.administrative ?? [];
 
-  // For India: level 4 = state, level 6 = district, level 7/8 = city/town
   const byLevel = (level: number) =>
     admins.find(a => a.adminLevel === level)?.name ?? '';
 
-  // localityInfo.informational has locality / sublocality / postcode
-  const infos: Array<{ description: string; name: string }> =
+  const infos: Array<{ description?: string; name?: string }> =
     d.localityInfo?.informational ?? [];
-
-  const infoNamed = (desc: string) =>
-    infos.find(i => i.description?.toLowerCase().includes(desc))?.name ?? '';
 
   const city =
     d.city ||
     d.locality ||
-    byLevel(8) || byLevel(7) || byLevel(6) ||
+    byLevel(8) ||
+    byLevel(7) ||
+    byLevel(6) ||
     '';
 
   const area =
-    d.localityInfo?.informational?.find(
-      (i: { description?: string }) =>
+    infos.find(
+      i =>
         i.description?.toLowerCase().includes('sublocality') ||
         i.description?.toLowerCase().includes('neighbourhood') ||
         i.description?.toLowerCase().includes('ward'),
     )?.name ??
-    infoNamed('quarter') ??
+    infos.find(i => i.description?.toLowerCase().includes('quarter'))?.name ??
     '';
 
+  // Wrap the whole || chain in parens before ??
   const postcode =
     d.postcode ||
-    infos.find((i: { description?: string; name?: string }) =>
-      i.description?.toLowerCase().includes('postal') ||
-      /^\d{6}$/.test(i.name ?? ''),
-    )?.name ??
-    '';
+    (infos.find(
+      i =>
+        i.description?.toLowerCase().includes('postal') ||
+        /^\d{6}$/.test(i.name ?? ''),
+    )?.name ?? '');
 
   const state = byLevel(4) || d.principalSubdivision || '';
 
   return {
-    building: '',                      // BDC doesn't return house numbers
-    street:   d.locality ?? '',        // closest street-level info
+    building: '',
+    street:   d.locality ?? '',
     area,
     city,
     state,
