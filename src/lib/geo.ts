@@ -7,35 +7,10 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{
   area: string; street: string; postcode: string;
 }> {
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
-      {
-        headers: {
-          'Accept-Language': 'en',
-          // Nominatim policy requires a descriptive User-Agent
-          'User-Agent': 'BhartiyaBazar/1.0 (https://bhartiyabazar.vercel.app)',
-        },
-      }
-    );
-    const data = await res.json();
-    const a = data.address || {};
-    // Broadened fallback chain — Indian addresses often use city_district or state_district
-    const city =
-      a.city ||
-      a.town ||
-      a.city_district ||
-      a.state_district ||
-      a.village ||
-      a.county ||
-      '';
-    return {
-      country: a.country || '',
-      state: a.state || '',
-      city,
-      area: a.suburb || a.neighbourhood || a.quarter || '',
-      street: [a.road, a.pedestrian, a.footway].filter(Boolean).join(', '),
-      postcode: a.postcode || '',
-    };
+    // Call our own API route — avoids CORS and Nominatim browser-blocking
+    const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+    if (!res.ok) throw new Error(`Geocode API error ${res.status}`);
+    return await res.json();
   } catch {
     return { country: '', state: '', city: '', area: '', street: '', postcode: '' };
   }
