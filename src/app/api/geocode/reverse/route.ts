@@ -1,60 +1,94 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Reverse geocode endpoint.
+ * Reverse geocode endpoint — zero cost, no API key required.
  *
  * Priority:
- *   1. Google Maps Geocoding API  (GOOGLE_MAPS_API_KEY env var — exact, structured)
- *   2. Nominatim / OpenStreetMap  (free fallback — city-level accuracy only)
+ *   1. BigDataCloud  — free, no key, returns locality/sublocality/postcode for India
+ *   2. Nominatim     — free fallback (city-level accuracy only)
  *
  * Response shape:
  *   { country, state, city, area, street, building, postcode }
  */
 
 interface GeoResult {
-  country: string;
-  state: string;
-  city: string;
-  area: string;      // sublocality / neighbourhood
-  street: string;    // road / colony
-  building: string;  // building name / house number
+  country:  string;
+  state:    string;
+  city:     string;
+  area:     string;    // sublocality / neighbourhood
+  street:   string;    // road / colony
+  building: string;    // house number
   postcode: string;
 }
 
-// ── Google Maps ──────────────────────────────────────────────────────────────
-async function geocodeWithGoogle(lat: string, lng: string): Promise<GeoResult | null> {
-  const key = process.env.GOOGLE_MAPS_API_KEY;
-  if (!key) return null;
-
+// ── 1. BigDataCloud (completely free, no key needed) ────────────────────────
+async function geocodeWithBigDataCloud(
+  lat: string,
+  lng: string,
+): Promise<GeoResult | null> {
   const url =
-    `https://maps.googleapis.com/maps/api/geocode/json` +
-    `?latlng=${lat},${lng}&key=${key}&language=en&result_type=street_address|sublocality|locality`;
+    `https://api.bigdatacloud.net/data/reverse-geocode-client` +
+    `?latitude=${lat}&longitude=${lng}&localityLanguage=en`;
 
   const res = await fetch(url, { next: { revalidate: 3600 } });
   if (!res.ok) return null;
 
-  const data = await res.json();
-  if (data.status !== 'OK' || !data.results?.length) return null;
+  const d = await res.json();
+  if (!d || d.status === 'error') return null;
 
-  // Use the most precise result (first result is always most specific)
-  const components: Array<{ long_name: string; types: string[] }> =
-    data.results[0].address_components ?? [];
+  // localityInfo.administrative has ordered admin levels (country → state → district → city)
+  const admins: Array<{ adminLevel: number; name: string }> =
+    d.localityInfo?.administrative ?? [];
 
-  const get = (...types: string[]) =>
-    components.find(c => types.some(t => c.types.includes(t)))?.long_name ?? '';
+  // For India: level 4 = state, level 6 = district, level 7/8 = city/town
+  const byLevel = (level: number) =>
+    admins.find(a => a.adminLevel === level)?.name ?? '';
+
+  // localityInfo.informational has locality / sublocality / postcode
+  const infos: Array<{ description: string; name: string }> =
+    d.localityInfo?.informational ?? [];
+
+  const infoNamed = (desc: string) =>
+    infos.find(i => i.description?.toLowerCase().includes(desc))?.name ?? '';
+
+  const city =
+    d.city ||
+    d.locality ||
+    byLevel(8) || byLevel(7) || byLevel(6) ||
+    '';
+
+  const area =
+    d.localityInfo?.informational?.find(
+      (i: { description?: string }) =>
+        i.description?.toLowerCase().includes('sublocality') ||
+        i.description?.toLowerCase().includes('neighbourhood') ||
+        i.description?.toLowerCase().includes('ward'),
+    )?.name ??
+    infoNamed('quarter') ??
+    '';
+
+  const postcode =
+    d.postcode ||
+    infos.find((i: { description?: string; name?: string }) =>
+      i.description?.toLowerCase().includes('postal') ||
+      /^\d{6}$/.test(i.name ?? ''),
+    )?.name ??
+    '';
+
+  const state = byLevel(4) || d.principalSubdivision || '';
 
   return {
-    building:  get('premise', 'subpremise', 'street_number'),
-    street:    get('route', 'sublocality_level_3', 'sublocality_level_4'),
-    area:      get('sublocality_level_2', 'sublocality_level_1', 'sublocality', 'neighborhood', 'political'),
-    city:      get('locality', 'administrative_area_level_3', 'administrative_area_level_2'),
-    state:     get('administrative_area_level_1'),
-    country:   get('country'),
-    postcode:  get('postal_code'),
+    building: '',                      // BDC doesn't return house numbers
+    street:   d.locality ?? '',        // closest street-level info
+    area,
+    city,
+    state,
+    country:  d.countryName || '',
+    postcode,
   };
 }
 
-// ── Nominatim fallback ───────────────────────────────────────────────────────
+// ── 2. Nominatim fallback ────────────────────────────────────────────────────
 async function geocodeWithNominatim(lat: string, lng: string): Promise<GeoResult> {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
@@ -64,7 +98,7 @@ async function geocodeWithNominatim(lat: string, lng: string): Promise<GeoResult
         'User-Agent': 'BhartiyaBazar/1.0 (https://bhartiyabazar.vercel.app)',
       },
       next: { revalidate: 3600 },
-    }
+    },
   );
 
   if (!res.ok) throw new Error('Nominatim error');
@@ -97,9 +131,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Try Google first (exact), fall back to Nominatim
     const result =
-      (await geocodeWithGoogle(lat, lng)) ??
+      (await geocodeWithBigDataCloud(lat, lng)) ??
       (await geocodeWithNominatim(lat, lng));
 
     return NextResponse.json(result);
