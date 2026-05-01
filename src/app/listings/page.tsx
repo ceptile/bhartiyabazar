@@ -6,7 +6,6 @@ import { searchCategories, ALL_CATEGORIES, CATEGORY_GROUPS } from '@/lib/categor
 import { reverseGeocode, getUserLocation } from '@/lib/geo';
 import Link from 'next/link';
 
-
 interface Listing {
   slug: string;
   name: string;
@@ -21,22 +20,67 @@ interface Listing {
   createdAt?: { seconds: number } | string | number;
 }
 
-
 const CITIES = [
   'Delhi','Mumbai','Bangalore','Hyderabad','Chennai','Kolkata','Pune',
   'Ahmedabad','Jaipur','Surat','Lucknow','Bhiwadi','Gurgaon','Noida',
   'Faridabad','Firozabad','Agra','Mathura','Aligarh','Meerut',
 ];
 
+// Additional aliases for fuzzy-matching IP/GPS results to CITIES list
+const CITY_ALIASES: Record<string, string> = {
+  'new delhi': 'Delhi',
+  'south delhi': 'Delhi',
+  'north delhi': 'Delhi',
+  'east delhi': 'Delhi',
+  'west delhi': 'Delhi',
+  'central delhi': 'Delhi',
+  'ncr': 'Delhi',
+  'delhi ncr': 'Delhi',
+  'bengaluru': 'Bangalore',
+  'bombay': 'Mumbai',
+  'calcutta': 'Kolkata',
+  'gurugram': 'Gurgaon',
+  'gurugaon': 'Gurgaon',
+  'navi mumbai': 'Mumbai',
+  'thane': 'Mumbai',
+  'greater noida': 'Noida',
+  'gautam buddha nagar': 'Noida',
+  'secunderabad': 'Hyderabad',
+};
+
+/**
+ * Tries to match a raw city string (from GPS/IP) to one of the canonical CITIES.
+ * Returns the matched city name or the original string if no match.
+ */
+function matchToKnownCity(raw: string): string {
+  if (!raw) return raw;
+  const lower = raw.toLowerCase().trim();
+
+  // 1. Direct exact match
+  const exact = CITIES.find(c => c.toLowerCase() === lower);
+  if (exact) return exact;
+
+  // 2. Alias map
+  if (CITY_ALIASES[lower]) return CITY_ALIASES[lower];
+
+  // 3. Known city name contained in raw string (e.g. "Faridabad District" → "Faridabad")
+  const contained = CITIES.find(c => lower.includes(c.toLowerCase()));
+  if (contained) return contained;
+
+  // 4. Raw string contained in a known city name
+  const reverse = CITIES.find(c => c.toLowerCase().includes(lower));
+  if (reverse) return reverse;
+
+  // 5. Return raw as-is — unknown city, but still useful for text filter
+  return raw;
+}
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest First' },
   { value: 'name',   label: 'Name A–Z'     },
 ];
 
-
 type LocState = 'idle' | 'loading' | 'success' | 'denied' | 'error';
-
 
 function MapPin() {
   return (
@@ -68,7 +112,6 @@ function FilterIcon() {
   );
 }
 
-
 function getCreatedAtSeconds(val?: Listing['createdAt']): number {
   if (!val) return 0;
   if (typeof val === 'object' && 'seconds' in val) return val.seconds;
@@ -76,18 +119,16 @@ function getCreatedAtSeconds(val?: Listing['createdAt']): number {
   return new Date(val).getTime() / 1000;
 }
 
-// IP-based location — no permission needed, works always
+// IP-based location — no permission needed
 async function detectCityByIP(): Promise<string> {
   try {
     const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
     if (!res.ok) throw new Error('ipapi failed');
     const data = await res.json();
-    // data.city is usually accurate to city level in India
     return data.city || data.region || '';
   } catch {
     try {
-      // fallback to ip-api.com
-      const res2 = await fetch('http://ip-api.com/json/?fields=city,regionName', { signal: AbortSignal.timeout(5000) });
+      const res2 = await fetch('https://ip-api.com/json/?fields=city,regionName', { signal: AbortSignal.timeout(5000) });
       const d2 = await res2.json();
       return d2.city || d2.regionName || '';
     } catch {
@@ -96,12 +137,10 @@ async function detectCityByIP(): Promise<string> {
   }
 }
 
-
 export default function ListingsPage() {
   const [allListings, setAllListings] = useState<Listing[]>([]);
   const [listings,    setListings]    = useState<Listing[]>([]);
   const [loading,     setLoading]     = useState(true);
-
 
   const [cityFilter,  setCityFilter]  = useState('');
   const [cityLabel,   setCityLabel]   = useState('All Cities');
@@ -109,20 +148,16 @@ export default function ListingsPage() {
   const [locError,    setLocError]    = useState('');
   const [locMethod,   setLocMethod]   = useState<'gps'|'ip'|''>('');
 
-
   const [catQuery,      setCatQuery]      = useState('');
   const [catSelected,   setCatSelected]   = useState('');
   const [catSuggestions,setCatSuggestions]= useState<ReturnType<typeof searchCategories>>([]);
   const [groupFilter,   setGroupFilter]   = useState('');
   const [showFilters,   setShowFilters]   = useState(false);
 
-
   const [sortBy,      setSortBy]      = useState('newest');
   const [textSearch,  setTextSearch]  = useState('');
 
-
   const catRef = useRef<HTMLDivElement>(null);
-
 
   // ── Fetch ALL businesses once ──
   useEffect(() => {
@@ -140,40 +175,39 @@ export default function ListingsPage() {
     })();
   }, []);
 
-
-  // ── GPS location detect with IP fallback ──
+  // ── Location detect: GPS first → smart city match → IP fallback ──
   const detectLocation = useCallback(async () => {
     setLocState('loading');
     setLocError('');
     setLocMethod('');
 
-    // 1️⃣ Try GPS first (if browser supports it)
+    // 1️⃣ GPS
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       try {
         const pos = await getUserLocation();
         const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-        const city = geo.city || geo.state || '';
-        if (city) {
-          setCityFilter(city);
-          setCityLabel(city);
+        const rawCity = geo.city || geo.state || '';
+        if (rawCity) {
+          const matched = matchToKnownCity(rawCity);
+          setCityFilter(matched);
+          setCityLabel(matched);
           setLocState('success');
           setLocMethod('gps');
           return;
         }
       } catch (err: unknown) {
         const code = (err as GeolocationPositionError)?.code;
-        // code 1 = permission denied — fall through to IP
-        // code 2/3 = unavailable/timeout — fall through to IP
-        console.warn('[detectLocation] GPS failed, code:', code, '- trying IP fallback');
+        console.warn('[detectLocation] GPS failed, code:', code);
       }
     }
 
-    // 2️⃣ IP-based fallback — no permission needed
+    // 2️⃣ IP fallback
     try {
-      const city = await detectCityByIP();
-      if (city) {
-        setCityFilter(city);
-        setCityLabel(city);
+      const rawCity = await detectCityByIP();
+      if (rawCity) {
+        const matched = matchToKnownCity(rawCity);
+        setCityFilter(matched);
+        setCityLabel(matched);
         setLocState('success');
         setLocMethod('ip');
       } else {
@@ -186,11 +220,9 @@ export default function ListingsPage() {
     }
   }, []);
 
-
   // ── Filter + sort ──
   useEffect(() => {
     let data = [...allListings];
-
 
     if (cityFilter && cityFilter !== 'All Cities') {
       const q = cityFilter.toLowerCase();
@@ -213,24 +245,20 @@ export default function ListingsPage() {
       );
     }
 
-
     if (sortBy === 'newest') {
       data.sort((a, b) => getCreatedAtSeconds(b.createdAt) - getCreatedAtSeconds(a.createdAt));
     } else if (sortBy === 'name') {
       data.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
     }
 
-
     setListings(data.slice(0, 120));
   }, [allListings, cityFilter, catSelected, textSearch, sortBy]);
-
 
   // ── Category smart search ──
   useEffect(() => {
     if (catQuery.trim().length < 1) { setCatSuggestions([]); return; }
     setCatSuggestions(searchCategories(catQuery, 8));
   }, [catQuery]);
-
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
@@ -242,14 +270,11 @@ export default function ListingsPage() {
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-
-  // ── Helpers ──
   const selectCity = (city: string) => {
     if (city === 'All Cities') { setCityFilter(''); setCityLabel('All Cities'); }
     else { setCityFilter(city); setCityLabel(city); }
     setLocState('success');
   };
-
 
   const clearFilters = () => {
     setCityFilter(''); setCityLabel('All Cities');
@@ -258,27 +283,22 @@ export default function ListingsPage() {
     setLocMethod('');
   };
 
-
   const hasFilters = !!(cityFilter || catSelected || textSearch.trim());
   const groupCats  = groupFilter
     ? (ALL_CATEGORIES ?? []).filter(c => c.group === groupFilter)
     : [];
 
-
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 72 }}>
-
 
       {/* ── Sticky top bar ── */}
       <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '16px 0', position: 'sticky', top: 64, zIndex: 100 }}>
         <div className="lc">
 
-
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
             <h1 style={{ fontFamily: "'EB Garamond',serif", fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
               Listings
             </h1>
-
 
             {/* Text search */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, maxWidth: 340, padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)' }}>
@@ -295,7 +315,6 @@ export default function ListingsPage() {
                 </button>
               )}
             </div>
-
 
             {/* Smart category search */}
             <div ref={catRef} style={{ position: 'relative', minWidth: 180, maxWidth: 280 }}>
@@ -331,20 +350,17 @@ export default function ListingsPage() {
               )}
             </div>
 
-
             {/* Filters toggle */}
             <button onClick={() => setShowFilters(p => !p)}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r-md)', border: `1px solid ${showFilters ? 'var(--amber)' : 'var(--border-hover)'}`, background: showFilters ? 'var(--amber-subtle)' : 'var(--bg)', color: showFilters ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
               <FilterIcon /> Filters {hasFilters ? '·' : ''}
             </button>
 
-
             {hasFilters && (
               <button onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}>
                 Clear all
               </button>
             )}
-
 
             <div style={{ marginLeft: 'auto' }}>
               <select value={sortBy} onChange={e => setSortBy(e.target.value)}
@@ -353,7 +369,6 @@ export default function ListingsPage() {
               </select>
             </div>
           </div>
-
 
           {/* Location row */}
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none', alignItems: 'center', flexWrap: 'nowrap' }}>
@@ -369,7 +384,6 @@ export default function ListingsPage() {
               }
             </button>
 
-
             {/* City pills */}
             {['All Cities', ...CITIES].map(city => {
               const active = city === 'All Cities'
@@ -384,12 +398,12 @@ export default function ListingsPage() {
             })}
           </div>
 
-
           {/* Location feedback */}
           {locState === 'success' && cityLabel !== 'All Cities' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', fontSize: 13, color: 'var(--amber)', fontWeight: 600, width: 'fit-content', marginTop: 8 }}>
-              {locMethod === 'ip' ? '🌐' : '📍'} Showing results near <strong style={{ marginLeft: 3 }}>{cityLabel}</strong>
+              {locMethod === 'gps' ? '📍' : '🌐'} Showing results near <strong style={{ marginLeft: 3 }}>{cityLabel}</strong>
               {locMethod === 'ip' && <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 4 }}>(approximate)</span>}
+              {locMethod === 'gps' && <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 4 }}>(GPS)</span>}
               <button onClick={clearFilters} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--amber)', padding: '0 0 0 4px', fontSize: 13 }}>✕</button>
             </div>
           )}
@@ -400,7 +414,6 @@ export default function ListingsPage() {
             </div>
           )}
         </div>
-
 
         {/* Expanded filters panel */}
         {showFilters && (
@@ -438,10 +451,8 @@ export default function ListingsPage() {
         )}
       </div>
 
-
       {/* ── Results ── */}
       <div className="lc" style={{ padding: '20px 0 56px' }}>
-
 
         {/* Active filter chips */}
         {(cityFilter || catSelected || textSearch) && (
@@ -468,7 +479,6 @@ export default function ListingsPage() {
           </div>
         )}
 
-
         {!loading && (
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
             {listings.length} business{listings.length !== 1 ? 'es' : ''} found
@@ -476,7 +486,6 @@ export default function ListingsPage() {
             {catSelected ? ` · ${catSelected}` : ''}
           </p>
         )}
-
 
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
@@ -540,7 +549,6 @@ export default function ListingsPage() {
           </div>
         )}
       </div>
-
 
       <style>{`
         .lc { max-width: 1200px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 48px); }

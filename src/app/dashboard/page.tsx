@@ -4,6 +4,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getUserReviews, getBusinessReviews, Review } from '@/lib/reviews-store';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 function Icon({ d, size = 18, sw = 1.75 }: { d: string | string[]; size?: number; sw?: number }) {
   const paths = Array.isArray(d) ? d : [d];
@@ -47,11 +51,124 @@ function StatCard({ icon, label, value, sub, color = 'var(--amber)' }: {
   );
 }
 
+// ── Inline Field Editor ───────────────────────────────────────────────
+function EditableField({
+  label, value, name, type = 'text', placeholder, onSave,
+}: {
+  label: string; value: string; name: string; type?: string;
+  placeholder?: string; onSave: (name: string, val: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal]         = useState(value);
+  const [saving, setSaving]   = useState(false);
+  const [saved, setSaved]     = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    await onSave(name, val);
+    setSaving(false);
+    setEditing(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)', gap: 12 }}>
+      <div style={{ minWidth: 120 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 2 }}>{label}</div>
+        {editing ? (
+          type === 'textarea' ? (
+            <textarea
+              value={val}
+              onChange={e => setVal(e.target.value)}
+              placeholder={placeholder}
+              style={{ width: '100%', minWidth: 220, padding: '6px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--amber)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', resize: 'vertical', minHeight: 72 }}
+            />
+          ) : (
+            <input
+              type={type}
+              value={val}
+              onChange={e => setVal(e.target.value)}
+              placeholder={placeholder}
+              style={{ padding: '6px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--amber)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', minWidth: 200 }}
+            />
+          )
+        ) : (
+          <div style={{ fontSize: 14, color: val ? 'var(--text-primary)' : 'var(--text-faint)', fontWeight: val ? 500 : 400 }}>
+            {val || placeholder || 'Not set'}
+            {saved && <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--success)' }}>✓ Saved</span>}
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: 6, paddingTop: 18, flexShrink: 0 }}>
+        {editing ? (
+          <>
+            <button onClick={save} disabled={saving}
+              style={{ padding: '4px 12px', borderRadius: 'var(--r-sm)', background: 'var(--amber)', color: '#fff', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+            <button onClick={() => { setVal(value); setEditing(false); }}
+              style={{ padding: '4px 10px', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--text-muted)', border: '1px solid var(--border)', fontSize: 12, cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button onClick={() => setEditing(true)}
+            style={{ padding: '4px 10px', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--amber)', border: '1px solid var(--amber-glow)', fontSize: 12, cursor: 'pointer' }}>
+            Edit
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Hours editor ─────────────────────────────────────────────────────
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+function HoursEditor({ hours, onSave }: { hours: Record<string,string>; onSave: (h: Record<string,string>) => Promise<void> }) {
+  const [vals, setVals]   = useState<Record<string,string>>(hours);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved]   = useState(false);
+  return (
+    <div style={{ marginTop: 8 }}>
+      {DAYS.map(d => (
+        <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <span style={{ width: 90, fontSize: 13, color: 'var(--text-muted)' }}>{d}</span>
+          <input
+            value={vals[d] ?? ''}
+            onChange={e => setVals(v => ({ ...v, [d]: e.target.value }))}
+            placeholder="e.g. 9:00 AM – 6:00 PM or Closed"
+            style={{ flex: 1, padding: '5px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
+          />
+        </div>
+      ))}
+      <button
+        onClick={async () => { setSaving(true); await onSave(vals); setSaving(false); setSaved(true); setTimeout(()=>setSaved(false),2000); }}
+        disabled={saving}
+        style={{ marginTop: 8, padding: '6px 18px', borderRadius: 'var(--r-sm)', background: 'var(--amber)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+        {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Hours'}
+      </button>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [tab, setTab] = useState<'overview' | 'reviews' | 'settings'>('overview');
+  const [tab, setTab] = useState<'overview' | 'reviews' | 'biz' | 'settings'>('overview');
+
+  // Settings state
+  const [settSaving, setSettSaving] = useState(false);
+  const [settMsg,    setSettMsg]    = useState('');
+  const [pwOld,      setPwOld]      = useState('');
+  const [pwNew,      setPwNew]      = useState('');
+  const [pwConf,     setPwConf]     = useState('');
+  const [pwMsg,      setPwMsg]      = useState('');
+  const [pwSaving,   setPwSaving]   = useState(false);
+
+  // Business doc state (for edit)
+  const [bizDoc, setBizDoc] = useState<Record<string,string>>({});
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
@@ -78,10 +195,55 @@ export default function DashboardPage() {
   const avgRating = reviews.length ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length).toFixed(1) : '—';
   const initials = user.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
 
+  // Save a field to the user's Firestore profile doc
+  const saveUserField = async (field: string, val: string) => {
+    try {
+      await updateDoc(doc(db, 'users', user.id), { [field]: val });
+      if (refreshUser) await refreshUser();
+    } catch (e) { console.error(e); }
+  };
+
+  // Save a field to the business Firestore doc
+  const saveBizField = async (field: string, val: string) => {
+    if (!user.businessSlug) return;
+    try {
+      await updateDoc(doc(db, 'businesses', user.businessSlug), { [field]: val });
+    } catch (e) { console.error(e); }
+  };
+
+  // Save business hours
+  const saveBizHours = async (hours: Record<string,string>) => {
+    if (!user.businessSlug) return;
+    try {
+      await updateDoc(doc(db, 'businesses', user.businessSlug), { hours });
+    } catch (e) { console.error(e); }
+  };
+
+  // Change password
+  const changePassword = async () => {
+    if (!pwNew || pwNew !== pwConf) { setPwMsg('Passwords do not match.'); return; }
+    if (pwNew.length < 6) { setPwMsg('Password must be at least 6 characters.'); return; }
+    setPwSaving(true); setPwMsg('');
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser || !currentUser.email) throw new Error('Not logged in');
+      const cred = EmailAuthProvider.credential(currentUser.email, pwOld);
+      await reauthenticateWithCredential(currentUser, cred);
+      await updatePassword(currentUser, pwNew);
+      setPwMsg('✓ Password updated successfully.');
+      setPwOld(''); setPwNew(''); setPwConf('');
+    } catch (e: unknown) {
+      const msg = (e as {message?:string}).message || 'Failed to update password.';
+      setPwMsg(msg.includes('wrong-password') || msg.includes('invalid-credential') ? 'Current password is incorrect.' : msg);
+    }
+    setPwSaving(false);
+  };
+
   const TABS = [
-    { key: 'overview', label: 'Overview', icon: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z' },
-    { key: 'reviews', label: isBiz ? 'Reviews Received' : 'My Reviews', icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
-    { key: 'settings', label: 'Account', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z' },
+    { key: 'overview',  label: 'Overview',   icon: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z' },
+    { key: 'reviews',   label: isBiz ? 'Reviews' : 'My Reviews', icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
+    ...(isBiz ? [{ key: 'biz', label: 'Business Profile', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10' }] : []),
+    { key: 'settings',  label: 'Settings',   icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z' },
   ];
 
   return (
@@ -103,10 +265,12 @@ export default function DashboardPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <Link href="/profile" className="btn btn-outline btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" size={14} />
-              Edit Profile
-            </Link>
+            {isBiz && (
+              <button onClick={() => setTab('biz')} className="btn btn-outline btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" size={14} />
+                Edit Business
+              </button>
+            )}
             {isBiz && (
               <Link href="/search" className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon d="M15 3h6v6 M10 14L21 3 M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" size={14} />
@@ -119,13 +283,13 @@ export default function DashboardPage() {
 
       <div className="container" style={{ paddingTop: 28, paddingBottom: 60 }}>
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 28 }}>
+        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 28, overflowX: 'auto', scrollbarWidth: 'none' }}>
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key as typeof tab)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px',
                 fontSize: 14, fontWeight: 500, border: 'none', borderRadius: 'var(--r-md) var(--r-md) 0 0',
-                cursor: 'pointer', background: 'transparent',
+                cursor: 'pointer', background: 'transparent', whiteSpace: 'nowrap',
                 color: tab === t.key ? 'var(--amber)' : 'var(--text-muted)',
                 borderBottom: tab === t.key ? '2px solid var(--amber)' : '2px solid transparent',
                 transition: 'all var(--t)',
@@ -136,10 +300,9 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* OVERVIEW */}
+        {/* ── OVERVIEW ─────────────────────────────── */}
         {tab === 'overview' && (
           <div>
-            {/* Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 16, marginBottom: 28 }}>
               {isBiz ? <>
                 <StatCard icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" label="Profile Views" value="—" sub="Analytics coming soon" />
@@ -153,25 +316,31 @@ export default function DashboardPage() {
               </>}
             </div>
 
-            {/* Quick actions */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12, marginBottom: 28 }}>
               {[
                 { href: '/search',   icon: 'M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z', label: 'Search Businesses' },
-                { href: '/profile',  icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', label: 'Edit Profile' },
-                ...(isBiz ? [{ href: '/dashboard', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 2 2z', label: 'Reply to Reviews' }] : [{ href: '/register-business', icon: 'M12 5v14 M5 12h14', label: 'List a Business' }]),
+                ...(isBiz ? [{ href: '#', icon: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7', label: 'Edit Business Profile', onClick: () => setTab('biz') }] : [{ href: '/register-business', icon: 'M12 5v14 M5 12h14', label: 'List a Business' }]),
+                { href: '#', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', label: 'Account Settings', onClick: () => setTab('settings') },
                 { href: '/contact',  icon: 'M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z', label: 'Contact Support' },
               ].map(a => (
-                <Link key={a.href + a.label} href={a.href}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', transition: 'all var(--t)' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--amber)'; e.currentTarget.style.color = 'var(--amber)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
-                  <Icon d={a.icon} size={15} />
-                  {a.label}
-                </Link>
+                a.onClick ? (
+                  <button key={a.label} onClick={a.onClick}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all var(--t)', textAlign: 'left' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--amber)'; e.currentTarget.style.color = 'var(--amber)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+                    <Icon d={a.icon} size={15} />{a.label}
+                  </button>
+                ) : (
+                  <Link key={a.label} href={a.href}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', transition: 'all var(--t)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--amber)'; e.currentTarget.style.color = 'var(--amber)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+                    <Icon d={a.icon} size={15} />{a.label}
+                  </Link>
+                )
               ))}
             </div>
 
-            {/* Recent reviews */}
             {reviews.length > 0 && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -199,7 +368,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* REVIEWS TAB */}
+        {/* ── REVIEWS ──────────────────────────────── */}
         {tab === 'reviews' && (
           <div>
             {reviews.length === 0 ? (
@@ -223,30 +392,125 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* SETTINGS TAB */}
+        {/* ── BUSINESS PROFILE EDIT ─────────────────── */}
+        {tab === 'biz' && isBiz && (
+          <div style={{ maxWidth: 680 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>Business Profile</h2>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>Changes are saved to Firestore instantly. Your public listing updates immediately.</p>
+              </div>
+              {user.businessSlug && (
+                <Link href={`/business/${user.businessSlug}`} className="btn btn-outline btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon d="M15 3h6v6 M10 14L21 3" size={13} /> View Public Listing
+                </Link>
+              )}
+            </div>
+
+            <div className="card-flat" style={{ marginBottom: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Basic Info</h3>
+              <EditableField label="Business Name"  name="name"        value={user.businessName || ''} placeholder="Your business name" onSave={saveBizField} />
+              <EditableField label="Category"       name="category"    value={''} placeholder="e.g. Restaurant, Tailor, Clinic" onSave={saveBizField} />
+              <EditableField label="Phone Number"   name="phone"       value={''} placeholder="+91 XXXXX XXXXX" onSave={saveBizField} />
+              <EditableField label="Website"        name="website"     value={''} placeholder="https://yoursite.com" onSave={saveBizField} />
+              <EditableField label="WhatsApp"       name="whatsapp"    value={''} placeholder="+91 XXXXX XXXXX" onSave={saveBizField} />
+            </div>
+
+            <div className="card-flat" style={{ marginBottom: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Description & Location</h3>
+              <EditableField label="Short Description" name="description" value={''} placeholder="Describe your business (shown in search results)" type="textarea" onSave={saveBizField} />
+              <EditableField label="Address / Area"    name="area"        value={''} placeholder="Sector 15, Faridabad" onSave={saveBizField} />
+              <EditableField label="City"              name="city"        value={user.city || ''} placeholder="Faridabad" onSave={saveBizField} />
+              <EditableField label="Pincode"           name="pincode"     value={''} placeholder="121007" onSave={saveBizField} />
+            </div>
+
+            <div className="card-flat" style={{ marginBottom: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Business Hours</h3>
+              <p style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 12 }}>Enter hours for each day, or type "Closed" for days you are not open.</p>
+              <HoursEditor hours={bizDoc.hours ? JSON.parse(bizDoc.hours as unknown as string) : {}} onSave={saveBizHours} />
+            </div>
+
+            <div className="card-flat">
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Social Media</h3>
+              <EditableField label="Facebook"    name="facebook"    value={''} placeholder="https://facebook.com/yourpage" onSave={saveBizField} />
+              <EditableField label="Instagram"   name="instagram"   value={''} placeholder="https://instagram.com/yourhandle" onSave={saveBizField} />
+              <EditableField label="Google Maps" name="googleMaps"  value={''} placeholder="Paste Google Maps embed link" onSave={saveBizField} />
+            </div>
+          </div>
+        )}
+
+        {/* ── SETTINGS ─────────────────────────────── */}
         {tab === 'settings' && (
           <div style={{ maxWidth: 600 }}>
-            <div className="card-flat" style={{ marginBottom: 16 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16, fontFamily: 'var(--font-display)' }}>Account Information</h3>
+            {/* Account Info */}
+            <div className="card-flat" style={{ marginBottom: 20 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontFamily: 'var(--font-display)' }}>Personal Information</h3>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>Click Edit on any field to update your profile.</p>
+              <EditableField label="Full Name" name="name"  value={user.name}       placeholder="Your full name"       onSave={saveUserField} />
+              <EditableField label="Phone"     name="phone" value={user.phone || ''} placeholder="+91 XXXXX XXXXX"     onSave={saveUserField} />
+              <EditableField label="City"      name="city"  value={user.city  || ''} placeholder="e.g. Faridabad"     onSave={saveUserField} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
+                <span style={{ color: 'var(--text-muted)' }}>Email</span>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{user.email} <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>(contact support to change)</span></span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: 14 }}>
+                <span style={{ color: 'var(--text-muted)' }}>Member Since</span>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{new Date(user.joinedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              </div>
+            </div>
+
+            {/* Change Password */}
+            <div className="card-flat" style={{ marginBottom: 20 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontFamily: 'var(--font-display)' }}>Change Password</h3>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>Use a strong password with letters, numbers and symbols.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {([
+                  { label: 'Current Password', val: pwOld, set: setPwOld },
+                  { label: 'New Password',     val: pwNew, set: setPwNew },
+                  { label: 'Confirm New',      val: pwConf,set: setPwConf },
+                ] as {label:string;val:string;set:(v:string)=>void}[]).map(f => (
+                  <div key={f.label}>
+                    <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>{f.label}</label>
+                    <input
+                      type="password"
+                      value={f.val}
+                      onChange={e => f.set(e.target.value)}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }}
+                    />
+                  </div>
+                ))}
+                {pwMsg && (
+                  <div style={{ fontSize: 13, color: pwMsg.startsWith('✓') ? 'var(--success)' : 'var(--crimson)' }}>{pwMsg}</div>
+                )}
+                <button onClick={changePassword} disabled={pwSaving}
+                  className="btn btn-primary" style={{ alignSelf: 'flex-start', marginTop: 4 }}>
+                  {pwSaving ? 'Updating…' : 'Update Password'}
+                </button>
+              </div>
+            </div>
+
+            {/* Account Status */}
+            <div className="card-flat">
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12, fontFamily: 'var(--font-display)' }}>Account</h3>
               {[
-                { label: 'Full Name', value: user.name },
-                { label: 'Email', value: user.email },
-                { label: 'Phone', value: user.phone || 'Not set' },
-                { label: 'City', value: user.city || 'Not set' },
-                { label: 'Role', value: isBiz ? 'Business Owner' : 'Regular User' },
-                { label: 'Member Since', value: new Date(user.joinedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) },
-                ...(isBiz ? [{ label: 'Business Name', value: user.businessName || 'Not set' }] : []),
+                { label: 'Account Type', value: isBiz ? 'Business Owner' : 'Regular User' },
+                { label: 'Status',       value: 'Active' },
+                { label: 'Role',         value: user.role },
               ].map(row => (
                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
                   <span style={{ color: 'var(--text-muted)' }}>{row.label}</span>
                   <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{row.value}</span>
                 </div>
               ))}
+              {!isBiz && (
+                <div style={{ marginTop: 16 }}>
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>Want to list your business on BhartiyaBazar?</p>
+                  <Link href="/register-business" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Icon d="M12 5v14 M5 12h14" size={14} /> List Your Business Free
+                  </Link>
+                </div>
+              )}
             </div>
-            <Link href="/profile" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-              <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" size={15} />
-              Edit Profile
-            </Link>
           </div>
         )}
       </div>
