@@ -29,13 +29,30 @@ export default function HomeSearch() {
   const [visible, setVisible] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const iv = setInterval(() => {
-      setVisible(false);
-      setTimeout(() => { setWordIdx(i => (i + 1) % ROTATING.length); setVisible(true); }, 260);
-    }, 2400);
-    return () => clearInterval(iv);
-  }, []);
+  // AUTO-DETECT on first load (like real e-commerce sites)
+useEffect(() => {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
+        );
+        const data = await res.json();
+        const detected =
+          data.address?.city ||
+          data.address?.town ||
+          data.address?.village ||
+          data.address?.county ||
+          data.address?.state_district ||
+          '';
+        if (detected) setCity(detected);
+      } catch { /* silent fail */ }
+    },
+    () => { /* permission denied — silent */ },
+    { timeout: 8000, maximumAge: 300000, enableHighAccuracy: false }
+  );
+}, []);
 
   const go = (e: React.FormEvent) => {
     e.preventDefault();
