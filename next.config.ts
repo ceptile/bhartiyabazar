@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
     },
   ],
 
-  generateBuildId: async () => 'bhartiyabazar-build',
+  // generateBuildId removed — static ID was causing Vercel to skip rebuilds
 };
 
 export default nextConfig;
