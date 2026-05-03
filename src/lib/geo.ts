@@ -7,7 +7,6 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{
   area: string; street: string; postcode: string;
 }> {
   try {
-    // Call our own API route — avoids CORS and Nominatim browser-blocking
     const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
     if (!res.ok) throw new Error(`Geocode API error ${res.status}`);
     return await res.json();
@@ -38,11 +37,14 @@ export async function forwardGeocode(query: string): Promise<Array<{
 
 export function getUserLocation(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) { reject(new Error('Geolocation not supported')); return; }
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reject(new Error('Geolocation not supported'));
+      return;
+    }
     navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0,
+      enableHighAccuracy: false, // don't demand GPS hardware — works indoors too
+      timeout: 8000,
+      maximumAge: 60000,        // accept a cached position up to 1 min old
     });
   });
 }

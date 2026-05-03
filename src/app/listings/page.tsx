@@ -111,26 +111,25 @@ function getCreatedAtSeconds(val?: Listing['createdAt']): number {
 
 /**
  * IP-based city detection — tried in sequence until one works.
- * All calls happen in the browser so the IP is the user’s real IP.
  */
 async function detectCityByIP(): Promise<string> {
-  // 1. freeipapi.com — generous free tier, no key
+  // 1. ipinfo.io — most reliable, works well from browsers
+  try {
+    const r = await fetch('https://ipinfo.io/json?token=', { signal: AbortSignal.timeout(6000) });
+    if (r.ok) {
+      const d = await r.json();
+      const city = d.city || d.region || '';
+      if (city && city !== '-') return city;
+    }
+  } catch { /* next */ }
+
+  // 2. freeipapi.com — fallback
   try {
     const r = await fetch('https://freeipapi.com/api/json', { signal: AbortSignal.timeout(6000) });
     if (r.ok) {
       const d = await r.json();
       const city = d.cityName || d.regionName || '';
       if (city && city !== '-') return city;
-    }
-  } catch { /* next */ }
-
-  // 2. ipapi.co — fallback
-  try {
-    const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(6000) });
-    if (r.ok) {
-      const d = await r.json();
-      const city = d.city || d.region || '';
-      if (city) return city;
     }
   } catch { /* next */ }
 
@@ -190,21 +189,17 @@ export default function ListingsPage() {
     setLocError('');
     setLocMethod('');
 
-    // —————————————————————————————
-    // Step 1: Check GPS permission status before asking
-    // —————————————————————————————
+    // ── Step 1: Check GPS permission status (non-blocking)
     let gpsPermission: PermissionState = 'prompt';
     try {
-      if (navigator.permissions) {
+      if (typeof navigator !== 'undefined' && navigator.permissions) {
         const status = await navigator.permissions.query({ name: 'geolocation' });
         gpsPermission = status.state;
       }
-    } catch { /* permissions API not available — assume prompt */ }
+    } catch { /* permissions API not available */ }
 
-    // —————————————————————————————
-    // Step 2: Try GPS (skip if already denied)
-    // —————————————————————————————
-    if (gpsPermission !== 'denied' && typeof navigator !== 'undefined' && navigator.geolocation) {
+    // ── Step 2: Try GPS only if not already blocked
+    if (gpsPermission !== 'denied') {
       try {
         const pos = await getUserLocation();
         const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
@@ -217,29 +212,21 @@ export default function ListingsPage() {
           setLocMethod('gps');
           return;
         }
+        // GPS succeeded but no city returned — fall through to IP
       } catch (err: unknown) {
         const code = (err as GeolocationPositionError)?.code;
-        // code 1 = PERMISSION_DENIED — skip IP fallback, show clear message
         if (code === 1) {
+          // User explicitly denied — show denied message, skip IP fallback
           setLocState('denied');
           setLocError('Location access was denied. Please allow location in your browser settings, or pick a city below.');
           return;
         }
-        // code 2 = POSITION_UNAVAILABLE, code 3 = TIMEOUT — fall through to IP
-        console.warn('[detectLocation] GPS error code:', code);
+        // code 2 (POSITION_UNAVAILABLE) or code 3 (TIMEOUT) — fall through to IP
+        console.warn('[detectLocation] GPS soft error code:', code, '— trying IP fallback');
       }
     }
 
-    // If explicitly denied via permissions API, skip IP
-    if (gpsPermission === 'denied') {
-      setLocState('denied');
-      setLocError('Location access is blocked. Please allow it in your browser settings, or pick a city below.');
-      return;
-    }
-
-    // —————————————————————————————
-    // Step 3: IP fallback (GPS unavailable/timed out)
-    // —————————————————————————————
+    // ── Step 3: IP fallback (GPS unavailable, timed out, or no city returned)
     try {
       const rawCity = await detectCityByIP();
       if (rawCity) {
@@ -252,8 +239,9 @@ export default function ListingsPage() {
       }
     } catch { /* fall through */ }
 
+    // ── All methods exhausted
     setLocState('error');
-    setLocError('Could not detect your location. Please select a city from the list below.');
+    setLocError('Could not detect your location automatically. Please select a city from the list below.');
   }, []);
 
   // ── Filter + sort ──
@@ -324,7 +312,6 @@ export default function ListingsPage() {
     ? (ALL_CATEGORIES ?? []).filter(c => c.group === groupFilter)
     : [];
 
-  // Error/denied banner colour
   const locBannerDenied = locState === 'denied';
 
   return (
@@ -411,7 +398,6 @@ export default function ListingsPage() {
 
           {/* Location row */}
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none', alignItems: 'center', flexWrap: 'nowrap' }}>
-            {/* Detect button */}
             <button
               onClick={detectLocation}
               disabled={locState === 'loading'}
@@ -423,7 +409,6 @@ export default function ListingsPage() {
               }
             </button>
 
-            {/* City pills */}
             {['All Cities', ...CITIES].map(city => {
               const active = city === 'All Cities'
                 ? (!cityFilter || cityFilter === '')
@@ -495,7 +480,6 @@ export default function ListingsPage() {
       {/* ── Results ── */}
       <div className="lc" style={{ padding: '20px 0 56px' }}>
 
-        {/* Active filter chips */}
         {(cityFilter || catSelected || textSearch) && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Showing:</span>
