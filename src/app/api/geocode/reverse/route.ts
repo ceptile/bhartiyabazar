@@ -21,6 +21,23 @@ interface GeoResult {
   postcode: string;
 }
 
+// Known Indian city name aliases — strip suffixes that BDC / Nominatim append
+const CITY_STRIP_SUFFIXES = [
+  ' district', ' tehsil', ' taluka', ' taluk', ' mandal',
+  ' municipal corporation', ' nagar nigam', ' municipality',
+  ' urban', ' rural', ' block',
+];
+
+function cleanCityName(raw: string): string {
+  if (!raw) return '';
+  let s = raw.trim().toLowerCase();
+  for (const suffix of CITY_STRIP_SUFFIXES) {
+    if (s.endsWith(suffix)) { s = s.slice(0, s.length - suffix.length).trim(); break; }
+  }
+  // Title-case
+  return s.replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // ── 1. BigDataCloud (completely free, no key needed) ─────────────────────────
 async function geocodeWithBigDataCloud(
   lat: string,
@@ -38,24 +55,35 @@ async function geocodeWithBigDataCloud(
 
   const admins: Array<{ adminLevel: number; name: string }> =
     d.localityInfo?.administrative ?? [];
+  const infos: Array<{ description?: string; name?: string }> =
+    d.localityInfo?.informational ?? [];
 
   const byLevel = (level: number) =>
     admins.find(a => a.adminLevel === level)?.name ?? '';
 
-  const infos: Array<{ description?: string; name?: string }> =
-    d.localityInfo?.informational ?? [];
+  // ── City resolution for India ──
+  // BDC adminLevels for India:
+  //   4 = State (e.g. Haryana)
+  //   5 = District (e.g. Faridabad District) ← often wrong for city name
+  //   6 = Sub-district / Tehsil
+  //   7/8 = Town/Village/Locality
+  //
+  // Best strategy: prefer d.locality (usually the actual city/town name),
+  // then d.city, then admins, stripping district/tehsil suffixes at each step.
 
-  // For Indian GPS coordinates BigDataCloud often returns district-level names
-  // in d.city (e.g. "Faridabad District"). adminLevel 5 maps to the actual city.
-  // Priority: adminLevel 5 (city) → adminLevel 6 → d.city → d.locality → higher levels
-  const city =
-    byLevel(5) ||
-    byLevel(6) ||
-    d.city ||
-    d.locality ||
-    byLevel(8) ||
-    byLevel(7) ||
-    '';
+  const candidates = [
+    d.locality,           // Usually the town name — most accurate
+    d.city,               // Sometimes "Faridabad District" — needs cleaning
+    byLevel(6),           // Sub-district
+    byLevel(7),           // Town level
+    byLevel(8),           // Village level
+    byLevel(5),           // District level — last resort
+  ].filter(Boolean).map(cleanCityName);
+
+  // Pick first candidate that doesn't look like a district/state
+  const city = candidates.find(c =>
+    c && !c.toLowerCase().includes('district') && c.length > 0
+  ) || candidates[0] || '';
 
   const area =
     infos.find(
@@ -65,7 +93,7 @@ async function geocodeWithBigDataCloud(
         i.description?.toLowerCase().includes('ward'),
     )?.name ??
     infos.find(i => i.description?.toLowerCase().includes('quarter'))?.name ??
-    '';
+    d.locality ?? '';
 
   const postcode =
     d.postcode ||
@@ -79,7 +107,7 @@ async function geocodeWithBigDataCloud(
 
   return {
     building: '',
-    street:   d.locality ?? '',
+    street:   '',
     area,
     city,
     state,
@@ -106,8 +134,12 @@ async function geocodeWithNominatim(lat: string, lng: string): Promise<GeoResult
   const data = await res.json();
   const a = data.address || {};
 
-  const city =
-    a.city || a.town || a.city_district || a.state_district || a.village || a.county || '';
+  // Nominatim for India: prefer city > town > city_district > suburb > county
+  const cityRaw =
+    a.city || a.town || a.municipality || a.city_district ||
+    a.suburb || a.state_district || a.village || a.county || '';
+
+  const city = cleanCityName(cityRaw);
 
   return {
     building: a.house_number || '',
