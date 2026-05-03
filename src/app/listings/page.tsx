@@ -26,7 +26,6 @@ const CITIES = [
   'Faridabad','Firozabad','Agra','Mathura','Aligarh','Meerut',
 ];
 
-// Additional aliases for fuzzy-matching IP/GPS results to CITIES list
 const CITY_ALIASES: Record<string, string> = {
   'new delhi': 'Delhi',
   'south delhi': 'Delhi',
@@ -46,37 +45,23 @@ const CITY_ALIASES: Record<string, string> = {
   'greater noida': 'Noida',
   'gautam buddha nagar': 'Noida',
   'secunderabad': 'Hyderabad',
-  // Faridabad variants returned by BigDataCloud / IP APIs
   'faridabad district': 'Faridabad',
   'faridabad haryana': 'Faridabad',
   'old faridabad': 'Faridabad',
   'new industrial township': 'Faridabad',
+  'nit faridabad': 'Faridabad',
 };
 
-/**
- * Tries to match a raw city string (from GPS/IP) to one of the canonical CITIES.
- * Returns the matched city name or the original string if no match.
- */
 function matchToKnownCity(raw: string): string {
   if (!raw) return raw;
   const lower = raw.toLowerCase().trim();
-
-  // 1. Direct exact match
   const exact = CITIES.find(c => c.toLowerCase() === lower);
   if (exact) return exact;
-
-  // 2. Alias map
   if (CITY_ALIASES[lower]) return CITY_ALIASES[lower];
-
-  // 3. Known city name contained in raw string (e.g. "Faridabad District" → "Faridabad")
   const contained = CITIES.find(c => lower.includes(c.toLowerCase()));
   if (contained) return contained;
-
-  // 4. Raw string contained in a known city name
   const reverse = CITIES.find(c => c.toLowerCase().includes(lower));
   if (reverse) return reverse;
-
-  // 5. Return raw as-is — unknown city, but still useful for text filter
   return raw;
 }
 
@@ -124,22 +109,41 @@ function getCreatedAtSeconds(val?: Listing['createdAt']): number {
   return new Date(val).getTime() / 1000;
 }
 
-// IP-based location — no permission needed
+/**
+ * IP-based city detection — tried in sequence until one works.
+ * All calls happen in the browser so the IP is the user’s real IP.
+ */
 async function detectCityByIP(): Promise<string> {
+  // 1. freeipapi.com — generous free tier, no key
   try {
-    const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) throw new Error('ipapi failed');
-    const data = await res.json();
-    return data.city || data.region || '';
-  } catch {
-    try {
-      const res2 = await fetch('https://ip-api.com/json/?fields=city,regionName', { signal: AbortSignal.timeout(5000) });
-      const d2 = await res2.json();
-      return d2.city || d2.regionName || '';
-    } catch {
-      return '';
+    const r = await fetch('https://freeipapi.com/api/json', { signal: AbortSignal.timeout(6000) });
+    if (r.ok) {
+      const d = await r.json();
+      const city = d.cityName || d.regionName || '';
+      if (city && city !== '-') return city;
     }
-  }
+  } catch { /* next */ }
+
+  // 2. ipapi.co — fallback
+  try {
+    const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(6000) });
+    if (r.ok) {
+      const d = await r.json();
+      const city = d.city || d.region || '';
+      if (city) return city;
+    }
+  } catch { /* next */ }
+
+  // 3. ip-api.com — last resort
+  try {
+    const r = await fetch('https://ip-api.com/json/?fields=status,city,regionName', { signal: AbortSignal.timeout(6000) });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.status === 'success') return d.city || d.regionName || '';
+    }
+  } catch { /* next */ }
+
+  return '';
 }
 
 export default function ListingsPage() {
@@ -180,14 +184,27 @@ export default function ListingsPage() {
     })();
   }, []);
 
-  // ── Location detect: GPS first → smart city match → IP fallback ──
+  // ── Location detect ──
   const detectLocation = useCallback(async () => {
     setLocState('loading');
     setLocError('');
     setLocMethod('');
 
-    // 1️⃣ GPS
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+    // —————————————————————————————
+    // Step 1: Check GPS permission status before asking
+    // —————————————————————————————
+    let gpsPermission: PermissionState = 'prompt';
+    try {
+      if (navigator.permissions) {
+        const status = await navigator.permissions.query({ name: 'geolocation' });
+        gpsPermission = status.state;
+      }
+    } catch { /* permissions API not available — assume prompt */ }
+
+    // —————————————————————————————
+    // Step 2: Try GPS (skip if already denied)
+    // —————————————————————————————
+    if (gpsPermission !== 'denied' && typeof navigator !== 'undefined' && navigator.geolocation) {
       try {
         const pos = await getUserLocation();
         const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
@@ -202,11 +219,27 @@ export default function ListingsPage() {
         }
       } catch (err: unknown) {
         const code = (err as GeolocationPositionError)?.code;
-        console.warn('[detectLocation] GPS failed, code:', code);
+        // code 1 = PERMISSION_DENIED — skip IP fallback, show clear message
+        if (code === 1) {
+          setLocState('denied');
+          setLocError('Location access was denied. Please allow location in your browser settings, or pick a city below.');
+          return;
+        }
+        // code 2 = POSITION_UNAVAILABLE, code 3 = TIMEOUT — fall through to IP
+        console.warn('[detectLocation] GPS error code:', code);
       }
     }
 
-    // 2️⃣ IP fallback
+    // If explicitly denied via permissions API, skip IP
+    if (gpsPermission === 'denied') {
+      setLocState('denied');
+      setLocError('Location access is blocked. Please allow it in your browser settings, or pick a city below.');
+      return;
+    }
+
+    // —————————————————————————————
+    // Step 3: IP fallback (GPS unavailable/timed out)
+    // —————————————————————————————
     try {
       const rawCity = await detectCityByIP();
       if (rawCity) {
@@ -215,14 +248,12 @@ export default function ListingsPage() {
         setCityLabel(matched);
         setLocState('success');
         setLocMethod('ip');
-      } else {
-        setLocState('error');
-        setLocError('Could not detect your location automatically. Please select a city from the list below.');
+        return;
       }
-    } catch {
-      setLocState('error');
-      setLocError('Could not detect your location automatically. Please select a city from the list below.');
-    }
+    } catch { /* fall through */ }
+
+    setLocState('error');
+    setLocError('Could not detect your location. Please select a city from the list below.');
   }, []);
 
   // ── Filter + sort ──
@@ -292,6 +323,9 @@ export default function ListingsPage() {
   const groupCats  = groupFilter
     ? (ALL_CATEGORIES ?? []).filter(c => c.group === groupFilter)
     : [];
+
+  // Error/denied banner colour
+  const locBannerDenied = locState === 'denied';
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 72 }}>
@@ -412,10 +446,12 @@ export default function ListingsPage() {
               <button onClick={clearFilters} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--amber)', padding: '0 0 0 4px', fontSize: 13 }}>✕</button>
             </div>
           )}
-          {locState === 'error' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '7px 12px', borderRadius: 'var(--r-md)', background: '#fef2f2', border: '1px solid #fecaca', fontSize: 13, color: '#b91c1c', maxWidth: 520, marginTop: 8 }}>
-              ⚠️ {locError}
-              <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Retry</button>
+          {(locState === 'error' || locState === 'denied') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '7px 12px', borderRadius: 'var(--r-md)', background: locBannerDenied ? '#fef9ec' : '#fef2f2', border: `1px solid ${locBannerDenied ? '#fde68a' : '#fecaca'}`, fontSize: 13, color: locBannerDenied ? '#92400e' : '#b91c1c', maxWidth: 560, marginTop: 8 }}>
+              {locBannerDenied ? '🔒' : '⚠️'} {locError}
+              {locState === 'error' && (
+                <button onClick={detectLocation} style={{ background: 'var(--amber)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Retry</button>
+              )}
             </div>
           )}
         </div>
