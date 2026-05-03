@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getUserReviews, getBusinessReviews, Review } from '@/lib/reviews-store';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -62,6 +62,9 @@ function EditableField({
   const [val, setVal]         = useState(value);
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
+
+  // Keep local val in sync if parent value changes (e.g. after bizDoc loads)
+  useEffect(() => { setVal(value); }, [value]);
 
   const save = async () => {
     setSaving(true);
@@ -129,6 +132,10 @@ function HoursEditor({ hours, onSave }: { hours: Record<string,string>; onSave: 
   const [vals, setVals]   = useState<Record<string,string>>(hours);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
+
+  // Sync if parent hours change after bizDoc loads
+  useEffect(() => { setVals(hours); }, [JSON.stringify(hours)]);
+
   return (
     <div style={{ marginTop: 8 }}>
       {DAYS.map(d => (
@@ -153,22 +160,20 @@ function HoursEditor({ hours, onSave }: { hours: Record<string,string>; onSave: 
 }
 
 export default function DashboardPage() {
-  const { user, loading, refreshUser } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [tab, setTab] = useState<'overview' | 'reviews' | 'biz' | 'settings'>('overview');
 
   // Settings state
-  const [settSaving, setSettSaving] = useState(false);
-  const [settMsg,    setSettMsg]    = useState('');
   const [pwOld,      setPwOld]      = useState('');
   const [pwNew,      setPwNew]      = useState('');
   const [pwConf,     setPwConf]     = useState('');
   const [pwMsg,      setPwMsg]      = useState('');
   const [pwSaving,   setPwSaving]   = useState(false);
 
-  // Business doc state (for edit)
-  const [bizDoc, setBizDoc] = useState<Record<string,string>>({});
+  // Business doc state (for edit) — loaded from Firestore
+  const [bizDoc, setBizDoc] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
@@ -182,6 +187,19 @@ export default function DashboardPage() {
       setReviews(getUserReviews(user.id));
     }
   }, [user]);
+
+  // Load business Firestore doc so edit fields are pre-filled
+  useEffect(() => {
+    if (!user?.businessSlug) return;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'businesses', user.businessSlug!));
+        if (snap.exists()) setBizDoc(snap.data() as Record<string, string>);
+      } catch (e) {
+        console.error('[dashboard] bizDoc load error', e);
+      }
+    })();
+  }, [user?.businessSlug]);
 
   if (loading || !user) {
     return (
@@ -199,7 +217,6 @@ export default function DashboardPage() {
   const saveUserField = async (field: string, val: string) => {
     try {
       await updateDoc(doc(db, 'users', user.id), { [field]: val });
-      if (refreshUser) await refreshUser();
     } catch (e) { console.error(e); }
   };
 
@@ -208,6 +225,7 @@ export default function DashboardPage() {
     if (!user.businessSlug) return;
     try {
       await updateDoc(doc(db, 'businesses', user.businessSlug), { [field]: val });
+      setBizDoc(prev => ({ ...prev, [field]: val }));
     } catch (e) { console.error(e); }
   };
 
@@ -216,6 +234,7 @@ export default function DashboardPage() {
     if (!user.businessSlug) return;
     try {
       await updateDoc(doc(db, 'businesses', user.businessSlug), { hours });
+      setBizDoc(prev => ({ ...prev, hours: JSON.stringify(hours) }));
     } catch (e) { console.error(e); }
   };
 
@@ -245,6 +264,16 @@ export default function DashboardPage() {
     ...(isBiz ? [{ key: 'biz', label: 'Business Profile', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10' }] : []),
     { key: 'settings',  label: 'Settings',   icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z' },
   ];
+
+  // Parse hours safely from bizDoc
+  const parsedHours = (() => {
+    try {
+      const h = (bizDoc as Record<string, unknown>).hours;
+      if (!h) return {};
+      if (typeof h === 'object') return h as Record<string, string>;
+      return JSON.parse(h as string) as Record<string, string>;
+    } catch { return {}; }
+  })();
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 64 }}>
@@ -409,32 +438,32 @@ export default function DashboardPage() {
 
             <div className="card-flat" style={{ marginBottom: 16 }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Basic Info</h3>
-              <EditableField label="Business Name"  name="name"        value={user.businessName || ''} placeholder="Your business name" onSave={saveBizField} />
-              <EditableField label="Category"       name="category"    value={''} placeholder="e.g. Restaurant, Tailor, Clinic" onSave={saveBizField} />
-              <EditableField label="Phone Number"   name="phone"       value={''} placeholder="+91 XXXXX XXXXX" onSave={saveBizField} />
-              <EditableField label="Website"        name="website"     value={''} placeholder="https://yoursite.com" onSave={saveBizField} />
-              <EditableField label="WhatsApp"       name="whatsapp"    value={''} placeholder="+91 XXXXX XXXXX" onSave={saveBizField} />
+              <EditableField label="Business Name"  name="name"        value={bizDoc.name        || user.businessName || ''} placeholder="Your business name"     onSave={saveBizField} />
+              <EditableField label="Category"       name="category"    value={bizDoc.category    || ''}                       placeholder="e.g. Restaurant, Tailor" onSave={saveBizField} />
+              <EditableField label="Phone Number"   name="phone"       value={bizDoc.phone       || ''}                       placeholder="+91 XXXXX XXXXX"        onSave={saveBizField} />
+              <EditableField label="Website"        name="website"     value={bizDoc.website     || ''}                       placeholder="https://yoursite.com"   onSave={saveBizField} />
+              <EditableField label="WhatsApp"       name="whatsapp"    value={bizDoc.whatsapp    || ''}                       placeholder="+91 XXXXX XXXXX"        onSave={saveBizField} />
             </div>
 
             <div className="card-flat" style={{ marginBottom: 16 }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Description & Location</h3>
-              <EditableField label="Short Description" name="description" value={''} placeholder="Describe your business (shown in search results)" type="textarea" onSave={saveBizField} />
-              <EditableField label="Address / Area"    name="area"        value={''} placeholder="Sector 15, Faridabad" onSave={saveBizField} />
-              <EditableField label="City"              name="city"        value={user.city || ''} placeholder="Faridabad" onSave={saveBizField} />
-              <EditableField label="Pincode"           name="pincode"     value={''} placeholder="121007" onSave={saveBizField} />
+              <EditableField label="Short Description" name="description" value={bizDoc.description || ''} placeholder="Describe your business"     type="textarea" onSave={saveBizField} />
+              <EditableField label="Address / Area"    name="area"        value={bizDoc.area        || ''} placeholder="Sector 15, Faridabad"                    onSave={saveBizField} />
+              <EditableField label="City"              name="city"        value={bizDoc.city        || user.city || ''} placeholder="Faridabad"           onSave={saveBizField} />
+              <EditableField label="Pincode"           name="pincode"     value={bizDoc.pincode     || ''} placeholder="121007"                               onSave={saveBizField} />
             </div>
 
             <div className="card-flat" style={{ marginBottom: 16 }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Business Hours</h3>
-              <p style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 12 }}>Enter hours for each day, or type "Closed" for days you are not open.</p>
-              <HoursEditor hours={bizDoc.hours ? JSON.parse(bizDoc.hours as unknown as string) : {}} onSave={saveBizHours} />
+              <p style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 12 }}>Enter hours for each day, or type &quot;Closed&quot; for days you are not open.</p>
+              <HoursEditor hours={parsedHours} onSave={saveBizHours} />
             </div>
 
             <div className="card-flat">
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Social Media</h3>
-              <EditableField label="Facebook"    name="facebook"    value={''} placeholder="https://facebook.com/yourpage" onSave={saveBizField} />
-              <EditableField label="Instagram"   name="instagram"   value={''} placeholder="https://instagram.com/yourhandle" onSave={saveBizField} />
-              <EditableField label="Google Maps" name="googleMaps"  value={''} placeholder="Paste Google Maps embed link" onSave={saveBizField} />
+              <EditableField label="Facebook"    name="facebook"   value={bizDoc.facebook    || ''} placeholder="https://facebook.com/yourpage"    onSave={saveBizField} />
+              <EditableField label="Instagram"   name="instagram"  value={bizDoc.instagram   || ''} placeholder="https://instagram.com/yourhandle" onSave={saveBizField} />
+              <EditableField label="Google Maps" name="googleMaps" value={bizDoc.googleMaps  || ''} placeholder="Paste Google Maps embed link"    onSave={saveBizField} />
             </div>
           </div>
         )}
@@ -446,9 +475,9 @@ export default function DashboardPage() {
             <div className="card-flat" style={{ marginBottom: 20 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontFamily: 'var(--font-display)' }}>Personal Information</h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>Click Edit on any field to update your profile.</p>
-              <EditableField label="Full Name" name="name"  value={user.name}       placeholder="Your full name"       onSave={saveUserField} />
-              <EditableField label="Phone"     name="phone" value={user.phone || ''} placeholder="+91 XXXXX XXXXX"     onSave={saveUserField} />
-              <EditableField label="City"      name="city"  value={user.city  || ''} placeholder="e.g. Faridabad"     onSave={saveUserField} />
+              <EditableField label="Full Name" name="name"  value={user.name}       placeholder="Your full name"   onSave={saveUserField} />
+              <EditableField label="Phone"     name="phone" value={user.phone || ''} placeholder="+91 XXXXX XXXXX" onSave={saveUserField} />
+              <EditableField label="City"      name="city"  value={user.city  || ''} placeholder="e.g. Faridabad" onSave={saveUserField} />
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
                 <span style={{ color: 'var(--text-muted)' }}>Email</span>
                 <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{user.email} <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>(contact support to change)</span></span>
@@ -540,32 +569,42 @@ function ReviewCard({ review: r, isBizOwner, onReply }: { review: Review; isBizO
             </div>
           </div>
           {r.title && <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{r.title}</div>}
-          <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65, maxWidth: '100%' }}>{r.text}</p>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '100%' }}>{r.text}</p>
         </div>
       </div>
-
       {r.ownerReply && (
-        <div style={{ marginLeft: 50, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)', borderLeft: '3px solid var(--amber)', marginTop: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber)', marginBottom: 4 }}>Owner Reply</div>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: '100%' }}>{r.ownerReply}</p>
+        <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)', borderLeft: '3px solid var(--amber)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--amber)', marginBottom: 4 }}>Owner Reply</div>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>{r.ownerReply}</p>
         </div>
       )}
-
       {isBizOwner && !r.ownerReply && (
-        <div style={{ marginLeft: 50, marginTop: 10 }}>
-          {!replyOpen ? (
-            <button onClick={() => setReplyOpen(true)} style={{ fontSize: 13, color: 'var(--amber)', background: 'none', border: '1px solid var(--amber-glow)', borderRadius: 'var(--r-sm)', padding: '5px 12px', cursor: 'pointer' }}>Reply to Review</button>
-          ) : (
+        <div style={{ marginTop: 10 }}>
+          {replyOpen ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <textarea value={replyText} onChange={e => setReplyText(e.target.value)}
-                placeholder="Write a professional reply..."
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 13, resize: 'vertical', minHeight: 80, outline: 'none' }} />
+              <textarea
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                placeholder="Write a reply to this review…"
+                style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', resize: 'vertical', minHeight: 80 }}
+              />
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => { if (replyText.trim()) { onReply(r.id, replyText.trim()); setReplyOpen(false); } }}
-                  className="btn btn-primary btn-sm">Post Reply</button>
-                <button onClick={() => { setReplyOpen(false); setReplyText(''); }} className="btn btn-outline btn-sm">Cancel</button>
+                <button
+                  onClick={() => { if (replyText.trim()) { onReply(r.id, replyText.trim()); setReplyOpen(false); } }}
+                  style={{ padding: '6px 16px', borderRadius: 'var(--r-sm)', background: 'var(--amber)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  Submit Reply
+                </button>
+                <button onClick={() => setReplyOpen(false)}
+                  style={{ padding: '6px 12px', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--text-muted)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer' }}>
+                  Cancel
+                </button>
               </div>
             </div>
+          ) : (
+            <button onClick={() => setReplyOpen(true)}
+              style={{ padding: '5px 14px', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--amber)', border: '1px solid var(--amber-glow)', fontSize: 12, cursor: 'pointer' }}>
+              Reply to Review
+            </button>
           )}
         </div>
       )}

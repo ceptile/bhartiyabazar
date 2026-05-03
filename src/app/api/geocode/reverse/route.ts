@@ -45,12 +45,16 @@ async function geocodeWithBigDataCloud(
   const infos: Array<{ description?: string; name?: string }> =
     d.localityInfo?.informational ?? [];
 
+  // For Indian GPS coordinates BigDataCloud often returns district-level names
+  // in d.city (e.g. "Faridabad District"). adminLevel 5 maps to the actual city.
+  // Priority: adminLevel 5 (city) → adminLevel 6 → d.city → d.locality → higher levels
   const city =
+    byLevel(5) ||
+    byLevel(6) ||
     d.city ||
     d.locality ||
     byLevel(8) ||
     byLevel(7) ||
-    byLevel(6) ||
     '';
 
   const area =
@@ -63,7 +67,6 @@ async function geocodeWithBigDataCloud(
     infos.find(i => i.description?.toLowerCase().includes('quarter'))?.name ??
     '';
 
-  // Wrap the whole || chain in parens before ??
   const postcode =
     d.postcode ||
     (infos.find(

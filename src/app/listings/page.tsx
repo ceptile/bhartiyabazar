@@ -46,6 +46,11 @@ const CITY_ALIASES: Record<string, string> = {
   'greater noida': 'Noida',
   'gautam buddha nagar': 'Noida',
   'secunderabad': 'Hyderabad',
+  // Faridabad variants returned by BigDataCloud / IP APIs
+  'faridabad district': 'Faridabad',
+  'faridabad haryana': 'Faridabad',
+  'old faridabad': 'Faridabad',
+  'new industrial township': 'Faridabad',
 };
 
 /**
