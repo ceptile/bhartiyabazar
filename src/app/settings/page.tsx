@@ -360,7 +360,7 @@ function NotifTab({ user, updateProfile, showToast }: any) {
   };
   const [prefs, setPrefs] = useState({ ...defaults, ...(user.notifications || {}) });
 
-  const toggle = (k: string) => setPrefs(p => ({ ...p, [k]: !p[k as keyof typeof p] }));
+  const toggle = (k: string) => setPrefs((p: typeof prefs) => ({ ...p, [k]: !p[k as keyof typeof p] }));
 
   const save = async () => {
     await updateProfile({ notifications: prefs } as any);
@@ -406,7 +406,7 @@ function PrivacyTab({ user, updateProfile, showToast }: any) {
     privacy_indexed: true,
   };
   const [prefs, setPrefs] = useState({ ...defaults, ...(user.privacy || {}) });
-  const toggle = (k: string) => setPrefs(p => ({ ...p, [k]: !p[k as keyof typeof p] }));
+  const toggle = (k: string) => setPrefs((p: typeof prefs) => ({ ...p, [k]: !p[k as keyof typeof p] }));
   const save = async () => {
     await updateProfile({ privacy: prefs } as any);
     showToast('Privacy settings saved!');
