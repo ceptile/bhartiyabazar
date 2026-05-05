@@ -73,23 +73,59 @@ export default function HeroSection() {
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
+  // AI search
+  const [aiSummary, setAiSummary] = useState('');
+  const [isAiMode, setIsAiMode] = useState(false);
+
   // Live search with debounce
-  const doSearch = useCallback((q: string, cityFilter: string) => {
-    if (!q.trim()) { setResults([]); setCatSuggestions(searchCategories(q, 6)); return; }
+  const doSearch = useCallback(async (q: string, cityFilter: string) => {
+    if (!q.trim()) { 
+      setResults([]); 
+      setCatSuggestions(searchCategories(q, 6)); 
+      setAiSummary('');
+      return; 
+    }
+    
     setSearching(true);
     const q2 = q.toLowerCase();
-    let data = allBiz.filter(b =>
-      b.name?.toLowerCase().includes(q2) ||
-      b.category?.toLowerCase().includes(q2) ||
-      b.description?.toLowerCase().includes(q2) ||
-      b.area?.toLowerCase().includes(q2)
-    );
-    if (cityFilter) data = data.filter(b => b.city?.toLowerCase().includes(cityFilter.toLowerCase()));
-    // Boost verified
-    data.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
-    setResults(data.slice(0, 8));
-    setCatSuggestions(searchCategories(q, 4));
-    setSearching(false);
+    
+    // Natural language detection (if query > 3 words, try AI)
+    const isNatural = q.split(' ').length >= 3;
+    
+    if (isNatural) {
+      setIsAiMode(true);
+      try {
+        const res = await fetch('/api/ai-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q, listings: allBiz })
+        });
+        const data = await res.json();
+        if (data.slugs) {
+          const aiBiz = allBiz.filter(b => data.slugs.includes(b.slug));
+          setResults(aiBiz);
+          setAiSummary(data.summary);
+        }
+      } catch (e) {
+        console.error('AI search failed', e);
+      } finally {
+        setSearching(false);
+      }
+    } else {
+      setIsAiMode(false);
+      let data = allBiz.filter(b =>
+        b.name?.toLowerCase().includes(q2) ||
+        b.category?.toLowerCase().includes(q2) ||
+        b.description?.toLowerCase().includes(q2) ||
+        b.area?.toLowerCase().includes(q2)
+      );
+      if (cityFilter) data = data.filter(b => b.city?.toLowerCase().includes(cityFilter.toLowerCase()));
+      // Boost verified
+      data.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
+      setResults(data.slice(0, 8));
+      setCatSuggestions(searchCategories(q, 4));
+      setSearching(false);
+    }
   }, [allBiz]);
 
   useEffect(() => {
@@ -191,6 +227,16 @@ export default function HeroSection() {
               {/* Live results dropdown */}
               {showResults && (query.trim() || catSuggestions.length > 0) && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 200, overflow: 'hidden', maxHeight: 420, overflowY: 'auto' }}>
+
+                  {/* AI Summary */}
+                  {isAiMode && aiSummary && (
+                    <div style={{ padding: '12px 14px', background: 'var(--amber-subtle)', borderBottom: '1px solid var(--amber-glow)', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: 11, fontWeight: 700, color: 'var(--amber)', textTransform: 'uppercase' }}>
+                        <span style={{ fontSize: 14 }}>✨</span> AI Summary
+                      </div>
+                      {aiSummary}
+                    </div>
+                  )}
 
                   {/* Category suggestions */}
                   {catSuggestions.length > 0 && (

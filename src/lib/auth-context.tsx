@@ -19,6 +19,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  photoURL?: string;
   phone?: string;
   city?: string;
   area?: string;
@@ -31,6 +32,20 @@ export interface AuthUser {
   businessCategory?: string;
   verified?: boolean;
   joinedAt: string;
+  // Professional & Social Profile Fields
+  bio?: string;
+  website?: string;
+  linkedin?: string;
+  github?: string;
+  twitter?: string;
+  skills?: string;
+  experience?: string;
+  education?: string;
+  // Preferences
+  notifications?: any;
+  privacy?: any;
+  theme?: string;
+  accent?: string;
 }
 
 export interface RegisterData {

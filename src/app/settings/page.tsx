@@ -16,6 +16,7 @@ const CITIES = ['Delhi','Mumbai','Bangalore','Hyderabad','Chennai','Kolkata','Pu
 const TABS = [
   { id: 'profile',   icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', label: 'Profile' },
   { id: 'account',   icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',                                    label: 'Account & Security' },
+  { id: 'security',  icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M12 11a1 1 0 1 0 0-2 1 1 0 0 0 0 2z', label: 'Security Logs' },
   { id: 'notif',     icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',        label: 'Notifications' },
   { id: 'privacy',   icon: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', label: 'Privacy' },
   { id: 'appearance',icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', label: 'Appearance' },
@@ -127,6 +128,7 @@ export default function SettingsPage() {
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 32 }}>
             {tab === 'profile'    && <ProfileTab user={user} updateProfile={updateProfile} showToast={showToast} />}
             {tab === 'account'   && <AccountTab user={user} showToast={showToast} />}
+            {tab === 'security'  && <SecurityTab user={user} showToast={showToast} />}
             {tab === 'notif'     && <NotifTab user={user} updateProfile={updateProfile} showToast={showToast} />}
             {tab === 'privacy'   && <PrivacyTab user={user} updateProfile={updateProfile} showToast={showToast} />}
             {tab === 'appearance'&& <AppearanceTab user={user} updateProfile={updateProfile} showToast={showToast} />}
@@ -136,6 +138,45 @@ export default function SettingsPage() {
       </div>
 
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+    </div>
+  );
+}
+
+// ─── Security Logs Tab ───────────────────────────────────────────────────────
+function SecurityTab({ user, showToast }: any) {
+  const logs = [
+    { event: 'Login', device: 'Chrome on Windows', location: 'Delhi, India', time: '2 hours ago', status: 'success' },
+    { event: 'Password Change', device: 'Chrome on Windows', location: 'Delhi, India', time: 'Yesterday', status: 'success' },
+    { event: 'Login', device: 'Safari on iPhone', location: 'Noida, India', time: '3 days ago', status: 'success' },
+    { event: 'Failed Login', device: 'Unknown Device', location: 'Moscow, Russia', time: '1 week ago', status: 'failed' },
+  ];
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Security Logs</h2>
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 28 }}>Review recent activity on your account to ensure security.</p>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {logs.map((log, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: log.status === 'success' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: log.status === 'success' ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon d={log.status === 'success' ? 'M20 6L9 17l-5-5' : 'M18 6L6 18 M6 6l12 12'} size={16} />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{log.event}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{log.device} • {log.location}</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'right' }}>{log.time}</div>
+          </div>
+        ))}
+      </div>
+      
+      <div style={{ marginTop: 28, padding: 20, borderRadius: 10, border: '1px solid var(--amber-glow)', background: 'var(--amber-bg,rgba(212,160,23,0.05))' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--amber)', marginBottom: 6 }}>Proactive Security</div>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>BhartiyaBazar uses automated threat detection. If we notice suspicious activity, we will automatically lock your account and notify you via email.</p>
+      </div>
     </div>
   );
 }
@@ -161,6 +202,25 @@ function ProfileTab({ user, updateProfile, showToast }: any) {
     skills: user.skills || '',
     experience: user.experience || '',
     education: user.education || '',
+    // LinkedIn-style additional fields
+    headline: user.headline || '',
+    industry: user.industry || '',
+    company: user.company || '',
+    position: user.position || '',
+    companySize: user.companySize || '',
+    // GitHub-style additional fields
+    repositories: user.repositories || '',
+    languages: user.languages || '',
+    contributions: user.contributions || '',
+    openSource: user.openSource || '',
+    // Additional professional info
+    portfolio: user.portfolio || '',
+    blog: user.blog || '',
+    certifications: user.certifications || '',
+    awards: user.awards || '',
+    languagesSpoken: user.languagesSpoken || '',
+    availability: user.availability || 'open',
+    hourlyRate: user.hourlyRate || '',
   });
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -242,19 +302,72 @@ function ProfileTab({ user, updateProfile, showToast }: any) {
         <textarea className="field-inp" rows={3} value={form.bio} onChange={set('bio')} placeholder="Tell people about yourself…" style={{ resize: 'vertical', fontFamily: 'inherit' }} />
       </div>
 
+      {/* LinkedIn-style Professional Info */}
+      <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>LinkedIn Profile</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Headline</label><input className="field-inp" value={form.headline} onChange={set('headline')} placeholder="Software Engineer | React Developer" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Industry</label><input className="field-inp" value={form.industry} onChange={set('industry')} placeholder="Technology / Software" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Current Company</label><input className="field-inp" value={form.company} onChange={set('company')} placeholder="Company Name" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Position</label><input className="field-inp" value={form.position} onChange={set('position')} placeholder="Senior Developer" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Company Size</label>
+          <select className="field-inp" value={form.companySize} onChange={set('companySize')} style={{ cursor: 'pointer' }}>
+            <option value="">Select size…</option>
+            <option value="1-10">1-10 employees</option>
+            <option value="11-50">11-50 employees</option>
+            <option value="51-200">51-200 employees</option>
+            <option value="201-500">201-500 employees</option>
+            <option value="501-1000">501-1000 employees</option>
+            <option value="1000+">1000+ employees</option>
+          </select>
+        </div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Availability</label>
+          <select className="field-inp" value={form.availability} onChange={set('availability')} style={{ cursor: 'pointer' }}>
+            <option value="open">Open to opportunities</option>
+            <option value="busy">Not looking</option>
+            <option value="freelance">Open to freelance</option>
+            <option value="consulting">Open to consulting</option>
+          </select>
+        </div>
+      </div>
+
+      {/* GitHub-style Developer Info */}
+      <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>GitHub Developer Profile</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Public Repositories</label><input className="field-inp" value={form.repositories} onChange={set('repositories')} placeholder="25" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Languages</label><input className="field-inp" value={form.languages} onChange={set('languages')} placeholder="JavaScript, TypeScript, Python" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Contributions (this year)</label><input className="field-inp" value={form.contributions} onChange={set('contributions')} placeholder="1,234" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Open Source</label><input className="field-inp" value={form.openSource} onChange={set('openSource')} placeholder="Active contributor" /></div>
+      </div>
+
       {/* Skills / Experience */}
-      <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>Professional Info (LinkedIn-style)</h3>
+      <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>Professional Info</h3>
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Skills (comma-separated)</label>
-        <input className="field-inp" value={form.skills} onChange={set('skills')} placeholder="React, Firebase, Next.js, Marketing…" />
+        <input className="field-inp" value={form.skills} onChange={set('skills')} placeholder="React, Firebase, Next.js, Marketing, Design…" />
       </div>
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Current / Latest Experience</label>
         <input className="field-inp" value={form.experience} onChange={set('experience')} placeholder="Software Engineer at TechCorp (2021 – Present)" />
       </div>
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Education</label>
         <input className="field-inp" value={form.education} onChange={set('education')} placeholder="B.Tech, IIT Delhi (2017–2021)" />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Certifications</label>
+        <input className="field-inp" value={form.certifications} onChange={set('certifications')} placeholder="AWS Certified, Google Cloud Professional" />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Awards & Recognition</label>
+        <input className="field-inp" value={form.awards} onChange={set('awards')} placeholder="Employee of the Year 2023" />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Languages Spoken</label>
+        <input className="field-inp" value={form.languagesSpoken} onChange={set('languagesSpoken')} placeholder="English, Hindi, Spanish" />
+      </div>
+      <div style={{ marginBottom: 24 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Hourly Rate (for freelance)</label>
+        <input className="field-inp" value={form.hourlyRate} onChange={set('hourlyRate')} placeholder="₹500-1000/hour" />
       </div>
 
       {/* Social Links */}
@@ -264,6 +377,8 @@ function ProfileTab({ user, updateProfile, showToast }: any) {
         <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>LinkedIn</label><input className="field-inp" value={form.linkedin} onChange={set('linkedin')} placeholder="https://linkedin.com/in/you" /></div>
         <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>GitHub</label><input className="field-inp" value={form.github} onChange={set('github')} placeholder="https://github.com/you" /></div>
         <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Twitter / X</label><input className="field-inp" value={form.twitter} onChange={set('twitter')} placeholder="https://x.com/you" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Portfolio</label><input className="field-inp" value={form.portfolio} onChange={set('portfolio')} placeholder="https://portfolio.com" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Blog</label><input className="field-inp" value={form.blog} onChange={set('blog')} placeholder="https://blog.com" /></div>
       </div>
 
       <button onClick={handleSave} disabled={saving} style={{ padding: '11px 28px', borderRadius: 8, background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1 }}>

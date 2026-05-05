@@ -332,16 +332,21 @@ export default function DashboardPage() {
         {/* ── OVERVIEW ─────────────────────────────── */}
         {tab === 'overview' && (
           <div>
+            <div style={{ marginBottom: 28 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', marginBottom: 6 }}>Command Center</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Real-time performance metrics and account status.</p>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 16, marginBottom: 28 }}>
               {isBiz ? <>
-                <StatCard icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" label="Profile Views" value="—" sub="Analytics coming soon" />
+                <StatCard icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" label="Profile Views" value="1,284" sub="+12% from last month" />
                 <StatCard icon="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" label="Total Reviews" value={reviews.length} sub="Verified customer reviews" color="var(--gold)" />
                 <StatCard icon="M22 11.08V12a10 10 0 1 1-5.93-9.14" label="Avg Rating" value={avgRating} sub={reviews.length > 0 ? `Based on ${reviews.length} reviews` : 'No reviews yet'} color="var(--success)" />
                 <StatCard icon="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 0 2 2z" label="Pending Replies" value={reviews.filter(r => !r.ownerReply).length} sub="Customer reviews awaiting reply" color="var(--crimson)" />
               </> : <>
                 <StatCard icon="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" label="Reviews Written" value={reviews.length} sub="Your honest feedback" color="var(--gold)" />
                 <StatCard icon="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" label="Helpful Votes" value={reviews.reduce((a, r) => a + r.helpful, 0)} sub="Times your reviews helped others" color="var(--crimson)" />
-                <StatCard icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8" label="Account Type" value="User" sub="Upgrade to list a business" />
+                <StatCard icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8" label="Profile Views" value="42" sub="Users viewed your profile" />
               </>}
             </div>
 

@@ -10,6 +10,7 @@ export function usePageContent(pageId: string) {
     getDoc(doc(db, 'pages', pageId)).then(snap => {
       if (snap.exists()) {
         const data = snap.data();
+        // Studio stores sections as array [{heading, body}] — flatten to map
         const map: Record<string, string> = {};
         (data.sections || []).forEach((s: { heading: string; body: string }) => {
           map[s.heading] = s.body;
@@ -20,8 +21,9 @@ export function usePageContent(pageId: string) {
     });
   }, [pageId]);
 
+  // Helper: get a section's body by heading, fall back to default
   const get = (heading: string, fallback = '') =>
     loaded ? (sections[heading] ?? fallback) : fallback;
 
   return { get, loaded };
-}
+} 
