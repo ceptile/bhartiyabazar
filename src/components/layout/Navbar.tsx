@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { href: '/',         label: 'Home' },
   { href: '/listings', label: 'Listings' },
   { href: '/pricing',  label: 'Pricing' },
+  { href: '/jobs',     label: 'Jobs' },
   { href: '/about',    label: 'About' },
   { href: '/contact',  label: 'Contact' },
 ];
@@ -47,6 +48,7 @@ export default function Navbar() {
     { href: '/dashboard', label: 'Dashboard', icon: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z' },
     { href: '/profile',   label: 'My Profile', icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
     { href: '/settings',  label: 'Settings',   icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' },
+    { href: '/jobs',      label: 'Jobs Hub',    icon: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z' },
   ];
 
   return (

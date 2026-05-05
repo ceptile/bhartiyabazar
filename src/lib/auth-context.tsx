@@ -30,6 +30,7 @@ export interface AuthUser {
   businessSlug?: string;
   businessCategory?: string;
   verified?: boolean;
+  photoURL?: string;
   joinedAt: string;
 }
 
