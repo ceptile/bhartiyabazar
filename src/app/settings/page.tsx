@@ -161,6 +161,12 @@ function ProfileTab({ user, updateProfile, showToast }: any) {
     skills: user.skills || '',
     experience: user.experience || '',
     education: user.education || '',
+    mapLink: user.mapLink || '',
+    latitude: user.latitude || '',
+    longitude: user.longitude || '',
+    coverImage: user.coverImage || '',
+    introVideo: user.introVideo || '',
+    gallery: Array.isArray(user.gallery) ? user.gallery.join(', ') : (user.gallery || ''),
   });
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -187,7 +193,7 @@ function ProfileTab({ user, updateProfile, showToast }: any) {
   const handleSave = async () => {
     if (!form.name.trim()) { showToast('Name cannot be empty', 'error'); return; }
     setSaving(true);
-    await updateProfile(form as any);
+    await updateProfile({ ...form, gallery: form.gallery.split(',').map((g: string) => g.trim()).filter(Boolean) } as any);
     setSaving(false);
     showToast('Profile saved successfully!');
   };
@@ -240,6 +246,20 @@ function ProfileTab({ user, updateProfile, showToast }: any) {
       <div style={{ marginBottom: 24 }}>
         <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Bio / About</label>
         <textarea className="field-inp" rows={3} value={form.bio} onChange={set('bio')} placeholder="Tell people about yourself…" style={{ resize: 'vertical', fontFamily: 'inherit' }} />
+      </div>
+      <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>Location & Business Media</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Google Maps Link</label><input className="field-inp" value={form.mapLink} onChange={set('mapLink')} placeholder="https://maps.google.com/..." /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Latitude</label><input className="field-inp" value={form.latitude} onChange={set('latitude')} placeholder="28.6139" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Longitude</label><input className="field-inp" value={form.longitude} onChange={set('longitude')} placeholder="77.2090" /></div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Cover Image URL</label><input className="field-inp" value={form.coverImage} onChange={set('coverImage')} placeholder="https://.../cover.jpg" /></div>
+        <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Intro Video URL</label><input className="field-inp" value={form.introVideo} onChange={set('introVideo')} placeholder="https://youtube.com/..." /></div>
+      </div>
+      <div style={{ marginBottom: 24 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Gallery Image URLs (comma separated)</label>
+        <input className="field-inp" value={form.gallery} onChange={set('gallery')} placeholder="https://.../1.jpg, https://.../2.jpg" />
       </div>
 
       {/* Skills / Experience */}
