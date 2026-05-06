@@ -13,7 +13,6 @@ import {
   applyTheme,
   resetBusinessPageToDefault,
 } from '@/lib/business-page';
-import { getBusinessBySlug } from '@/lib/business';
 
 function Icon({ d, size = 18 }: { d: string; size?: number }) {
   return (
