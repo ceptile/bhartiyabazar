@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export default function FeaturedBusinesses() {
   return (
-    <section className="section-sm">
+    <section className="section-sm" style={{ background: 'var(--color-off-white)' }}>
       <div className="container">
         <div className="section-header">
           <p className="section-label">Featured</p>
@@ -14,7 +14,7 @@ export default function FeaturedBusinesses() {
           <Store className="empty-state-icon" />
           <h3>No featured businesses yet</h3>
           <p>List your business to get featured on the platform.</p>
-          <Link href="/register" className="btn btn-primary">List Your Business</Link>
+          <Link href="/list-business" className="btn btn-accent">List Your Business</Link>
         </div>
       </div>
     </section>

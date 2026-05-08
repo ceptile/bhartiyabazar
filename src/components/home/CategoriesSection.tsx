@@ -16,7 +16,7 @@ export default function CategoriesSection() {
   }, []);
 
   return (
-    <section ref={ref} className="section" style={{ background: 'var(--bg-2)' }}>
+    <section ref={ref} className="section" style={{ background: 'var(--color-off-white)' }}>
       <div className="container">
         <div style={{ textAlign: 'center', marginBottom: 'clamp(36px,6vw,60px)' }}>
           <span className="section-label">Browse by Category</span>
@@ -34,17 +34,17 @@ export default function CategoriesSection() {
           {categories.map((cat: Category, i: number) => (
             <Link
               key={cat.id}
-              href={`/search?category=${cat.slug}`}
+              href={`/listings?category=${cat.slug}`}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 padding: '28px 14px 22px',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--r-lg)',
+                background: 'var(--color-pure-white)',
+                border: '1px solid var(--color-muted-border)',
+                borderRadius: 'var(--radius-very-rounded)',
                 textDecoration: 'none',
-                transition: 'all 0.28s cubic-bezier(0.16,1,0.3,1)',
+                transition: 'all var(--transition)',
                 opacity: visible ? 1 : 0,
                 transform: visible ? 'translateY(0)' : 'translateY(20px)',
                 transitionDelay: `${Math.min(i * 35, 400)}ms`,
@@ -53,19 +53,19 @@ export default function CategoriesSection() {
               onMouseEnter={e => {
                 const el = e.currentTarget as HTMLElement;
                 el.style.transform = 'translateY(-5px)';
-                el.style.boxShadow = 'var(--shadow-md)';
+                el.style.boxShadow = 'var(--shadow-medium)';
                 el.style.borderColor = cat.color;
               }}
               onMouseLeave={e => {
                 const el = e.currentTarget as HTMLElement;
                 el.style.transform = visible ? 'translateY(0)' : 'translateY(20px)';
                 el.style.boxShadow = 'none';
-                el.style.borderColor = 'var(--border)';
+                el.style.borderColor = 'var(--color-muted-border)';
               }}
             >
               <div style={{
                 width: 52, height: 52,
-                borderRadius: 'var(--r-lg)',
+                borderRadius: 'var(--radius-very-rounded)',
                 background: cat.bg,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: 12,
@@ -77,7 +77,7 @@ export default function CategoriesSection() {
                 </svg>
               </div>
 
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', lineHeight: 1.35, fontFamily: 'var(--font-body)' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-deep-charcoal)', textAlign: 'center', lineHeight: 1.35, fontFamily: 'var(--font-body)' }}>
                 {cat.name}
               </span>
             </Link>

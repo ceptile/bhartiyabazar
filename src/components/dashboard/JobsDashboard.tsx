@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { collection, addDoc, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { createJob, getUserJobs, closeJob, featureJob, markJobUrgent } from '@/lib/jobs-enhanced';
 import Link from 'next/link';
@@ -59,6 +60,7 @@ export default function JobsDashboard() {
   }, [user]);
 
   const loadJobs = async () => {
+    if (!user) return;
     try {
       const userJobs = await getUserJobs(user.id);
       setJobs(userJobs);
@@ -72,6 +74,7 @@ export default function JobsDashboard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    if (!user) return;
 
     try {
       const jobData = {
@@ -101,13 +104,14 @@ export default function JobsDashboard() {
         userProfile: form.type === 'wanted' ? user.id : undefined,
         postedBy: user.id,
         postedByRole: user.role || 'user',
-        businessSlug: user.businessSlug,
-        businessName: user.businessName,
+        businessSlug: user.businessSlug || '',
+        businessName: user.businessName || '',
         contactEmail: form.contactEmail || user.email,
         contactPhone: form.contactPhone || user.phone,
         urgent: form.urgent,
         featured: form.featured,
-        expiresAt: new Date(Date.now() + parseInt(form.expiresDays) * 24 * 60 * 60 * 1000),
+        status: 'active' as const,
+        expiresAt: Timestamp.fromDate(new Date(Date.now() + parseInt(form.expiresDays) * 24 * 60 * 60 * 1000)),
       };
 
       await createJob(jobData);
@@ -153,7 +157,7 @@ export default function JobsDashboard() {
   const handleToggleStatus = async (jobId: string, currentStatus: string) => {
     try {
       const newStatus = currentStatus === 'active' ? 'closed' : 'active';
-      await closeJob(jobId, newStatus === 'closed' ? 'closed' : 'active');
+      await closeJob(jobId, currentStatus === 'active' ? 'closed' : 'active');
       await loadJobs();
     } catch (error) {
       console.error('Error toggling job status:', error);

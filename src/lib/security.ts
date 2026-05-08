@@ -7,7 +7,7 @@ import {
   getMultiFactorResolver,
   PhoneMultiFactorGenerator,
 } from 'firebase/auth';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, addDoc, updateDoc, deleteDoc, writeBatch, collection, query, where, orderBy, limit, serverTimestamp, getDocs, getDoc } from 'firebase/firestore';
 
 // Security Configuration
 export const SECURITY_CONFIG = {
@@ -141,7 +141,7 @@ export async function disableTwoFactorAuth(): Promise<{ success: boolean; error?
       return { success: false, error: 'No authenticated user' };
     }
 
-    const enrolledFactors = await multiFactor(user).getEnrolledFactors();
+    const enrolledFactors = multiFactor(user).enrolledFactors;
 
     if (enrolledFactors.length === 0) {
       return { success: false, error: 'No 2FA factors enrolled' };
@@ -204,14 +204,14 @@ export async function logSecurityEvent(
 // Get security logs for user
 export async function getUserSecurityLogs(
   userId: string,
-  limit: number = 20
+  limitCount: number = 20
 ): Promise<any[]> {
   try {
     const q = query(
       collection(db, 'security_logs'),
       where('userId', '==', userId),
       orderBy('timestamp', 'desc'),
-      limit(limit)
+      limit(limitCount)
     );
 
     const snapshot = await getDocs(q);

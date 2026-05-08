@@ -79,19 +79,19 @@ export default function HeroSection() {
 
   // Live search with debounce
   const doSearch = useCallback(async (q: string, cityFilter: string) => {
-    if (!q.trim()) { 
-      setResults([]); 
-      setCatSuggestions(searchCategories(q, 6)); 
+    if (!q.trim()) {
+      setResults([]);
+      setCatSuggestions(searchCategories(q, 6));
       setAiSummary('');
-      return; 
+      return;
     }
-    
+
     setSearching(true);
     const q2 = q.toLowerCase();
-    
+
     // Natural language detection (if query > 3 words, try AI)
     const isNatural = q.split(' ').length >= 3;
-    
+
     if (isNatural) {
       setIsAiMode(true);
       try {
@@ -157,18 +157,19 @@ export default function HeroSection() {
   const groupCats = catGroup ? ALL_CATEGORIES.filter(c => c.group === catGroup) : [];
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--color-off-white)' }}>
 
       {/* ── Hero ── */}
       <section style={{ padding: 'clamp(80px,10vw,140px) 16px clamp(48px,6vw,80px)', textAlign: 'center' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', border: '1px solid var(--amber-glow)', color: 'var(--amber)', fontSize: 12, fontWeight: 600, marginBottom: 20 }}>
-            🇮🇳 India's Trusted Business Directory
+          <div className="badge badge-accent" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 20 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            India&apos;s Trusted Business Directory
           </div>
-          <h1 style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 'clamp(2.2rem,5vw,4rem)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.15, marginBottom: 14, letterSpacing: '-0.02em' }}>
+          <h1 className="text-display" style={{ marginBottom: 14 }}>
             Find Any Business,<br/>Anywhere in India
           </h1>
-          <p style={{ fontSize: 'clamp(1rem,1.5vw,1.2rem)', color: 'var(--text-secondary)', marginBottom: 32, maxWidth: 500, margin: '0 auto 32px' }}>
+          <p style={{ fontSize: 'clamp(1rem,1.5vw,1.2rem)', color: 'var(--color-medium-gray)', marginBottom: 32, maxWidth: 500, margin: '0 auto 32px' }}>
             Search restaurants, doctors, shops, services & more — near you or anywhere.
           </p>
 
@@ -177,27 +178,24 @@ export default function HeroSection() {
 
             {/* City chip */}
             <div ref={cityRef} style={{ position: 'relative' }}>
-              <button type="button" onClick={() => setShowCityPicker(p => !p)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 14px', borderRadius: 'var(--r-lg)', border: `1px solid ${showCityPicker ? 'var(--amber)' : 'var(--border-hover)'}`, background: 'var(--surface)', color: city ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', height: 50 }}>
+              <button type="button" onClick={() => setShowCityPicker(p => !p)} className="btn btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, height: 50, whiteSpace: 'nowrap' }}>
                 {locLoading
-                  ? <div style={{ width: 13, height: 13, border: '2px solid var(--amber)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                  ? <div className="spinner" />
                   : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                 }
                 {cityLabel}
               </button>
               {showCityPicker && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 300, padding: 12, minWidth: 260 }}>
-                  <button type="button" onClick={detectCity}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '9px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--amber-glow)', background: 'var(--amber-subtle)', color: 'var(--amber)', fontWeight: 600, fontSize: 13, cursor: 'pointer', marginBottom: 8 }}>
-                    <LocIcon /> 📡 Detect My Location
+                <div className="nav-dropdown" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 300, minWidth: 260 }}>
+                  <button type="button" onClick={detectCity} className="btn btn-accent btn-sm" style={{ width: '100%', marginBottom: 8 }}>
+                    <LocIcon /> Detect My Location
                   </button>
                   <input value={cityInput} onChange={e => { setCityInput(e.target.value); setCity(e.target.value); setCityLabel(e.target.value || 'All Cities'); }}
-                    placeholder="Type city…"
-                    autoFocus
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+                    placeholder="Type city…" autoFocus className="input"
                   />
                   <button type="button" onClick={() => { setCity(''); setCityLabel('All Cities'); setCityInput(''); setShowCityPicker(false); }}
-                    style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear → All India</button>
+                    style={{ marginTop: 6, fontSize: 12, color: 'var(--color-light-gray)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear → All India</button>
                 </div>
               )}
             </div>
@@ -205,34 +203,35 @@ export default function HeroSection() {
             {/* Main search box */}
             <div ref={searchRef} style={{ position: 'relative', flex: 1, minWidth: 260 }}>
               <form onSubmit={handleSearch}>
-                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '2px solid var(--border-hover)', borderRadius: 'var(--r-lg)', overflow: 'hidden', height: 50, boxShadow: 'var(--shadow-sm)' }}
-                  onFocus={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--amber)'; setShowResults(true); }}
-                  onBlur={(e) => { if (!searchRef.current?.contains(e.relatedTarget as Node)) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-hover)'; }}
+                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-pure-white)', border: '2px solid var(--color-muted-border)', borderRadius: 'var(--radius-very-rounded)', overflow: 'hidden', height: 50, boxShadow: 'var(--shadow-subtle)' }}
+                  onFocus={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-warm-terracotta)'; setShowResults(true); }}
+                  onBlur={(e) => { if (!searchRef.current?.contains(e.relatedTarget as Node)) (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-muted-border)'; }}
                 >
-                  <div style={{ padding: '0 14px', color: 'var(--text-muted)', display: 'flex' }}><SearchIco /></div>
+                  <div style={{ padding: '0 14px', color: 'var(--color-light-gray)', display: 'flex' }}><SearchIco /></div>
                   <input
                     value={query}
                     onChange={e => { setQuery(e.target.value); setShowResults(true); setShowCategories(false); }}
                     onFocus={() => setShowResults(true)}
                     placeholder="Search businesses, categories, services…"
-                    style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 15, color: 'var(--text-primary)', fontFamily: 'inherit' }}
+                    style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 15, color: 'var(--color-deep-charcoal)', fontFamily: 'inherit' }}
                   />
                   {query && (
-                    <button type="button" onClick={() => { setQuery(''); setResults([]); }} style={{ padding: '0 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}><XIcon /></button>
+                    <button type="button" onClick={() => { setQuery(''); setResults([]); }} style={{ padding: '0 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-light-gray)', display: 'flex' }}><XIcon /></button>
                   )}
-                  <button type="submit" style={{ padding: '0 18px', background: 'var(--amber)', border: 'none', cursor: 'pointer', color: '#fff', fontWeight: 700, fontSize: 14, height: '100%', whiteSpace: 'nowrap' }}>Search</button>
+                  <button type="submit" className="btn btn-accent" style={{ height: '100%', borderRadius: 0, whiteSpace: 'nowrap' }}>Search</button>
                 </div>
               </form>
 
               {/* Live results dropdown */}
               {showResults && (query.trim() || catSuggestions.length > 0) && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 200, overflow: 'hidden', maxHeight: 420, overflowY: 'auto' }}>
+                <div className="nav-dropdown" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 200, overflow: 'hidden', maxHeight: 420, overflowY: 'auto' }}>
 
                   {/* AI Summary */}
                   {isAiMode && aiSummary && (
-                    <div style={{ padding: '12px 14px', background: 'var(--amber-subtle)', borderBottom: '1px solid var(--amber-glow)', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: 11, fontWeight: 700, color: 'var(--amber)', textTransform: 'uppercase' }}>
-                        <span style={{ fontSize: 14 }}>✨</span> AI Summary
+                    <div style={{ padding: '12px 14px', background: 'rgba(217,119,87,0.05)', borderBottom: '1px solid rgba(217,119,87,0.2)', fontSize: 13, color: 'var(--color-deep-charcoal)', lineHeight: 1.5 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: 11, fontWeight: 700, color: 'var(--color-warm-terracotta)', textTransform: 'uppercase' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                        AI Summary
                       </div>
                       {aiSummary}
                     </div>
@@ -240,19 +239,15 @@ export default function HeroSection() {
 
                   {/* Category suggestions */}
                   {catSuggestions.length > 0 && (
-                    <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                      <div style={{ padding: '4px 14px', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Categories</div>
+                    <div style={{ padding: '8px 0', borderBottom: '1px solid var(--color-muted-border)' }}>
+                      <div style={{ padding: '4px 14px', fontSize: 11, fontWeight: 600, color: 'var(--color-light-gray)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Categories</div>
                       {catSuggestions.map(cat => (
                         <button key={cat.id}
                           onClick={() => { router.push(`/listings?category=${encodeURIComponent(cat.name)}${city ? `&city=${encodeURIComponent(city)}` : ''}`); setShowResults(false); }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                        >
-                          <span style={{ fontSize: 18 }}>🏷️</span>
+                          className="nav-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
                           <span>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{cat.name}</span>
-                            <span style={{ fontSize: 11, color: 'var(--text-faint)', marginLeft: 8 }}>{cat.group}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-deep-charcoal)' }}>{cat.name}</span>
+                            <span style={{ fontSize: 11, color: 'var(--color-light-gray)', marginLeft: 8 }}>{cat.group}</span>
                           </span>
                         </button>
                       ))}
@@ -261,23 +256,21 @@ export default function HeroSection() {
 
                   {/* Business results */}
                   {searching ? (
-                    <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Searching…</div>
+                    <div style={{ padding: 16, textAlign: 'center', color: 'var(--color-light-gray)', fontSize: 13 }}>Searching…</div>
                   ) : results.length > 0 ? (
                     <div>
-                      <div style={{ padding: '8px 14px 4px', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Businesses</div>
+                      <div style={{ padding: '8px 14px 4px', fontSize: 11, fontWeight: 600, color: 'var(--color-light-gray)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Businesses</div>
                       {results.map(biz => (
                         <Link key={biz.slug} href={`/business/${biz.slug}`} onClick={() => setShowResults(false)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', textDecoration: 'none', borderTop: '1px solid var(--border)' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                        >
-                          <div style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🏪</div>
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', textDecoration: 'none', borderTop: '1px solid var(--color-muted-border)' }}
+                          className="nav-dropdown-item">
+                          <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-rounded)', background: 'rgba(217,119,87,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🏪</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-deep-charcoal)', display: 'flex', alignItems: 'center', gap: 6 }}>
                               {biz.name}
-                              {biz.verified && <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 'var(--r-full)', background: '#d1fae5', color: '#065f46', fontWeight: 700 }}>✓</span>}
+                              {biz.verified && <span className="badge badge-success" style={{ fontSize: 10 }}>Verified</span>}
                             </div>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ fontSize: 11, color: 'var(--color-light-gray)', display: 'flex', alignItems: 'center', gap: 8 }}>
                               <span>{biz.category}</span>
                               <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><MapPin />{biz.area ? `${biz.area}, ${biz.city}` : biz.city}</span>
                             </div>
@@ -286,15 +279,15 @@ export default function HeroSection() {
                       ))}
                       <Link href={`/listings?q=${encodeURIComponent(query)}${city ? `&city=${encodeURIComponent(city)}` : ''}`}
                         onClick={() => setShowResults(false)}
-                        style={{ display: 'block', padding: '10px 14px', textAlign: 'center', fontSize: 13, color: 'var(--amber)', fontWeight: 600, textDecoration: 'none', borderTop: '1px solid var(--border)', background: 'var(--surface-2)' }}>
-                        See all results for "{query}" →
+                        style={{ display: 'block', padding: '10px 14px', textAlign: 'center', fontSize: 13, color: 'var(--color-warm-terracotta)', fontWeight: 600, textDecoration: 'none', borderTop: '1px solid var(--color-muted-border)', background: 'var(--color-off-white)' }}>
+                        See all results for &quot;{query}&quot; →
                       </Link>
                     </div>
                   ) : query.trim() ? (
                     <div style={{ padding: '16px 14px', textAlign: 'center' }}>
-                      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>No results for "{query}"</span>
+                      <span style={{ fontSize: 13, color: 'var(--color-light-gray)' }}>No results for &quot;{query}&quot;</span>
                       <br />
-                      <Link href={`/listings?q=${encodeURIComponent(query)}`} style={{ fontSize: 12, color: 'var(--amber)', fontWeight: 600, textDecoration: 'none' }}>Browse all listings →</Link>
+                      <Link href={`/listings?q=${encodeURIComponent(query)}`} style={{ fontSize: 12, color: 'var(--color-warm-terracotta)', fontWeight: 600, textDecoration: 'none' }}>Browse all listings →</Link>
                     </div>
                   ) : null}
                 </div>
@@ -305,39 +298,30 @@ export default function HeroSection() {
           {/* Popular chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
             {POPULAR.map(p => (
-              <button key={p} onClick={() => { setQuery(p); setShowResults(true); }}
-                style={{ padding: '5px 14px', borderRadius: 'var(--r-full)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--amber-subtle)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}
-              >{p}</button>
+              <button key={p} onClick={() => { setQuery(p); setShowResults(true); }} className="chip">{p}</button>
             ))}
-            <button onClick={() => setShowCategories(p => !p)}
-              style={{ padding: '5px 14px', borderRadius: 'var(--r-full)', border: `1px solid ${showCategories ? 'var(--amber)' : 'var(--border)'}`, background: showCategories ? 'var(--amber-subtle)' : 'var(--surface)', color: showCategories ? 'var(--amber)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>
+            <button onClick={() => setShowCategories(p => !p)} className={`chip ${showCategories ? 'active' : ''}`}>
               All Categories ▾
             </button>
           </div>
 
           {/* Category browser */}
           {showCategories && (
-            <div style={{ maxWidth: 680, margin: '0 auto 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16, boxShadow: 'var(--shadow-md)', textAlign: 'left' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Groups</div>
+            <div style={{ maxWidth: 680, margin: '0 auto 12px', background: 'var(--color-pure-white)', border: '1px solid var(--color-muted-border)', borderRadius: 'var(--radius-very-rounded)', padding: 16, boxShadow: 'var(--shadow-medium)', textAlign: 'left' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-light-gray)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Groups</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                 {CATEGORY_GROUPS.map(g => (
-                  <button key={g} onClick={() => setCatGroup(catGroup === g ? '' : g)}
-                    style={{ padding: '5px 12px', borderRadius: 'var(--r-full)', fontSize: 12, fontWeight: 500, border: `1px solid ${catGroup === g ? 'var(--amber)' : 'var(--border)'}`, background: catGroup === g ? 'var(--amber-subtle)' : 'var(--bg)', color: catGroup === g ? 'var(--amber)' : 'var(--text-secondary)', cursor: 'pointer' }}>{g}</button>
+                  <button key={g} onClick={() => setCatGroup(catGroup === g ? '' : g)} className={`chip ${catGroup === g ? 'active' : ''}`}>{g}</button>
                 ))}
               </div>
               {catGroup && (
                 <>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{catGroup}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-light-gray)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{catGroup}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {groupCats.map(cat => (
                       <button key={cat.id}
                         onClick={() => { router.push(`/listings?category=${encodeURIComponent(cat.name)}${city ? `&city=${encodeURIComponent(city)}` : ''}`); setShowCategories(false); }}
-                        style={{ padding: '4px 11px', borderRadius: 'var(--r-full)', fontSize: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--amber-subtle)'; e.currentTarget.style.borderColor = 'var(--amber)'; e.currentTarget.style.color = 'var(--amber)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                      >{cat.name}</button>
+                        className="chip">{cat.name}</button>
                     ))}
                   </div>
                 </>
@@ -351,9 +335,9 @@ export default function HeroSection() {
       <section style={{ padding: '0 16px 60px' }}>
         <div style={{ maxWidth: 720, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
           {[['10,000+', 'Businesses Listed'], ['500+', 'Cities Covered'], ['50+', 'Categories']].map(([n, l]) => (
-            <div key={l} style={{ textAlign: 'center', padding: '20px 12px', background: 'var(--surface)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 'clamp(1.4rem,2.5vw,2rem)', fontWeight: 800, color: 'var(--amber)', fontFamily: "'EB Garamond',serif" }}>{n}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{l}</div>
+            <div key={l} className="card" style={{ textAlign: 'center', padding: '20px 12px' }}>
+              <div style={{ fontSize: 'clamp(1.4rem,2.5vw,2rem)', fontWeight: 700, color: 'var(--color-warm-terracotta)', fontFamily: 'var(--font-display)' }}>{n}</div>
+              <div style={{ fontSize: 12, color: 'var(--color-light-gray)', marginTop: 4 }}>{l}</div>
             </div>
           ))}
         </div>
@@ -364,22 +348,18 @@ export default function HeroSection() {
         <section style={{ padding: '0 16px 80px' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20 }}>
-              <h2 style={{ fontFamily: "'EB Garamond',serif", fontSize: 'clamp(1.3rem,2vw,1.7rem)', fontWeight: 700, color: 'var(--text-primary)' }}>Recently Listed</h2>
-              <Link href="/listings" style={{ fontSize: 13, color: 'var(--amber)', fontWeight: 600, textDecoration: 'none' }}>View all →</Link>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.3rem,2vw,1.7rem)', fontWeight: 700, color: 'var(--color-deep-charcoal)' }}>Recently Listed</h2>
+              <Link href="/listings" style={{ fontSize: 13, color: 'var(--color-warm-terracotta)', fontWeight: 600, textDecoration: 'none' }}>View all →</Link>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 14 }}>
               {allBiz.slice(0, 8).map(biz => (
-                <Link key={biz.slug} href={`/business/${biz.slug}`}
-                  style={{ textDecoration: 'none', display: 'block', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16, boxShadow: 'var(--shadow-sm)', transition: 'all 160ms ease' }}
-                  onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                >
+                <Link key={biz.slug} href={`/business/${biz.slug}`} className="card" style={{ textDecoration: 'none', display: 'block' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>{biz.name}</h3>
-                    {biz.verified && <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 'var(--r-full)', background: '#d1fae5', color: '#065f46', fontWeight: 700, whiteSpace: 'nowrap' }}>✓</span>}
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-deep-charcoal)', lineHeight: 1.3 }}>{biz.name}</h3>
+                    {biz.verified && <span className="badge badge-success" style={{ fontSize: 9, whiteSpace: 'nowrap' }}>Verified</span>}
                   </div>
-                  <span style={{ padding: '2px 7px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', color: 'var(--amber)', fontSize: 10, fontWeight: 600 }}>{biz.category}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--text-faint)', fontSize: 11, marginTop: 8 }}>
+                  <span className="badge badge-accent" style={{ fontSize: 10 }}>{biz.category}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--color-light-gray)', fontSize: 11, marginTop: 8 }}>
                     <MapPin />{biz.area ? `${biz.area}, ${biz.city}` : biz.city}
                   </div>
                 </Link>
@@ -390,19 +370,15 @@ export default function HeroSection() {
       )}
 
       {/* ── CTA ── */}
-      <section style={{ padding: '60px 16px 100px', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
+      <section style={{ padding: '60px 16px 100px', background: 'var(--color-off-white)', borderTop: '1px solid var(--color-muted-border)' }}>
         <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: "'EB Garamond',serif", fontSize: 'clamp(1.5rem,2.5vw,2.2rem)', color: 'var(--text-primary)', marginBottom: 12 }}>Own a Business?</h2>
-          <p style={{ fontSize: 15, color: 'var(--text-muted)', marginBottom: 28 }}>List it free on BhartiyaBazar and reach customers in your city.</p>
-          <Link href="/register-business"
-            style={{ display: 'inline-block', padding: '13px 32px', borderRadius: 'var(--r-lg)', background: 'var(--amber)', color: '#fff', fontWeight: 700, fontSize: 16, textDecoration: 'none', boxShadow: '0 4px 14px rgba(0,0,0,0.12)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--amber-dark)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--amber)')}
-          >List Your Business Free →</Link>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.5rem,2.5vw,2.2rem)', color: 'var(--color-deep-charcoal)', marginBottom: 12 }}>Own a Business?</h2>
+          <p style={{ fontSize: 15, color: 'var(--color-light-gray)', marginBottom: 28 }}>List it free on BhartiyaBazar and reach customers in your city.</p>
+          <Link href="/list-business" className="btn btn-accent btn-lg">
+            List Your Business Free →
+          </Link>
         </div>
       </section>
-
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }

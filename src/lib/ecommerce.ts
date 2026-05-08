@@ -2,7 +2,7 @@ import { db } from './firebase';
 import {
   collection, addDoc, updateDoc, deleteDoc,
   doc, getDocs, getDoc, query, where, orderBy,
-  serverTimestamp, Timestamp, writeBatch,
+  serverTimestamp, Timestamp, writeBatch, limit,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from './firebase';
@@ -63,6 +63,7 @@ export interface PlatformProduct {
   rating?: number;
   reviewCount?: number;
   specifications?: Record<string, string>;
+  tags?: string[];
   inStock: boolean;
 }
 
@@ -269,13 +270,13 @@ export async function searchEcommerceProducts(query: string, filters?: {
 }
 
 // Get featured products
-export async function getFeaturedProducts(limit: number = 10): Promise<EcommerceProduct[]> {
+export async function getFeaturedProducts(limitCount: number = 10): Promise<EcommerceProduct[]> {
   const q = query(
     collection(db, COL),
     where('featured', '==', true),
     where('active', '==', true),
     orderBy('createdAt', 'desc'),
-    limit(limit)
+    limit(limitCount)
   );
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as EcommerceProduct));
@@ -383,7 +384,7 @@ export async function getRecommendedProducts(
 
       // Match categories
       if (userCategories.length > 0 && product.category) {
-        const categoryMatch = userCategories.some(cat =>
+        const categoryMatch = userCategories.some((cat: string) =>
           cat.toLowerCase().includes(product.category!.toLowerCase()) ||
           product.category!.toLowerCase().includes(cat.toLowerCase())
         );
@@ -461,6 +462,7 @@ export async function bulkImportProducts(
 
       await createEcommerceProduct({
         ...productData,
+        tags: productData.tags || [],
         businessSlug,
         businessName,
         postedBy,
@@ -489,7 +491,7 @@ export async function updateProductStock(productId: string, inStock: boolean, st
 }
 
 // Get trending products (most viewed/clicked in last 7 days)
-export async function getTrendingProducts(limit: number = 10): Promise<EcommerceProduct[]> {
+export async function getTrendingProducts(limitCount: number = 10): Promise<EcommerceProduct[]> {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -498,7 +500,7 @@ export async function getTrendingProducts(limit: number = 10): Promise<Ecommerce
     where('active', '==', true),
     where('createdAt', '>=', sevenDaysAgo),
     orderBy('views', 'desc'),
-    limit(limit)
+    limit(limitCount)
   );
 
   const snap = await getDocs(q);

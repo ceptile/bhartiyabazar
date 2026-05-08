@@ -12,6 +12,8 @@ import {
   getPredefinedThemes,
   applyTheme,
   resetBusinessPageToDefault,
+  BusinessPageSettings,
+  BusinessTheme,
 } from '@/lib/business-page';
 
 function Icon({ d, size = 18 }: { d: string; size?: number }) {
@@ -29,7 +31,7 @@ export default function BusinessPageEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('theme');
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<BusinessPageSettings | null>(null);
   const [media, setMedia] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [predefinedThemes] = useState(getPredefinedThemes());
@@ -78,7 +80,7 @@ export default function BusinessPageEditor() {
   };
 
   const handleSave = async () => {
-    if (!businessSlug) return;
+    if (!businessSlug || !settings) return;
     setSaving(true);
     try {
       await updateBusinessPageSettings(businessSlug, settings);
@@ -150,7 +152,8 @@ export default function BusinessPageEditor() {
 
   const updateSettings = (path: string, value: any) => {
     setSettings(prev => {
-      const updated = { ...prev };
+      if (!prev) return prev;
+      const updated = { ...prev } as any;
       const keys = path.split('.');
       let current = updated;
       for (let i = 0; i < keys.length - 1; i++) {
@@ -164,7 +167,7 @@ export default function BusinessPageEditor() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-off-white)' }}>
         <div className="spinner" />
       </div>
     );
@@ -172,23 +175,11 @@ export default function BusinessPageEditor() {
 
   if (!businessSlug) {
     return (
-      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-        <div style={{ textAlign: 'center', padding: 40, background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>No Business Found</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>You need to register a business first to customize your page.</p>
-          <button
-            onClick={() => router.push('/register-business')}
-            style={{
-              padding: '12px 24px',
-              borderRadius: 8,
-              background: 'var(--amber)',
-              color: '#fff',
-              border: 'none',
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: 'pointer',
-            }}
-          >
+      <div className="section-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card" style={{ textAlign: 'center', maxWidth: 400 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-h3)', fontWeight: 400, color: 'var(--color-deep-charcoal)', marginBottom: 12 }}>No Business Found</h2>
+          <p style={{ color: 'var(--color-light-gray)', marginBottom: 24 }}>You need to register a business first to customize your page.</p>
+          <button onClick={() => router.push('/list-business')} className="btn btn-accent">
             Register Business
           </button>
         </div>
@@ -197,72 +188,32 @@ export default function BusinessPageEditor() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 80, paddingBottom: 60 }}>
+    <div className="section-container" style={{ paddingTop: 100, paddingBottom: 60 }}>
       <div className="container" style={{ maxWidth: 1400 }}>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
           <div>
-            <h1 style={{ fontFamily: "'EB Garamond',serif", fontSize: 36, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Business Page Editor</h1>
-            <p style={{ fontSize: 16, color: 'var(--text-secondary)' }}>Customize your business page with themes, media, and advanced features</p>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-h2)', fontWeight: 400, color: 'var(--color-deep-charcoal)', marginBottom: 8 }}>Business Page Editor</h1>
+            <p style={{ fontSize: 'var(--text-body-lg)', color: 'var(--color-medium-gray)' }}>Customize your business page with themes, media, and advanced features</p>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
-            <button
-              onClick={handleReset}
-              style={{
-                padding: '10px 20px',
-                borderRadius: 8,
-                background: 'var(--surface-2)',
-                color: 'var(--text-secondary)',
-                border: '1px solid var(--border)',
-                fontWeight: 600,
-                fontSize: 14,
-                cursor: 'pointer',
-              }}
-            >
-              Reset to Default
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              style={{
-                padding: '10px 24px',
-                borderRadius: 8,
-                background: 'var(--amber)',
-                color: '#fff',
-                border: 'none',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.7 : 1,
-              }}
-            >
-              {saving ? 'Saving…' : 'Save Changes'}
+            <button onClick={handleReset} className="btn btn-ghost">Reset to Default</button>
+            <button onClick={handleSave} disabled={saving} className="btn btn-accent">
+              {saving ? <><span className="spinner" /> Saving…</> : 'Save Changes'}
             </button>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 24, alignItems: 'start' }}>
           {/* Sidebar */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 12px', position: 'sticky', top: 80 }}>
+          <div className="card" style={{ padding: '16px 12px', position: 'sticky', top: 100 }}>
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 14px',
-                  borderRadius: 8,
-                  border: 'none',
-                  cursor: 'pointer',
-                  marginBottom: 2,
-                  textAlign: 'left',
-                  fontSize: 13,
-                  fontWeight: activeTab === tab.id ? 600 : 400,
-                  background: activeTab === tab.id ? 'var(--amber-subtle)' : 'transparent',
-                  color: activeTab === tab.id ? 'var(--amber)' : 'var(--text-secondary)',
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 'var(--radius-rounded)', border: 'none', cursor: 'pointer', marginBottom: 2, textAlign: 'left', fontSize: 13, fontWeight: activeTab === tab.id ? 600 : 400,
+                  background: activeTab === tab.id ? 'rgba(217,119,87,0.1)' : 'transparent', color: activeTab === tab.id ? 'var(--color-warm-terracotta)' : 'var(--color-medium-gray)',
                 }}
               >
                 <Icon d={tab.icon} size={15} />
@@ -272,7 +223,7 @@ export default function BusinessPageEditor() {
           </div>
 
           {/* Content */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 32 }}>
+          <div className="card" style={{ padding: 32 }}>
             {activeTab === 'theme' && <ThemeTab settings={settings} updateSettings={updateSettings} onApplyTheme={handleThemeApply} predefinedThemes={predefinedThemes} />}
             {activeTab === 'hero' && <HeroTab settings={settings} updateSettings={updateSettings} />}
             {activeTab === 'media' && <MediaTab media={media} onUpload={handleMediaUpload} onDelete={handleMediaDelete} uploading={uploading} />}
@@ -299,7 +250,7 @@ function ThemeTab({ settings, updateSettings, onApplyTheme, predefinedThemes }: 
 
       <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>Predefined Themes</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
-        {predefinedThemes.map(theme => (
+        {predefinedThemes.map((theme: BusinessTheme) => (
           <div
             key={theme.id}
             onClick={() => onApplyTheme(theme.id)}
@@ -894,11 +845,11 @@ function AdvancedTab({ settings, updateSettings }: any) {
         <textarea
           value={settings?.advanced?.customHead || ''}
           onChange={(e) => updateSettings('advanced.customHead', e.target.value)}
-          placeholder="<meta name="custom-meta" content="value">"
+          placeholder={'<meta name="custom-meta" content="value">'}
           rows={4}
           style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'monospace' }}
         />
-        <p style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>HTML to add in the <head> section</p>
+        <p style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>HTML to add in the head section</p>
       </div>
 
       <div>

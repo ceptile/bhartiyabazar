@@ -2,7 +2,7 @@
 // It serves as the main entry point for integrating all the flagship features
 
 // Dashboard Components
-export { default as ComprehensiveDashboard } from './dashboard/ComprehensiveDashboard';
+export { default as DashboardClient } from './dashboard/DashboardClient';
 export { default as JobsDashboard } from './dashboard/JobsDashboard';
 export { default as EcommerceDashboard } from './dashboard/EcommerceDashboard';
 export { default as BusinessPageEditor } from './dashboard/BusinessPageEditor';
@@ -66,13 +66,3 @@ export function getFeatureStatus(feature: string): boolean {
 export function getSupportedPlatforms(): string[] {
   return PLATFORM_INTEGRATION.platforms;
 }
-
-// Type exports for TypeScript
-export type {
-  Job,
-  BusinessTheme,
-  BusinessMedia,
-  BusinessPageSettings,
-  EcommerceProduct,
-  PlatformProduct,
-} from '../lib';

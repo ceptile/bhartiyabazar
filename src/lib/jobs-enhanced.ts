@@ -194,7 +194,7 @@ export async function incrementJobApplications(jobId: string): Promise<void> {
 }
 
 // Close job posting
-export async function closeJob(jobId: string, reason: 'filled' | 'expired' | 'closed' = 'closed'): Promise<void> {
+export async function closeJob(jobId: string, reason: 'active' | 'closed' | 'filled' | 'expired' = 'closed'): Promise<void> {
   await updateDoc(doc(db, COL, jobId), {
     status: reason,
     updatedAt: serverTimestamp(),
@@ -331,7 +331,7 @@ export async function getRecommendedJobs(userId: string, limit: number = 10): Pr
       // Match skills
       if (job.skills && userSkills.length > 0) {
         const matchingSkills = job.skills.filter(skill =>
-          userSkills.some(userSkill =>
+          userSkills.some((userSkill: string) =>
             userSkill.toLowerCase().includes(skill.toLowerCase()) ||
             skill.toLowerCase().includes(userSkill.toLowerCase())
           )

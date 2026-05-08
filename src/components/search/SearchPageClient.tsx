@@ -7,7 +7,7 @@ const CITIES = ['All Cities','Delhi','Mumbai','Bangalore','Hyderabad','Chennai',
 const RATINGS = ['Any Rating','4.5+ Stars','4.0+ Stars','3.5+ Stars'];
 
 function Stars({ r }: { r: number }) {
-  return <span>{[1,2,3,4,5].map(s => <span key={s} style={{ color: s <= r ? 'var(--gold)' : 'var(--border-strong)', fontSize: 12 }}>★</span>)}</span>;
+  return <span>{[1,2,3,4,5].map(s => <span key={s} style={{ color: s <= r ? 'var(--color-warm-terracotta)' : 'var(--color-muted-border)', fontSize: 12 }}>★</span>)}</span>;
 }
 
 export default function SearchPageClient() {
@@ -46,24 +46,27 @@ export default function SearchPageClient() {
     return res;
   }, [query, city, cat, rating, sort, verified, openNow]);
 
-  const selInp: React.CSSProperties = { padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', cursor: 'pointer' };
+  const selInp: React.CSSProperties = { padding: '8px 12px', borderRadius: 'var(--radius-generous)', border: '1px solid var(--color-muted-border)', background: 'var(--color-pure-white)', color: 'var(--color-deep-charcoal)', fontSize: 13, outline: 'none', cursor: 'pointer', height: 40 };
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 64 }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--color-off-white)', paddingTop: 84 }}>
       {/* Search header */}
-      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '24px 0' }}>
+      <div style={{ background: 'var(--color-pure-white)', borderBottom: '1px solid var(--color-muted-border)', padding: '24px 0' }}>
         <div className="container">
-          <h1 style={{ fontFamily: "'EB Garamond',serif", fontSize: 'clamp(1.4rem,3vw,2rem)', color: 'var(--text-primary)', marginBottom: 16 }}>Find Businesses</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.4rem,3vw,2rem)', color: 'var(--color-deep-charcoal)', marginBottom: 16 }}>Find Businesses</h1>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 300px', position: 'relative' }}>
               <input
                 value={query} onChange={e => setQuery(e.target.value)}
                 placeholder="Search businesses, categories, services…"
-                style={{ width: '100%', padding: '11px 16px 11px 40px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-hover)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }}
-                onFocus={e => (e.target.style.borderColor = 'var(--amber)')}
-                onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')}
+                className="input"
+                style={{ paddingLeft: 40 }}
+                onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-deep-charcoal)')}
+                onBlur={e => (e.currentTarget.style.borderColor = 'var(--color-muted-border)')}
               />
-              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 16 }}>🔍</span>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-light-gray)', fontSize: 16 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              </span>
             </div>
             <select style={selInp} value={city} onChange={e => setCity(e.target.value)}>
               {CITIES.map(c => <option key={c}>{c}</option>)}
@@ -85,13 +88,13 @@ export default function SearchPageClient() {
               <option value="reviews">Sort: Most Reviews</option>
               <option value="trust">Sort: Trust Score</option>
             </select>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-medium-gray)', cursor: 'pointer' }}>
               <input type="checkbox" checked={verified} onChange={e => setVerified(e.target.checked)} /> Verified Only
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-medium-gray)', cursor: 'pointer' }}>
               <input type="checkbox" checked={openNow} onChange={e => setOpenNow(e.target.checked)} /> Open Now
             </label>
-            <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--text-muted)' }}>{filtered.length} results</span>
+            <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-light-gray)' }}>{filtered.length} results</span>
           </div>
         </div>
       </div>
@@ -99,50 +102,52 @@ export default function SearchPageClient() {
       <div className="container" style={{ paddingTop: 28, paddingBottom: 56 }}>
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '80px 20px' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-            <h3 style={{ fontSize: 18, color: 'var(--text-primary)', marginBottom: 8 }}>No businesses found</h3>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Try adjusting your search terms or filters.</p>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-light-gray)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 16px' }}>
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <h3 style={{ fontSize: 18, color: 'var(--color-deep-charcoal)', marginBottom: 8 }}>No businesses found</h3>
+            <p style={{ fontSize: 14, color: 'var(--color-light-gray)' }}>Try adjusting your search terms or filters.</p>
             <button onClick={() => { setQuery(''); setCity('All Cities'); setCat(''); setRating('Any Rating'); setVerified(false); setOpenNow(false); }}
-              style={{ marginTop: 20, padding: '8px 20px', borderRadius: 'var(--r-md)', background: 'var(--amber)', color: '#fff', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+              className="btn btn-accent btn-sm" style={{ marginTop: 20 }}>
               Clear Filters
             </button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {filtered.map(b => (
-              <Link key={b.id} href={`/business/${b.slug}`} style={{ display: 'block', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '18px 20px', transition: 'all var(--t)', textDecoration: 'none' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--amber-glow)'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = 'var(--shadow-md)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = 'none'; }}>
+              <Link key={b.id} href={`/business/${b.slug}`} className="card" style={{ display: 'block', textDecoration: 'none' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--color-warm-terracotta)'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = 'var(--shadow-medium)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--color-muted-border)'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = 'var(--shadow-subtle)'; }}>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                   {/* Image */}
                   {b.images[0] && (
                     <img src={b.images[0]} alt={b.name} width={80} height={80} loading="lazy"
-                      style={{ width: 80, height: 80, borderRadius: 'var(--r-md)', objectFit: 'cover', flexShrink: 0 }} />
+                      style={{ width: 80, height: 80, borderRadius: 'var(--radius-generous)', objectFit: 'cover', flexShrink: 0 }} />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                       <div>
-                        <h3 style={{ fontSize: 'clamp(14px,1.5vw,16px)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2, fontFamily: 'inherit' }}>{b.name}</h3>
+                        <h3 style={{ fontSize: 'clamp(14px,1.5vw,16px)', fontWeight: 600, color: 'var(--color-deep-charcoal)', marginBottom: 4, fontFamily: 'inherit' }}>{b.name}</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.category}</span>
-                          <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>•</span>
-                          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.area}, {b.city}</span>
-                          {b.verified && <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--r-full)', background: 'var(--success-bg)', color: 'var(--success)', fontWeight: 600 }}>✓ Verified</span>}
-                          {b.openNow && <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--r-full)', background: 'var(--success-bg)', color: 'var(--success)', fontWeight: 600 }}>Open Now</span>}
+                          <span style={{ fontSize: 12, color: 'var(--color-medium-gray)' }}>{b.category}</span>
+                          <span style={{ fontSize: 11, color: 'var(--color-light-gray)' }}>•</span>
+                          <span style={{ fontSize: 12, color: 'var(--color-medium-gray)' }}>{b.area}, {b.city}</span>
+                          {b.verified && <span className="badge badge-success">Verified</span>}
+                          {b.openNow && <span className="badge badge-success">Open Now</span>}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <Stars r={Math.round(b.rating)} />
-                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{b.rating}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-deep-charcoal)' }}>{b.rating}</span>
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{b.reviewCount} reviews</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-light-gray)' }}>{b.reviewCount} reviews</div>
                       </div>
                     </div>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6, maxWidth: '100%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{b.shortDesc}</p>
+                    <p style={{ fontSize: 13, color: 'var(--color-medium-gray)', marginTop: 6, maxWidth: '100%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{b.shortDesc}</p>
                     <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
                       {b.tags.slice(0, 3).map(t => (
-                        <span key={t} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-full)', background: 'var(--amber-subtle)', color: 'var(--amber-dark)', fontWeight: 500 }}>{t}</span>
+                        <span key={t} className="chip" style={{ fontSize: 11, padding: '2px 8px' }}>{t}</span>
                       ))}
                     </div>
                   </div>

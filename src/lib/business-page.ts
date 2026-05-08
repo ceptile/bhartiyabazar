@@ -110,7 +110,7 @@ export async function getBusinessPageSettings(businessSlug: string): Promise<Bus
   try {
     const snap = await getDoc(doc(db, 'business_page_settings', businessSlug));
     if (!snap.exists()) return null;
-    return { id: snap.id, ...snap.data() } as BusinessPageSettings;
+    return { id: snap.id, ...snap.data() } as unknown as BusinessPageSettings;
   } catch (error) {
     console.error('Error getting business page settings:', error);
     return null;
@@ -385,7 +385,7 @@ export async function duplicateBusinessPageSettings(
       throw new Error('Source settings not found');
     }
 
-    const { id, ...settingsData } = sourceSettings;
+    const { id: _id, ...settingsData } = sourceSettings as BusinessPageSettings & { id?: string };
     await updateBusinessPageSettings(targetSlug, settingsData);
   } catch (error) {
     console.error('Error duplicating business page settings:', error);

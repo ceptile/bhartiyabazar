@@ -67,6 +67,7 @@ export default function EcommerceDashboard() {
   }, [user]);
 
   const loadProducts = async () => {
+    if (!user?.businessSlug) return;
     try {
       const businessProducts = await getBusinessEcommerceProducts(user.businessSlug);
       setProducts(businessProducts);
@@ -116,6 +117,7 @@ export default function EcommerceDashboard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    if (!user) return;
 
     try {
       const productData = {
@@ -133,8 +135,8 @@ export default function EcommerceDashboard() {
         brand: form.brand || undefined,
         inStock: form.inStock,
         stockCount: form.stockCount ? parseInt(form.stockCount) : undefined,
-        businessSlug: user.businessSlug,
-        businessName: user.businessName,
+        businessSlug: user.businessSlug || '',
+        businessName: user.businessName || '',
         postedBy: user.id,
         city: user.city || '',
         featured: form.featured,
@@ -194,7 +196,7 @@ export default function EcommerceDashboard() {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fileName = `products/${user.businessSlug}/${Date.now()}_${file.name}`;
+        const fileName = `products/${user?.businessSlug || 'default'}/${Date.now()}_${file.name}`;
         const storageRef = ref(storage, fileName);
 
         await uploadBytes(storageRef, file);
@@ -237,31 +239,19 @@ export default function EcommerceDashboard() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-off-white)' }}>
         <div className="spinner" />
       </div>
     );
   }
 
-  if (!user.businessSlug) {
+  if (!user?.businessSlug) {
     return (
-      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-        <div style={{ textAlign: 'center', padding: 40, background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>No Business Found</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>You need to register a business first to manage products.</p>
-          <button
-            onClick={() => router.push('/register-business')}
-            style={{
-              padding: '12px 24px',
-              borderRadius: 8,
-              background: 'var(--amber)',
-              color: '#fff',
-              border: 'none',
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: 'pointer',
-            }}
-          >
+      <div className="section-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card" style={{ textAlign: 'center', maxWidth: 400 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-h3)', fontWeight: 400, color: 'var(--color-deep-charcoal)', marginBottom: 12 }}>No Business Found</h2>
+          <p style={{ color: 'var(--color-light-gray)', marginBottom: 24 }}>You need to register a business first to manage products.</p>
+          <button onClick={() => router.push('/list-business')} className="btn btn-accent">
             Register Business
           </button>
         </div>
