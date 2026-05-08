@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -24,19 +24,23 @@ const NAV_LINKS = [
 ];
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router   = useRouter();
   const { user, logout } = useAuth();
 
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 16);
-    window.addEventListener('scroll', fn, { passive: true });
-    return () => window.removeEventListener('scroll', fn);
-  }, []);
-
   useEffect(() => { setDropOpen(false); }, [pathname]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
+        setDropOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const isActive  = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href);
   const initials  = user?.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '';
@@ -50,8 +54,19 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="nav-header">
-        <div className="container" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      <header style={{
+        background: 'var(--color-off-white)',
+        height: 84,
+        padding: '0 40px',
+        borderBottom: '1px solid rgba(31, 30, 29, 0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+      }}>
+        <div style={{ maxWidth: 1440, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 
           {/* Logo */}
           <Link href="/" style={{ flexShrink: 0, lineHeight: 1, textDecoration: 'none' }}>
@@ -70,21 +85,62 @@ export default function Navbar() {
           </nav>
 
           {/* Right side */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, position: 'relative' }}>
             {user ? (
-              <div style={{ position: 'relative' }}>
+              <div ref={dropRef} style={{ position: 'relative' }}>
                 {/* Avatar button */}
-                <button onClick={(e) => { e.stopPropagation(); setDropOpen(p => !p); }} className="btn btn-ghost" style={{ gap: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--color-warm-terracotta)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{initials}</div>
-                  <span className="hide-mobile" style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-deep-charcoal)' }}>{user.name.split(' ')[0]}</span>
-                  <Icon d="M6 9l6 6 6-6" size={14} />
+                <button
+                  onClick={() => setDropOpen(v => !v)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    color: 'var(--color-deep-charcoal)',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  <div style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    background: 'var(--color-warm-terracotta)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}>{initials}</div>
+                  <span className="hide-mobile">{user.name.split(' ')[0]}</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
                 </button>
 
                 {/* Dropdown */}
                 {dropOpen && (
-                  <div className="nav-dropdown" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 220, zIndex: 300 }} onClick={(e) => e.stopPropagation()}>
-                    {/* User info header */}
-                    <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid var(--color-muted-border)', marginBottom: 8 }}>
+                  <div style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 'calc(100% + 8px)',
+                    width: 224,
+                    background: '#fff',
+                    border: '1px solid rgba(31, 30, 29, 0.15)',
+                    borderRadius: 12,
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.04)',
+                    padding: '6px',
+                    zIndex: 300,
+                  }}>
+                    {/* User info */}
+                    <div style={{ padding: '10px 12px 8px', borderBottom: '1px solid rgba(31,30,29,0.08)', marginBottom: 4 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-deep-charcoal)' }}>{user.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-light-gray)' }}>{user.email}</div>
                       <div style={{ fontSize: 10, color: 'var(--color-warm-terracotta)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>
@@ -92,38 +148,42 @@ export default function Navbar() {
                       </div>
                     </div>
 
-                    {/* Standard nav items */}
+                    {/* Nav links */}
                     {dropItems.map(item => (
-                      <Link key={item.href} href={item.href} onClick={() => setDropOpen(false)}
-                        className="nav-dropdown-item">
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <Icon d={item.icon} size={14} />{item.label}
-                        </span>
-                      </Link>
+                      <a key={item.href} href={item.href}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 14, color: 'var(--color-deep-charcoal)', textDecoration: 'none', cursor: 'pointer' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-off-white)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <Icon d={item.icon} size={14} />
+                        {item.label}
+                      </a>
                     ))}
 
-                    {/* Studio link — admin only */}
+                    {/* Studio — admin only */}
                     {isAdmin && (
                       <>
-                        <div style={{ borderTop: '1px solid var(--color-muted-border)', margin: '8px 0' }} />
-                        <Link href="/studio" onClick={() => setDropOpen(false)}
-                          className="nav-dropdown-item" style={{ color: 'var(--color-warm-terracotta)', fontWeight: 600 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Icon d="M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" size={14} />
-                            Studio
-                          </span>
-                        </Link>
+                        <div style={{ borderTop: '1px solid rgba(31,30,29,0.08)', margin: '4px 0' }} />
+                        <a href="/studio"
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 14, color: 'var(--color-warm-terracotta)', fontWeight: 600, textDecoration: 'none', cursor: 'pointer' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-off-white)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <Icon d="M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" size={14} />
+                          Studio
+                        </a>
                       </>
                     )}
 
-                    <div style={{ borderTop: '1px solid var(--color-muted-border)', margin: '8px 0' }} />
-                    {/* Sign out */}
-                    <button onClick={() => { logout(); router.push('/'); setDropOpen(false); }}
-                      className="nav-dropdown-item" style={{ width: '100%', textAlign: 'left', color: 'var(--color-error)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9" size={14} />
-                        Sign Out
-                      </span>
+                    <div style={{ borderTop: '1px solid rgba(31,30,29,0.08)', margin: '4px 0' }} />
+                    <button
+                      onClick={() => { logout(); router.push('/'); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 14, color: '#e01e5a', textDecoration: 'none', cursor: 'pointer', width: '100%', background: 'transparent', border: 'none', fontFamily: 'var(--font-body)', textAlign: 'left' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-off-white)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9" size={14} />
+                      Sign Out
                     </button>
                   </div>
                 )}
@@ -139,11 +199,9 @@ export default function Navbar() {
                 </Link>
               </>
             )}
-            </div>
+          </div>
         </div>
-
-              </header>
-      {dropOpen && <div onClick={() => setDropOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />}
+      </header>
     </>
   );
 }
