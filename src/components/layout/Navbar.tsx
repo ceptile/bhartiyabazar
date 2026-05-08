@@ -74,7 +74,7 @@ export default function Navbar() {
             {user ? (
               <div style={{ position: 'relative' }}>
                 {/* Avatar button */}
-                <button onClick={() => setDropOpen(p => !p)} className="btn btn-ghost" style={{ gap: 8 }}>
+                <button onClick={(e) => { e.stopPropagation(); setDropOpen(p => !p); }} className="btn btn-ghost" style={{ gap: 8 }}>
                   <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--color-warm-terracotta)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{initials}</div>
                   <span className="hide-mobile" style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-deep-charcoal)' }}>{user.name.split(' ')[0]}</span>
                   <Icon d="M6 9l6 6 6-6" size={14} />
@@ -82,7 +82,7 @@ export default function Navbar() {
 
                 {/* Dropdown */}
                 {dropOpen && (
-                  <div className="nav-dropdown" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 220, zIndex: 300 }}>
+                  <div className="nav-dropdown" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 220, zIndex: 300 }} onClick={(e) => e.stopPropagation()}>
                     {/* User info header */}
                     <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid var(--color-muted-border)', marginBottom: 8 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-deep-charcoal)' }}>{user.name}</div>
