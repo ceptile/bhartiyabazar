@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { Menu, X, ChevronDown, PlusCircle } from 'lucide-react';
 
 const ADMIN_EMAIL = 'ceptile.com@gmail.com';
 
@@ -25,12 +26,16 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [dropOpen, setDropOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const router   = useRouter();
+  const router = useRouter();
   const { user, logout } = useAuth();
 
-  useEffect(() => { setDropOpen(false); }, [pathname]);
+  useEffect(() => {
+    setDropOpen(false);
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -41,6 +46,15 @@ export default function Navbar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileMenuOpen]);
 
   const isActive  = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href);
   const initials  = user?.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '';
@@ -56,8 +70,8 @@ export default function Navbar() {
     <>
       <header style={{
         background: 'var(--color-off-white)',
-        height: 84,
-        padding: '0 40px',
+        height: 60,
+        padding: '0 16px',
         borderBottom: '1px solid rgba(31, 30, 29, 0.1)',
         display: 'flex',
         alignItems: 'center',
@@ -65,18 +79,19 @@ export default function Navbar() {
         position: 'sticky',
         top: 0,
         zIndex: 100,
+        gap: 12,
       }}>
-        <div style={{ maxWidth: 1440, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, maxWidth: 1440, margin: '0 auto', width: '100%' }}>
 
           {/* Logo */}
           <Link href="/" style={{ flexShrink: 0, lineHeight: 1, textDecoration: 'none' }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: 'var(--color-deep-charcoal)', letterSpacing: '-0.02em' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-deep-charcoal)', letterSpacing: '-0.02em' }}>
               Bhartiya<span style={{ color: 'var(--color-warm-terracotta)' }}>Bazar</span>
             </div>
           </Link>
 
           {/* Desktop nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'center' }} className="hide-mobile">
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'center' }} className="desktop-nav">
             {NAV_LINKS.map(l => (
               <Link key={l.href} href={l.href} className={`nav-link ${isActive(l.href) ? 'active' : ''}`}>
                 {l.label}
@@ -88,14 +103,13 @@ export default function Navbar() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, position: 'relative' }}>
             {user ? (
               <div ref={dropRef} style={{ position: 'relative' }}>
-                {/* Avatar button */}
                 <button
                   onClick={() => setDropOpen(v => !v)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 12px',
+                    gap: 6,
+                    padding: '6px 10px',
                     borderRadius: 8,
                     border: 'none',
                     background: 'transparent',
@@ -120,12 +134,9 @@ export default function Navbar() {
                     flexShrink: 0,
                   }}>{initials}</div>
                   <span className="hide-mobile">{user.name.split(' ')[0]}</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
+                  <ChevronDown size={14} className="hide-mobile" />
                 </button>
 
-                {/* Dropdown */}
                 {dropOpen && (
                   <div style={{
                     position: 'absolute',
@@ -139,16 +150,10 @@ export default function Navbar() {
                     padding: '6px',
                     zIndex: 300,
                   }}>
-                    {/* User info */}
                     <div style={{ padding: '10px 12px 8px', borderBottom: '1px solid rgba(31,30,29,0.08)', marginBottom: 4 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-deep-charcoal)' }}>{user.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--color-light-gray)' }}>{user.email}</div>
-                      <div style={{ fontSize: 10, color: 'var(--color-warm-terracotta)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>
-                        {user.role === 'business' ? 'Business Account' : 'User Account'}
-                      </div>
                     </div>
-
-                    {/* Nav links */}
                     {dropItems.map(item => (
                       <a key={item.href} href={item.href}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 14, color: 'var(--color-deep-charcoal)', textDecoration: 'none', cursor: 'pointer' }}
@@ -159,28 +164,20 @@ export default function Navbar() {
                         {item.label}
                       </a>
                     ))}
-
-                    {/* Studio — admin only */}
                     {isAdmin && (
                       <>
                         <div style={{ borderTop: '1px solid rgba(31,30,29,0.08)', margin: '4px 0' }} />
                         <a href="/studio"
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 14, color: 'var(--color-warm-terracotta)', fontWeight: 600, textDecoration: 'none', cursor: 'pointer' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-off-white)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                        >
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 14, color: 'var(--color-warm-terracotta)', fontWeight: 600, textDecoration: 'none' }}>
                           <Icon d="M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" size={14} />
                           Studio
                         </a>
                       </>
                     )}
-
                     <div style={{ borderTop: '1px solid rgba(31,30,29,0.08)', margin: '4px 0' }} />
                     <button
                       onClick={() => { logout(); router.push('/'); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 14, color: '#e01e5a', textDecoration: 'none', cursor: 'pointer', width: '100%', background: 'transparent', border: 'none', fontFamily: 'var(--font-body)', textAlign: 'left' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-off-white)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, fontSize: 14, color: '#e01e5a', cursor: 'pointer', width: '100%', background: 'transparent', border: 'none', fontFamily: 'var(--font-body)', textAlign: 'left' }}
                     >
                       <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9" size={14} />
                       Sign Out
@@ -190,18 +187,228 @@ export default function Navbar() {
               </div>
             ) : (
               <>
-                <Link href="/login" className="btn btn-ghost hide-mobile">
-                  <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                <Link href="/login" className="btn btn-ghost hide-mobile" style={{ height: 36, padding: '0 12px', fontSize: 13 }}>
                   Sign In
                 </Link>
-                <Link href="/list-business" className="btn btn-accent">
-                  List Business
+                <Link href="/list-business" className="btn btn-accent" style={{ height: 36, padding: '0 14px', fontSize: 13 }}>
+                  <PlusCircle size={14} />
+                  <span className="hide-mobile">List Business</span>
                 </Link>
               </>
             )}
+
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setMobileMenuOpen(v => !v)}
+              aria-label="Toggle menu"
+              className="mobile-menu-btn"
+              style={{
+                width: 36,
+                height: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--color-off-white)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                color: 'var(--color-deep-charcoal)',
+              }}
+            >
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
           </div>
         </div>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 200,
+          }}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Menu Drawer */}
+      {mobileMenuOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: '85%',
+          maxWidth: 320,
+          background: 'var(--color-pure-white)',
+          zIndex: 201,
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: '-4px 0 32px rgba(0,0,0,0.1)',
+        }}>
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 20px',
+            borderBottom: '1px solid rgba(31, 30, 29, 0.1)',
+          }}>
+            <Link href="/" style={{ textDecoration: 'none' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-deep-charcoal)' }}>
+                Bhartiya<span style={{ color: 'var(--color-warm-terracotta)' }}>Bazar</span>
+              </div>
+            </Link>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                background: 'var(--color-off-white)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+              aria-label="Close menu"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* User info */}
+          {user && (
+            <div style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(31, 30, 29, 0.1)',
+              background: 'var(--color-off-white)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  background: 'var(--color-warm-terracotta)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 16,
+                  fontWeight: 700,
+                }}>{initials}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-deep-charcoal)' }}>{user.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-light-gray)' }}>{user.email}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Menu Items */}
+          <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 12px' }}>
+            {NAV_LINKS.map(l => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '14px 12px',
+                  borderRadius: 10,
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: isActive(l.href) ? 'var(--color-warm-terracotta)' : 'var(--color-deep-charcoal)',
+                  background: isActive(l.href) ? 'rgba(217, 119, 87, 0.08)' : 'transparent',
+                  textDecoration: 'none',
+                  marginBottom: 2,
+                }}
+              >
+                {l.label}
+              </Link>
+            ))}
+
+            <div style={{ borderTop: '1px solid rgba(31, 30, 29, 0.1)', margin: '12px 0' }}>
+              <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} style={drawerLinkStyle}>Dashboard</Link>
+              <Link href="/profile" onClick={() => setMobileMenuOpen(false)} style={drawerLinkStyle}>Profile</Link>
+              <Link href="/settings" onClick={() => setMobileMenuOpen(false)} style={drawerLinkStyle}>Settings</Link>
+              {isAdmin && <Link href="/studio" onClick={() => setMobileMenuOpen(false)} style={drawerLinkStyle}>Studio</Link>}
+            </div>
+          </nav>
+
+          {/* CTA */}
+          <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(31, 30, 29, 0.1)' }}>
+            {user ? (
+              <button
+                onClick={() => { logout(); router.push('/'); }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(224, 30, 90, 0.08)',
+                  color: '#e01e5a',
+                  border: '1px solid rgba(224, 30, 90, 0.2)',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9" size={16} />
+                Sign Out
+              </button>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Link href="/register" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', background: 'var(--color-warm-terracotta)', color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                  <PlusCircle size={16} />
+                  List Your Business — Free
+                </Link>
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px', background: 'var(--color-off-white)', color: 'var(--color-deep-charcoal)', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none', border: '1px solid var(--border)' }}>
+                  Sign In
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media (min-width: 769px) {
+          .desktop-nav { display: flex !important; }
+          .mobile-menu-btn { display: none !important; }
+        }
+        @media (max-width: 768px) {
+          .desktop-nav { display: none; }
+        }
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+      `}</style>
     </>
   );
 }
+
+const drawerLinkStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  padding: '12px 12px',
+  borderRadius: 10,
+  fontSize: 14,
+  fontWeight: 500,
+  color: 'var(--color-medium-gray)',
+  textDecoration: 'none',
+  marginBottom: 2,
+};

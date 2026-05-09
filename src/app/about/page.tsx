@@ -58,28 +58,28 @@ export default function AboutPage() {
   ];
 
   return (
-    <div style={{ background: 'var(--bg)', paddingTop: 64 }}>
+    <div style={{ background: 'var(--color-off-white)', paddingTop: 60, paddingBottom: 100 }}>
 
       {/* Hero */}
-      <section style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: 'clamp(56px,10vw,100px) 0' }}>
-        <div className="container" style={{ maxWidth: 800, textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 'var(--r-full)', border: '1px solid var(--border-hover)', background: 'var(--surface-2)', fontSize: 12, fontWeight: 600, color: 'var(--amber)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 24 }}>
-            <Icon d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" size={13} />
+      <section style={{ background: 'var(--color-pure-white)', borderBottom: '1px solid rgba(31, 30, 29, 0.1)', padding: 'clamp(48px, 8vw, 80px) 16px' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center', padding: '0 16px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(31, 30, 29, 0.2)', background: 'rgba(217, 119, 87, 0.06)', fontSize: 11, fontWeight: 600, color: 'var(--color-warm-terracotta)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 20 }}>
+            <Icon d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" size={12} />
             About BhartiyaBazar
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem,5vw,3.25rem)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.15, marginBottom: 20 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.6rem, 4vw, 2.8rem)', fontWeight: 700, color: 'var(--color-deep-charcoal)', lineHeight: 1.2, marginBottom: 16 }}>
             {get('Hero Headline', "Connecting India's businesses with the people who need them")}
           </h1>
-          <p style={{ fontSize: 'clamp(1rem,1.5vw,1.15rem)', color: 'var(--text-muted)', lineHeight: 1.75, maxWidth: 620, margin: '0 auto 32px' }}>
+          <p style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1rem)', color: 'var(--color-medium-gray)', lineHeight: 1.7, maxWidth: 520, margin: '0 auto 24px' }}>
             {get('Hero Subtext', "BhartiyaBazar is India's most trusted local business discovery platform.")}
           </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/search" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Icon d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" size={15} />
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/search" className="btn btn-accent" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 44 }}>
+              <Icon d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" size={14} />
               Explore Businesses
             </Link>
-            <Link href="/contact" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Icon d="M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z" size={15} />
+            <Link href="/contact" className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 44 }}>
+              <Icon d="M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z" size={14} />
               Get in Touch
             </Link>
           </div>
@@ -87,13 +87,13 @@ export default function AboutPage() {
       </section>
 
       {/* Stats */}
-      <section style={{ padding: 'clamp(48px,8vw,80px) 0', borderBottom: '1px solid var(--border)' }}>
-        <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 1, background: 'var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+      <section style={{ padding: '48px 16px', borderBottom: '1px solid rgba(31, 30, 29, 0.1)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(31, 30, 29, 0.12)' }}>
             {stats.map((s, i) => (
-              <div key={i} style={{ background: 'var(--surface)', padding: 'clamp(24px,4vw,40px) 24px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem,3vw,2.5rem)', fontWeight: 800, color: 'var(--amber)', lineHeight: 1, marginBottom: 8 }}>{s.value}</div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>{s.label}</div>
+              <div key={i} style={{ background: 'var(--color-pure-white)', padding: '20px 16px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, color: 'var(--color-warm-terracotta)', lineHeight: 1, marginBottom: 6 }}>{s.value}</div>
+                <div style={{ fontSize: 12, color: 'var(--color-light-gray)', fontWeight: 500 }}>{s.label}</div>
               </div>
             ))}
           </div>

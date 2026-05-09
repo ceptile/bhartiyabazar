@@ -9,9 +9,9 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const inp: React.CSSProperties = {
-  width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)',
-  border: '1px solid var(--border-hover)', background: 'var(--bg)',
-  color: 'var(--text-primary)', fontSize: 14, outline: 'none',
+  width: '100%', padding: '12px 14px', borderRadius: 10,
+  border: '1px solid rgba(31, 30, 29, 0.3)', background: 'var(--color-off-white)',
+  color: 'var(--color-deep-charcoal)', fontSize: 14, outline: 'none',
 };
 
 function LocIcon() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>; }
@@ -319,8 +319,8 @@ export default function RegisterBusinessPage() {
   };
 
   if (authLoading) return (
-    <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-      <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--amber)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+    <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-off-white)' }}>
+      <div style={{ width: 32, height: 32, border: '3px solid rgba(31, 30, 29, 0.2)', borderTopColor: 'var(--color-warm-terracotta)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
@@ -328,23 +328,23 @@ export default function RegisterBusinessPage() {
   const isLoggedIn = !!user;
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg)', padding: '80px 16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '100%', maxWidth: 580 }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--color-off-white)', padding: '72px 16px 60px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 520 }}>
 
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <Link href="/" style={{ display: 'inline-block', marginBottom: 12, textDecoration: 'none' }}>
-            <span style={{ fontFamily: "'EB Garamond', Georgia, serif", fontWeight: 700, fontSize: 24, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Bhartiya<span style={{ color: 'var(--amber)' }}>Bazar</span>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <Link href="/" style={{ display: 'inline-block', marginBottom: 10, textDecoration: 'none' }}>
+            <span style={{ fontFamily: "'EB Garamond', Georgia, serif", fontWeight: 700, fontSize: 22, color: 'var(--color-deep-charcoal)', letterSpacing: '-0.02em' }}>
+              Bhartiya<span style={{ color: 'var(--color-warm-terracotta)' }}>Bazar</span>
             </span>
           </Link>
-          <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontFamily: "'EB Garamond', serif", color: 'var(--text-primary)', marginBottom: 6 }}>List Your Business</h1>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-            {isLoggedIn ? `Signed in as ${user.name} · ${user.email}` : 'Reach millions of customers across India'}
+          <h1 style={{ fontSize: 'clamp(1.2rem, 3vw, 1.6rem)', fontFamily: "'EB Garamond', serif", color: 'var(--color-deep-charcoal)', marginBottom: 4 }}>List Your Business</h1>
+          <p style={{ fontSize: 13, color: 'var(--color-light-gray)' }}>
+            {isLoggedIn ? `Signed in as ${user.name}` : 'Reach millions of customers across India'}
           </p>
         </div>
 
         {!isLoggedIn && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 20 }}>
             {[1, 2].map((s, i) => (
               <div key={s} style={{ display: 'flex', alignItems: 'center' }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: s <= step ? 'var(--amber)' : 'var(--surface-2)', color: s <= step ? '#fff' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>{s}</div>
@@ -357,7 +357,7 @@ export default function RegisterBusinessPage() {
           </div>
         )}
 
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 32, boxShadow: 'var(--shadow-md)' }}>
+        <div style={{ background: 'var(--color-pure-white)', border: '1px solid rgba(31, 30, 29, 0.12)', borderRadius: 16, padding: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {error && (

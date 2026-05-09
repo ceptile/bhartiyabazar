@@ -127,56 +127,57 @@ export default function SearchPage() {
   const totalPages  = Math.ceil(filtered.length / PER_PAGE);
 
   const inp: React.CSSProperties = {
-    background: 'var(--surface)', border: '1px solid var(--border-hover)',
-    borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 14,
-    color: 'var(--text-primary)', outline: 'none', fontFamily: 'var(--font-body)',
+    background: 'var(--color-pure-white)', border: '1px solid rgba(31, 30, 29, 0.3)',
+    borderRadius: 8, padding: '10px 14px', fontSize: 14,
+    color: 'var(--color-deep-charcoal)', outline: 'none', fontFamily: 'var(--font-body)',
   };
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 64 }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--color-off-white)', paddingTop: 60, paddingBottom: 100 }}>
 
       {/* Header */}
-      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: 'clamp(28px,5vw,48px) 0' }}>
-        <div className="container">
-          <span className="section-label">Business Directory</span>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.6rem,3.5vw,2.5rem)', color: 'var(--text-primary)', marginBottom: 8 }}>
+      <div style={{ background: 'var(--color-pure-white)', borderBottom: '1px solid rgba(31, 30, 29, 0.1)', padding: '24px 16px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <span className="section-label" style={{ fontSize: 11 }}>Business Directory</span>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.4rem, 3vw, 2.2rem)', color: 'var(--color-deep-charcoal)', marginBottom: 6 }}>
             Find Businesses Across India
           </h1>
-          <p style={{ fontSize: 15, color: 'var(--text-muted)', marginBottom: 24, maxWidth: 500 }}>
+          <p style={{ fontSize: 13, color: 'var(--color-light-gray)', marginBottom: 20, maxWidth: 480 }}>
             {businesses.length > 0
               ? `${businesses.length} businesses listed`
               : 'Be the first to list your business — completely free'}
           </p>
 
           {/* Search bar */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', maxWidth: 800 }}>
-            <div style={{ flex: '2 1 240px', position: 'relative' }}>
-              <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)', pointerEvents: 'none' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ flex: '2 1 200px', position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-light-gray)', pointerEvents: 'none' }}>
                 <Icon d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" size={16} />
               </div>
               <input value={query} onChange={e => { setQuery(e.target.value); setPage(1); }}
                 placeholder="Search businesses, services..."
                 style={{ ...inp, width: '100%', paddingLeft: 38 }}
-                onFocus={e => (e.target.style.borderColor = 'var(--info)')}
-                onBlur={e => (e.target.style.borderColor = 'var(--border-hover)')} />
+                onFocus={e => (e.target.style.borderColor = 'var(--color-warm-terracotta)')}
+                onBlur={e => (e.target.style.borderColor = 'rgba(31, 30, 29, 0.3)')}
+              />
             </div>
             <select value={city} onChange={e => { setCity(e.target.value); setPage(1); }}
-              style={{ ...inp, flex: '1 1 140px', cursor: 'pointer' }}>
+              style={{ ...inp, flex: '1 1 120px', cursor: 'pointer' }}>
               {CITIES.map(c => <option key={c} value={c === 'All Cities' ? '' : c}>{c}</option>)}
             </select>
           </div>
         </div>
       </div>
 
-      <div className="container" style={{ paddingTop: 24, paddingBottom: 60 }}>
+      <div style={{ padding: '20px 16px 60px', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
 
           {/* Sidebar filters */}
-          <div style={{ width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }} className="hide-mobile">
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Category</div>
+          <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }} className="sidebar-filter">
+            <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 700, color: 'var(--color-light-gray)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4, padding: '0 4px' }}>Category</div>
             {CATEGORIES.map(c => (
               <button key={c.value} onClick={() => { setCategory(c.value); setPage(1); }}
-                style={{ textAlign: 'left', padding: '8px 12px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: category === c.value ? 600 : 400, color: category === c.value ? 'var(--amber)' : 'var(--text-secondary)', background: category === c.value ? 'var(--amber-subtle)' : 'transparent', border: category === c.value ? '1px solid var(--amber-glow)' : '1px solid transparent', cursor: 'pointer', transition: 'all var(--t)' }}>
+                style={{ textAlign: 'left', padding: '8px 10px', borderRadius: 8, fontSize: 13, fontWeight: category === c.value ? 600 : 400, color: category === c.value ? 'var(--color-warm-terracotta)' : 'var(--color-medium-gray)', background: category === c.value ? 'rgba(217,119,87,0.08)' : 'transparent', border: 'none', cursor: 'pointer', transition: 'all 180ms ease' }}>
                 {c.label}
               </button>
             ))}
@@ -230,7 +231,7 @@ export default function SearchPage() {
                     : 'Try different keywords or clear your filters.'}
                 </p>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <Link href="/register-business" className="btn btn-primary">List Your Business Free</Link>
+                  <Link href="/register-business" className="btn btn-accent" style={{ fontSize: 14 }}>List Your Business Free</Link>
                   {businesses.length > 0 && (
                     <button onClick={() => { setQuery(''); setCategory(''); setCity(''); }} className="btn btn-outline">
                       Clear Filters
@@ -243,7 +244,7 @@ export default function SearchPage() {
             {/* Cards grid */}
             {paginated.length > 0 && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
                   {paginated.map((b, i) => (
                     <BusinessCard key={b.id} biz={b} delay={i * 50} />
                   ))}
@@ -285,7 +286,7 @@ function BusinessCard({ biz, delay }: { biz: Business; delay: number }) {
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ background: 'var(--surface)', border: `1px solid ${hovered ? 'var(--amber-glow)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)', padding: '20px', transition: 'all var(--t)', transform: hovered ? 'translateY(-2px)' : 'none', boxShadow: hovered ? 'var(--shadow-md)' : 'var(--shadow-sm)' }}
+      style={{ background: 'var(--color-pure-white)', border: `1px solid ${hovered ? 'rgba(217,119,87,0.3)' : 'rgba(31,30,29,0.12)'}`, borderRadius: 12, padding: 16, transition: 'all 180ms ease', transform: hovered ? 'translateY(-2px)' : 'none', boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.04)' }}
       className="anim-fadeUp">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
         <div style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'var(--amber-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--amber)', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, flexShrink: 0 }}>

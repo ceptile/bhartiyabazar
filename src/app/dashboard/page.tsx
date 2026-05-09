@@ -276,41 +276,41 @@ export default function DashboardPage() {
   })();
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg)', paddingTop: 64 }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--color-off-white)', paddingTop: 60, paddingBottom: 100 }}>
       {/* Header */}
-      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '28px 0' }}>
-        <div className="container" style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--amber)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-display)', flexShrink: 0 }}>
+      <div style={{ background: 'var(--color-pure-white)', borderBottom: '1px solid rgba(31, 30, 29, 0.1)', padding: '20px 16px' }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--color-warm-terracotta)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-display)', flexShrink: 0 }}>
               {initials}
             </div>
             <div>
-              <div style={{ fontSize: 'clamp(1.2rem,2vw,1.5rem)', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <div style={{ fontSize: 'clamp(1rem, 2vw, 1.3rem)', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--color-deep-charcoal)' }}>
                 Welcome, {user.name.split(' ')[0]}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-                {isBiz ? `Business Account — ${user.businessName || 'Your Business'}` : 'Personal Account'} &nbsp;·&nbsp; {user.city || 'India'}
+              <div style={{ fontSize: 12, color: 'var(--color-light-gray)', marginTop: 2 }}>
+                {isBiz ? `Business — ${user.businessName || 'Your Business'}` : 'Personal Account'} · {user.city || 'India'}
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             {isBiz && (
-              <button onClick={() => setTab('biz')} className="btn btn-outline btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" size={14} />
-                Edit Business
+              <button onClick={() => setTab('biz')} className="btn btn-ghost btn-sm" style={{ height: 36, fontSize: 12 }}>
+                <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" size={13} />
+                Edit
               </button>
             )}
-            {isBiz && (
-              <Link href="/search" className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon d="M15 3h6v6 M10 14L21 3 M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" size={14} />
-                View Listing
+            {isBiz && user.businessSlug && (
+              <Link href={`/business/${user.businessSlug}`} className="btn btn-accent btn-sm" style={{ height: 36, fontSize: 12 }}>
+                <Icon d="M15 3h6v6 M10 14L21 3 M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" size={13} />
+                View
               </Link>
             )}
           </div>
         </div>
       </div>
 
-      <div className="container" style={{ paddingTop: 28, paddingBottom: 60 }}>
+      <div style={{ padding: '20px 16px 60px', maxWidth: 1100, margin: '0 auto' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 28, overflowX: 'auto', scrollbarWidth: 'none' }}>
           {TABS.map(t => (

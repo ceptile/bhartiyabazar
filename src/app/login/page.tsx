@@ -26,26 +26,26 @@ function LoginContent() {
   return (
     <div style={{
       minHeight: '100dvh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', background: 'var(--bg)', padding: '80px 16px'
+      justifyContent: 'center', background: 'var(--color-off-white)', padding: '80px 16px'
     }}>
-      <div style={{ width: '100%', maxWidth: 400 }}>
+      <div style={{ width: '100%', maxWidth: 380, padding: '0 8px' }}>
 
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <Link href="/" style={{ textDecoration: 'none' }}>
             <div style={{
               fontFamily: "'EB Garamond',Georgia,serif", fontWeight: 700,
-              fontSize: 28, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: 8
+              fontSize: 24, color: 'var(--color-deep-charcoal)', letterSpacing: '-0.02em', marginBottom: 6
             }}>
-              Bhartiya<span style={{ color: 'var(--amber)' }}>Bazar</span>
+              Bhartiya<span style={{ color: 'var(--color-warm-terracotta)' }}>Bazar</span>
             </div>
           </Link>
-          <h1 style={{ fontSize: '1.5rem', fontFamily: "'EB Garamond',serif", color: 'var(--text-primary)', marginBottom: 6 }}>Welcome back</h1>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Sign in to continue</p>
+          <h1 style={{ fontSize: 'clamp(1.3rem, 3vw, 1.5rem)', fontFamily: "'EB Garamond',serif", color: 'var(--color-deep-charcoal)', marginBottom: 4 }}>Welcome back</h1>
+          <p style={{ fontSize: 13, color: 'var(--color-light-gray)' }}>Sign in to continue</p>
         </div>
 
         <div style={{
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 'var(--r-xl)', padding: 32, boxShadow: 'var(--shadow-md)'
+          background: 'var(--color-pure-white)', border: '1px solid rgba(31, 30, 29, 0.12)',
+          borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
         }}>
 
           {error && (
@@ -62,21 +62,21 @@ function LoginContent() {
             onClick={handleGoogle}
             disabled={loading}
             style={{
-              width: '100%', padding: '13px 20px', borderRadius: 'var(--r-md)',
-              border: '1px solid var(--border-hover)', background: 'var(--bg)',
-              color: 'var(--text-primary)', fontWeight: 600, fontSize: 15,
+              width: '100%', padding: '13px 20px', borderRadius: 10,
+              border: '1px solid rgba(31, 30, 29, 0.3)', background: 'var(--color-off-white)',
+              color: 'var(--color-deep-charcoal)', fontWeight: 600, fontSize: 14,
               cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-              transition: 'all var(--t)', opacity: loading ? 0.7 : 1,
+              transition: 'all 180ms ease', opacity: loading ? 0.7 : 1,
             }}
-            onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = 'var(--amber)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--amber-glow)'; }}}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.boxShadow = 'none'; }}
+            onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = 'var(--color-warm-terracotta)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(217,119,87,0.15)'; }}}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(31, 30, 29, 0.3)'; e.currentTarget.style.boxShadow = 'none'; }}
           >
             {loading ? (
               <>
                 <div style={{
-                  width: 20, height: 20, border: '2px solid var(--border)',
-                  borderTopColor: 'var(--amber)', borderRadius: '50%',
+                  width: 18, height: 18, border: '2px solid rgba(31, 30, 29, 0.3)',
+                  borderTopColor: 'var(--color-warm-terracotta)', borderRadius: '50%',
                   animation: 'spin 0.7s linear infinite', flexShrink: 0
                 }} />
                 Signing in…
@@ -94,16 +94,16 @@ function LoginContent() {
             )}
           </button>
 
-          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: 'var(--text-faint)' }}>
+          <p style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: 'var(--color-light-gray)' }}>
             By signing in, you agree to our{' '}
-            <Link href="/terms" style={{ color: 'var(--amber)' }}>Terms</Link> &amp;{' '}
-            <Link href="/privacy" style={{ color: 'var(--amber)' }}>Privacy Policy</Link>
+            <Link href="/terms" style={{ color: 'var(--color-warm-terracotta)' }}>Terms</Link> &amp;{' '}
+            <Link href="/privacy" style={{ color: 'var(--color-warm-terracotta)' }}>Privacy Policy</Link>
           </p>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--text-muted)' }}>
+        <p style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: 'var(--color-medium-gray)' }}>
           Want to list your business?{' '}
-          <Link href="/list-business" style={{ color: 'var(--amber)', fontWeight: 600 }}>List it free →</Link>
+          <Link href="/list-business" style={{ color: 'var(--color-warm-terracotta)', fontWeight: 600 }}>List it free →</Link>
         </p>
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>

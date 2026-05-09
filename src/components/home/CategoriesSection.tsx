@@ -16,20 +16,20 @@ export default function CategoriesSection() {
   }, []);
 
   return (
-    <section ref={ref} className="section" style={{ background: 'var(--color-off-white)' }}>
-      <div className="container">
-        <div style={{ textAlign: 'center', marginBottom: 'clamp(36px,6vw,60px)' }}>
+    <section ref={ref} className="section" style={{ background: 'var(--color-off-white)', padding: '48px 16px' }}>
+      <div className="container" style={{ maxWidth: 1100, margin: '0 auto', padding: 0 }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <span className="section-label">Browse by Category</span>
-          <h2 className="section-title">16 Categories,<br />Every Business Type</h2>
-          <p className="section-sub" style={{ margin: '0 auto' }}>
+          <h2 className="section-title" style={{ fontSize: 'clamp(1.2rem, 2.5vw, 1.6rem)', marginBottom: 6 }}>16 Categories,<br />Every Business Type</h2>
+          <p className="section-sub" style={{ margin: '0 auto', fontSize: 'clamp(0.85rem, 1.2vw, 1rem)' }}>
             Explore every service vertical with verified listings across India
           </p>
         </div>
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(158px, 1fr))',
-          gap: 14,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+          gap: 10,
         }}>
           {categories.map((cat: Category, i: number) => (
             <Link

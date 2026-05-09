@@ -913,15 +913,7 @@ textarea.input {
 .text-center { text-align: center; }
 .text-balance { text-wrap: balance; }
 
-/* ══ RESPONSIVE ══ */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
+/* ══ RESPONSIVE — MOBILE FIRST ══ */
 @media (max-width: 1024px) {
   .container, .container-sm { padding: 0 24px; }
   .nav-header { padding: 0 24px; }
@@ -930,11 +922,20 @@ textarea.input {
 }
 
 @media (max-width: 768px) {
-  .container, .container-sm { padding: 0 20px; }
-  .nav-header { padding: 0 20px; height: 72px; }
-  .section-container { padding: var(--space-10) 20px; }
-  .section { padding: var(--space-10) 0; }
-  .section-sm { padding: var(--space-8) 0; }
+  :root {
+    --text-display: 36px;
+    --text-h2: 32px;
+    --text-h3: 26px;
+    --text-h4: 20px;
+    --leading-display: 44px;
+    --leading-h2: 40px;
+    --leading-h3: 34px;
+  }
+  .container, .container-sm { padding: 0 16px; }
+  .nav-header { padding: 0 16px; height: 60px; }
+  .section-container { padding: var(--space-10) 16px; }
+  .section { padding: var(--space-8) 0; }
+  .section-sm { padding: var(--space-6) 0; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .hide-mobile { display: none !important; }
   .text-display { font-size: clamp(2rem, 1rem + 3vw, var(--text-display)); }
@@ -942,7 +943,237 @@ textarea.input {
 }
 
 @media (max-width: 480px) {
-  .container, .container-sm { padding: 0 16px; }
+  .container, .container-sm { padding: 0 12px; }
+}
+
+/* ══ MOBILE BOTTOM NAV ══ */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-pure-white);
+  border-top: 1px solid rgba(31, 30, 29, 0.12);
+  padding: 8px 0;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 1000;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.mobile-bottom-nav-inner {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.mobile-bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--color-light-gray);
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-bottom-nav-item:active {
+  background: rgba(217, 119, 87, 0.08);
+  transform: scale(0.96);
+}
+
+.mobile-bottom-nav-item.active {
+  color: var(--color-warm-terracotta);
+}
+
+.mobile-bottom-nav-item svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.mobile-bottom-nav-item span {
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav { display: block; }
+  body { padding-bottom: 80px; }
+}
+
+/* ══ MOBILE DRAWER ══ */
+.mobile-menu-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1001;
+  animation: fadeIn 0.2s ease;
+}
+
+.mobile-menu-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-pure-white);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 1002;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.mobile-menu-drawer h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-deep-charcoal);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(31, 30, 29, 0.1);
+}
+
+.mobile-menu-drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--color-medium-gray);
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 180ms ease;
+  margin-bottom: 4px;
+}
+
+.mobile-menu-drawer-item:hover, .mobile-menu-drawer-item:active {
+  background: var(--color-off-white);
+  color: var(--color-deep-charcoal);
+}
+
+.mobile-menu-drawer-item.active {
+  color: var(--color-warm-terracotta);
+  background: rgba(217, 119, 87, 0.08);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-overlay { display: block; }
+}
+
+/* ══ MOBILE SEARCH BAR ══ */
+.mobile-search-bar {
+  display: none;
+  padding: 12px 16px;
+  background: var(--color-pure-white);
+  border-bottom: 1px solid rgba(31, 30, 29, 0.1);
+  position: sticky;
+  top: 60px;
+  z-index: 90;
+}
+
+.mobile-search-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-off-white);
+  border: 1px solid rgba(31, 30, 29, 0.15);
+  border-radius: 12px;
+  padding: 10px 14px;
+  height: 44px;
+}
+
+.mobile-search-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--color-deep-charcoal);
+}
+
+.mobile-search-input input::placeholder {
+  color: var(--color-light-gray);
+}
+
+@media (max-width: 768px) {
+  .mobile-search-bar { display: block; }
+}
+
+/* ══ MOBILE CARD GRID ══ */
+.mobile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 400px) {
+  .mobile-grid { grid-template-columns: 1fr; }
+}
+
+/* ══ TOAST MOBILE ══ */
+@media (max-width: 768px) {
+  .toast-container {
+    bottom: 100px;
+    right: 12px;
+    left: 12px;
+  }
+  .toast { max-width: 100%; }
+}
+
+/* ══ PWA / APP-LIKE STYLES ══ */
+html {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+body {
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  /* Prevent pull-to-refresh on mobile */
+  body {
+    overscroll-behavior: auto;
+  }
+
+  /* Smooth scrolling for mobile */
+  * {
+    -webkit-tap-highlight-color: rgba(217, 119, 87, 0.15);
+  }
+
+  /* Better touch targets */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ══ REDUCED MOTION ══ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ══ CSS ALIASES — backward compat with old var names used across codebase ══ */

@@ -160,21 +160,21 @@ export default function HeroSection() {
     <div style={{ minHeight: '100dvh', background: 'var(--color-off-white)' }}>
 
       {/* ── Hero ── */}
-      <section style={{ padding: 'clamp(80px,10vw,140px) 16px clamp(48px,6vw,80px)', textAlign: 'center' }}>
+      <section style={{ padding: 'clamp(60px,8vw,120px) 16px clamp(40px,5vw,64px)', textAlign: 'center' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div className="badge badge-accent" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 20 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          <div className="badge badge-accent" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 11 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
             India&apos;s Trusted Business Directory
           </div>
-          <h1 className="text-display" style={{ marginBottom: 14 }}>
+          <h1 className="text-display" style={{ marginBottom: 12, fontSize: 'clamp(1.8rem, 4vw, 3.2rem)' }}>
             Find Any Business,<br/>Anywhere in India
           </h1>
-          <p style={{ fontSize: 'clamp(1rem,1.5vw,1.2rem)', color: 'var(--color-medium-gray)', marginBottom: 32, maxWidth: 500, margin: '0 auto 32px' }}>
+          <p style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1.1rem)', color: 'var(--color-medium-gray)', marginBottom: 24, maxWidth: 480, margin: '0 auto 24px' }}>
             Search restaurants, doctors, shops, services & more — near you or anywhere.
           </p>
 
           {/* ── Smart Search Bar ── */}
-          <div style={{ display: 'flex', gap: 8, maxWidth: 680, margin: '0 auto', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 8, maxWidth: 680, margin: '0 auto', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
 
             {/* City chip */}
             <div ref={cityRef} style={{ position: 'relative' }}>
@@ -332,12 +332,12 @@ export default function HeroSection() {
       </section>
 
       {/* ── Stats ── */}
-      <section style={{ padding: '0 16px 60px' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+      <section style={{ padding: '0 16px 48px' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
           {[['10,000+', 'Businesses Listed'], ['500+', 'Cities Covered'], ['50+', 'Categories']].map(([n, l]) => (
-            <div key={l} className="card" style={{ textAlign: 'center', padding: '20px 12px' }}>
-              <div style={{ fontSize: 'clamp(1.4rem,2.5vw,2rem)', fontWeight: 700, color: 'var(--color-warm-terracotta)', fontFamily: 'var(--font-display)' }}>{n}</div>
-              <div style={{ fontSize: 12, color: 'var(--color-light-gray)', marginTop: 4 }}>{l}</div>
+            <div key={l} className="card" style={{ textAlign: 'center', padding: '16px 8px' }}>
+              <div style={{ fontSize: 'clamp(1.2rem, 3vw, 1.8rem)', fontWeight: 700, color: 'var(--color-warm-terracotta)', fontFamily: 'var(--font-display)' }}>{n}</div>
+              <div style={{ fontSize: 11, color: 'var(--color-light-gray)', marginTop: 4 }}>{l}</div>
             </div>
           ))}
         </div>
@@ -345,17 +345,17 @@ export default function HeroSection() {
 
       {/* ── Recently added ── */}
       {allBiz.length > 0 && (
-        <section style={{ padding: '0 16px 80px' }}>
+        <section style={{ padding: '0 16px 64px' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20 }}>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.3rem,2vw,1.7rem)', fontWeight: 700, color: 'var(--color-deep-charcoal)' }}>Recently Listed</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.1rem, 2vw, 1.5rem)', fontWeight: 700, color: 'var(--color-deep-charcoal)' }}>Recently Listed</h2>
               <Link href="/listings" style={{ fontSize: 13, color: 'var(--color-warm-terracotta)', fontWeight: 600, textDecoration: 'none' }}>View all →</Link>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
               {allBiz.slice(0, 8).map(biz => (
-                <Link key={biz.slug} href={`/business/${biz.slug}`} className="card" style={{ textDecoration: 'none', display: 'block' }}>
+                <Link key={biz.slug} href={`/business/${biz.slug}`} className="card" style={{ textDecoration: 'none', display: 'block', padding: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-deep-charcoal)', lineHeight: 1.3 }}>{biz.name}</h3>
+                    <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-deep-charcoal)', lineHeight: 1.3 }}>{biz.name}</h3>
                     {biz.verified && <span className="badge badge-success" style={{ fontSize: 9, whiteSpace: 'nowrap' }}>Verified</span>}
                   </div>
                   <span className="badge badge-accent" style={{ fontSize: 10 }}>{biz.category}</span>
